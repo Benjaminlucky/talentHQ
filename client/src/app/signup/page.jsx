@@ -1,5 +1,48 @@
-import React from "react";
+"use client";
 
-export default function page() {
-  return <div>Sign up</div>;
+import React, { useState } from "react";
+import JobSeekerSignupModal from "@/components/JobSeekerSignupModal";
+
+export default function Page() {
+  const [isJobSeekerModalOpen, setIsJobSeekerModalOpen] = useState(false);
+
+  return (
+    <main className=" min-h-screen">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-primary-200 rounded-md shadow-md">
+          <div className="flex flex-col justify-center text-center md:text-left px-6 sm:px-10 md:px-16 py-16 sm:py-20">
+            <h2 className="text-4xl mx-auto sm:text-5xl md:text-6xl font-bold">
+              Signup to Join our Community
+            </h2>
+            <p className="text-gray-600 mx-auto text-xl sm:text-2xl mt-6">
+              Click the button that best describes you to start your journey.
+            </p>
+
+            <div className="mt-8  w-full md:w-7/12 flex flex-col mx-auto md:flex-row gap-4 justify-center md:justify-start items-center">
+              <button
+                onClick={() => setIsJobSeekerModalOpen(true)}
+                className="bg-white w-full text-lg font-semibold px-5 py-3 rounded-md text-primary-500 hover:bg-lime-200 transition-all duration-300"
+              >
+                Job Seeker
+              </button>
+
+              <button className="bg-white w-full text-lg font-semibold px-5 py-3 rounded-md text-primary-500 hover:bg-lime-200 transition-all duration-300">
+                Handyman
+              </button>
+
+              <button className="bg-white w-full text-lg font-semibold px-5 py-3 rounded-md text-primary-500 hover:bg-lime-200 transition-all duration-300">
+                Employer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      <JobSeekerSignupModal
+        isOpen={isJobSeekerModalOpen}
+        onClose={() => setIsJobSeekerModalOpen(false)}
+      />
+    </main>
+  );
 }

@@ -91,7 +91,7 @@ export default function FeaturedJobs() {
                   className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
                   onClick={() => handleApply(job.id)}
                 >
-                  Apply Now
+                  View Details
                 </button>
               </div>
             </div>

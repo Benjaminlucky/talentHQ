@@ -1,5 +1,6 @@
 import { featuredJobs } from "../../../../data";
 import "./page.css";
+import Link from "next/link";
 
 export async function generateStaticParams() {
   return featuredJobs.map((job) => ({ id: job.id.toString() }));
@@ -30,9 +31,13 @@ export default async function JobDetailPage({ params }) {
                   View Company
                 </button>
 
-                <button className="bg-lime-500 w-full px-6 py-3 uppercase font-semibold text-lg rounded-sm text-white hover:bg-lime-700 transition-all duration-300">
-                  Apply for this job
-                </button>
+                <Link
+                  href={`/signup?redirect=/jobs/${job.id}`}
+                  passHref
+                  className="bg-lime-500 text-center uppercase w-full px-6 py-3 uppercase font-semibold text-lg rounded-sm text-white hover:bg-lime-700 transition-all duration-300"
+                >
+                  <button className="uppercase">Apply for this job</button>
+                </Link>
               </div>
             </div>
           </div>

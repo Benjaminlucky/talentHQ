@@ -240,3 +240,12 @@ export const featuredCandidates = [
     avatar: "/assets/olivia.avif",
   },
 ];
+
+export const nigeriaStatesWithLGAs = [
+  {
+    Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],
+    Adamawa: ["Demsa", "Fufore", "Ganye", "Girei", "Gombi"],
+    Lagos: ["Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Apapa"],
+    FCT: ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal"],
+  },
+];
