@@ -9,6 +9,9 @@ export const featuredJobs = [
     mode: "Full-time",
     salary: "₦400K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 2,
@@ -20,6 +23,9 @@ export const featuredJobs = [
     mode: "Part-time",
     salary: "₦300K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 3,
@@ -31,6 +37,9 @@ export const featuredJobs = [
     mode: "Contract",
     salary: "₦500K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 4,
@@ -42,6 +51,9 @@ export const featuredJobs = [
     mode: "Internship",
     salary: "₦200K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 5,
@@ -53,6 +65,9 @@ export const featuredJobs = [
     mode: "Freelance",
     salary: "₦350K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 6,
@@ -64,6 +79,9 @@ export const featuredJobs = [
     mode: "Full-time",
     salary: "₦450K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 7,
@@ -75,6 +93,9 @@ export const featuredJobs = [
     mode: "Part-time",
     salary: "₦400K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 8,
@@ -86,6 +107,9 @@ export const featuredJobs = [
     mode: "Internship",
     salary: "₦250K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 9,
@@ -97,6 +121,15 @@ export const featuredJobs = [
     mode: "Freelance",
     salary: "₦300K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    benefits: [
+      "Health Insurance",
+      "Retirement Plan",
+      "Paid Time Off",
+      "Professional Development Opportunities",
+    ],
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
   {
     id: 10,
@@ -108,6 +141,10 @@ export const featuredJobs = [
     mode: "Full-time",
     salary: "₦350K",
     time: "Monthly",
+    qualification: "BSc. Computer Science",
+    skills: ["User Experience", "System Design", "Wireframing", "Photoshop"],
+    detailedBrief:
+      "Datadock.AI is seeking a motivated Junior Data Engineer to support the work of our data science team. In this role, you will help build and maintain efficient data pipelines and systems that enable seamless data analysis and insights generation. You'll work closely with team members to ensure the solutions you develop align with project goals and organizational requirements.To ensure success as a data engineer, you should be able to design, build, operationalize, secure, and monitor data processing systems with a particular emphasis on security and compliance; scalability and efficiency; reliability and fidelity; and flexibility and portability as well as leverage, deploy, and continuously train pre-existing machine learning models.What You’ll Be Doing: Data Engineer Job Responsibilities:",
   },
 ];
 

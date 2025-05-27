@@ -1,10 +1,11 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 import { featuredJobs } from "../../data";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 
 export default function FeaturedJobs() {
   const controls = useAnimation();
@@ -19,6 +20,11 @@ export default function FeaturedJobs() {
       },
     });
   }, [controls]);
+  const router = useRouter();
+  const handleApply = (jobId) => {
+    //Navigate to the Job Detail Page
+    router.push(`/jobs/${jobId}`);
+  };
 
   return (
     <div className="featuredJobs mt-12 overflow-hidden">
@@ -81,7 +87,10 @@ export default function FeaturedJobs() {
                   <p className="text-gray-800 font-semibold">{job.salary}</p>
                   <p className="text-gray-500 text-xs">{job.time}</p>
                 </div>
-                <button className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition">
+                <button
+                  className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
+                  onClick={() => handleApply(job.id)}
+                >
                   Apply Now
                 </button>
               </div>
