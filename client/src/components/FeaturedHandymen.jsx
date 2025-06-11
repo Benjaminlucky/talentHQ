@@ -2,11 +2,12 @@
 
 import { motion, useAnimation } from "framer-motion";
 import { useEffect } from "react";
-import { featuredCandidates, featuredJobs } from "../../data";
-import { IoLocationOutline } from "react-icons/io5";
-import { FiBriefcase } from "react-icons/fi";
 
-export default function FeaturedCandidates() {
+import { IoLocationOutline } from "react-icons/io5";
+import { FiTool } from "react-icons/fi";
+import { handymanCandidates } from "../../data";
+
+export default function FeaturedHandymen() {
   const controls = useAnimation();
 
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function FeaturedCandidates() {
   return (
     <div className="featuredJobs mt-12 overflow-hidden">
       <h2 className="text-4xl font-bold text-center text-gray-300 my-8">
-        Featured Candidates
+        Featured Handymen
       </h2>
 
       <div className="relative w-full overflow-hidden">
@@ -42,7 +43,7 @@ export default function FeaturedCandidates() {
             })
           }
         >
-          {[...featuredCandidates, ...featuredCandidates].map(
+          {[...handymanCandidates, ...handymanCandidates].map(
             (candidate, idx) => (
               <div
                 key={idx}
@@ -70,20 +71,22 @@ export default function FeaturedCandidates() {
 
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
-                    <IoLocationOutline className="text-lime-500" />
+                    <FiTool className="text-lime-500" />
                     <span className="text-sm text-white">
-                      {candidate.qualification}
+                      {candidate.specialization ||
+                        candidate.certification ||
+                        "Skilled Professional"}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <FiBriefcase className="text-lime-500" />
+                    <IoLocationOutline className="text-lime-500" />
                     <span className="text-sm text-gray-50">
                       {candidate.location}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex w-full items-center  mt-6">
+                <div className="flex w-full items-center mt-6">
                   <button className="w-full px-3 py-2 border border-lime-500 text-white text-sm font-medium rounded-full hover:bg-lime-700 transition">
                     View Candidate
                   </button>

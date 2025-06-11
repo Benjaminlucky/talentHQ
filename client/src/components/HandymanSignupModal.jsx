@@ -1,7 +1,8 @@
 import React from "react";
-import JobSeekerSignupPage from "./JobSeekerSignup";
 
-export default function JobSeekerSignupModal({ isOpen, onClose }) {
+import HandySignup from "./HandymanSignup";
+
+export default function HandySignupModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
@@ -13,7 +14,7 @@ export default function JobSeekerSignupModal({ isOpen, onClose }) {
         >
           &times;
         </button>
-        <JobSeekerSignupPage />
+        <HandySignup />
       </div>
     </div>
   );

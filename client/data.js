@@ -241,6 +241,59 @@ export const featuredCandidates = [
   },
 ];
 
+export const handymanCandidates = [
+  {
+    id: 1,
+    role: "Plumber",
+    name: "Samuel Eze",
+    brief:
+      "Specialist in residential and commercial plumbing with 8+ years experience.",
+    location: "Yaba, Lagos",
+    specialization: "Pipe fittings, Leak repairs, Water heater installation",
+    avatar: "/assets/chinonso.avif",
+  },
+  {
+    id: 2,
+    role: "Tiler",
+    name: "Kelechi Obi",
+    brief: "Expert tiler with a keen eye for detail and clean finishes.",
+    location: "Enugu, Nigeria",
+    specialization: "Ceramic, Marble & Mosaic Tiling",
+    avatar: "/assets/john.avif",
+  },
+  {
+    id: 3,
+    role: "Electrician",
+    name: "Ibrahim Yusuf",
+    brief:
+      "Licensed electrician with hands-on experience in wiring and maintenance.",
+    location: "Abuja, Nigeria",
+    specialization: "Residential & Commercial Installations",
+    certification: "NABTEB Certified",
+    avatar: "/assets/michael.avif",
+  },
+  {
+    id: 4,
+    role: "Painter",
+    name: "Sunday Ade",
+    brief:
+      "Professional painter delivering quality finishes and fast turnaround.",
+    location: "Benin City, Nigeria",
+    specialization: "Interior & Exterior Painting, POP Finishes",
+    avatar: "/assets/fatima.avif",
+  },
+  {
+    id: 5,
+    role: "Welder",
+    name: "Musa Danjuma",
+    brief:
+      "Experienced in iron welding for gates, doors and structural frameworks.",
+    location: "Kaduna, Nigeria",
+    specialization: "Arc & Gas Welding",
+    avatar: "/assets/adebayo.avif",
+  },
+];
+
 export const nigeriaStatesWithLGAs = [
   {
     Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],

@@ -10,6 +10,7 @@ import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 import FeaturedJobs from "@/components/FeaturedJobs";
 import FeaturedCandidates from "@/components/FeaturedCandidates";
+import FeaturedHandymen from "@/components/FeaturedHandymen";
 
 const rotatingWords = ["Find Jobs", "Post Job", "Find Candidates"];
 
@@ -110,6 +111,7 @@ export default function HomePage() {
         {/* Featured Jobs Infinite Scroll */}
         <FeaturedJobs />
         <FeaturedCandidates />
+        <FeaturedHandymen />
       </div>
     </main>
   );
