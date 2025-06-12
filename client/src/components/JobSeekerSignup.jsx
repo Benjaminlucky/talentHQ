@@ -55,8 +55,7 @@ export default function JobSeekerSignupPage() {
     resume: null,
     agreeToTerms: false,
   });
-
-  // Handle input changes
+  const [resumeFileName, setResumeFileName] = useState("");
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === "file") {
@@ -68,11 +67,10 @@ export default function JobSeekerSignupPage() {
     }
 
     if (name === "state") {
-      setFormData((prev) => ({ ...prev, lga: "" })); // reset LGA when state changes
+      setFormData((prev) => ({ ...prev, lga: "" }));
     }
   };
 
-  // Handle jobType (checkbox multiple selection)
   const handleJobTypeChange = (e) => {
     const { value, checked } = e.target;
     let newJobType = [...formData.jobType];
@@ -84,19 +82,62 @@ export default function JobSeekerSignupPage() {
     setFormData({ ...formData, jobType: newJobType });
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your validation or API calls here
-    console.log(formData);
+
+    const formPayload = new FormData();
+    for (const key in formData) {
+      if (key === "jobType") {
+        formData[key].forEach((type) => formPayload.append("jobType[]", type));
+      } else {
+        formPayload.append(key, formData[key]);
+      }
+    }
+
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/jobseekers/signup",
+        {
+          method: "POST",
+          body: formPayload,
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Signup successful!");
+        // Optionally clear form or redirect user
+      } else {
+        alert(result.message || "Signup failed.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("An error occurred. Please try again later.");
+    }
   };
 
   const states = Object.keys(nigeriaStatesWithLGAs);
   const lgas = formData.state ? nigeriaStatesWithLGAs[formData.state] : [];
 
+  const jobCategories = [
+    "Tech",
+    "Marketing",
+    "Finance",
+    "Healthcare",
+    "Legal",
+    "Accounting",
+    "Education",
+    "Engineering",
+    "Creative/Design",
+    "Sales",
+    "Administrative",
+    "Others",
+  ];
+
   return (
     <div className="min-h-screen flex justify-center items-start py-12 px-4">
-      <div className="max-w-3xl w-full  rounded-lg p-2">
+      <div className="max-w-3xl w-full rounded-lg p-2">
         <h2 className="text-3xl font-bold text-center text-lime-600 mb-12">
           Job Seeker Signup
         </h2>
@@ -206,10 +247,11 @@ export default function JobSeekerSignupPage() {
               required
             >
               <option value="">Select Job Category</option>
-              <option value="tech">Tech</option>
-              <option value="marketing">Marketing</option>
-              <option value="finance">Finance</option>
-              <option value="healthcare">Healthcare</option>
+              {jobCategories.map((category) => (
+                <option key={category} value={category.toLowerCase()}>
+                  {category}
+                </option>
+              ))}
             </select>
 
             <select
@@ -309,46 +351,55 @@ export default function JobSeekerSignupPage() {
               className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
               onChange={handleChange}
             />
-            <input
-              type="file"
-              name="resume"
-              accept=".pdf,.doc,.docx"
+            <textarea
+              name="workSummary"
+              placeholder="Brief Work Summary"
+              rows={4}
               className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
               onChange={handleChange}
+            ></textarea>
+          </div>
+          {/* Resume Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Upload Resume{" "}
+              <span className="text-gray-400 text-xs">(PDF, DOC)</span>
+            </label>
+            <input
+              name="resume"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleChange}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-lime-50 file:text-lime-700
+                hover:file:bg-lime-100"
             />
+            {resumeFileName && (
+              <p className="text-sm mt-1 text-lime-700 font-semibold">
+                Selected File: {resumeFileName}
+              </p>
+            )}
           </div>
 
-          <textarea
-            name="workSummary"
-            rows="4"
-            placeholder="Short Work Summary / Career Goals"
-            className="input w-full font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-            onChange={handleChange}
-          ></textarea>
-
-          {/* Terms */}
-          <label className="flex items-center space-x-2">
+          <label className="flex items-center">
             <input
-              type="checkbox"
               name="agreeToTerms"
-              required
+              type="checkbox"
+              checked={formData.agreeToTerms}
               onChange={handleChange}
-              className="form-checkbox h-5 w-5 text-lime-600"
+              className="mr-2"
             />
-            <span className="text-sm">
-              I agree to the{" "}
-              <a href="#" className="underline text-lime-600">
-                terms & conditions
-              </a>
-              .
-            </span>
+            I agree to the terms and conditions
           </label>
 
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white py-3 font-semibold text-lg rounded hover:bg-lime-700 transition"
+            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700"
           >
-            Sign Up
+            Submit Application
           </button>
         </form>
       </div>
