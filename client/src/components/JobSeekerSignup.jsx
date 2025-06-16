@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ImSpinner8 } from "react-icons/im";
+import { ToastContainer, toast } from "react-toastify";
 
 const nigeriaStatesWithLGAs = {
   Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],
@@ -56,6 +58,7 @@ export default function JobSeekerSignupPage() {
     agreeToTerms: false,
   });
   const [resumeFileName, setResumeFileName] = useState("");
+  const [loading, setLoading] = useState(false);
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === "file") {
@@ -84,6 +87,7 @@ export default function JobSeekerSignupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const formPayload = new FormData();
     for (const key in formData) {
@@ -104,16 +108,20 @@ export default function JobSeekerSignupPage() {
       );
 
       const result = await response.json();
+      setLoading(false);
 
       if (response.ok) {
-        alert("Signup successful!");
-        // Optionally clear form or redirect user
+        toast.success("Signup successful! Redirecting to login page...");
+        setTimeout(() => {
+          window.location.href = "/jobseeker-signin"; // redirect to login page
+        }, 3000);
       } else {
-        alert(result.message || "Signup failed.");
+        toast.error(result.message || "Signup failed.");
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("An error occurred. Please try again later.");
+      toast.error("An error occurred. Please try again later.");
+      setLoading(false);
     }
   };
 
@@ -397,12 +405,21 @@ export default function JobSeekerSignupPage() {
 
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700"
+            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700 flex items-center justify-center gap-2"
+            disabled={loading}
           >
-            Submit Application
+            {loading ? (
+              <>
+                <ImSpinner8 className="animate-spin text-white text-xl" />
+                Signing you up...
+              </>
+            ) : (
+              "Complete Signup"
+            )}
           </button>
         </form>
       </div>
+      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { FiBriefcase } from "react-icons/fi";
 import FeaturedJobs from "@/components/FeaturedJobs";
 import FeaturedCandidates from "@/components/FeaturedCandidates";
 import FeaturedHandymen from "@/components/FeaturedHandymen";
+import "react-toastify/dist/ReactToastify.css";
 
 const rotatingWords = ["Find Jobs", "Post Job", "Find Candidates"];
 
