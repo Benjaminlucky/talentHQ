@@ -363,3 +363,16 @@ body {
 .border-neon-900 {
   border-color: var(--color-neon-900);
 }
+
+/*TOASTIFY FADEIN ANIMATION*/
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

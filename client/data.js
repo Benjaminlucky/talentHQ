@@ -1,3 +1,8 @@
+import { TbLayoutDashboardFilled } from "react-icons/tb";
+import { GrOrganization } from "react-icons/gr";
+import { IoMdSettings } from "react-icons/io";
+import { IoMdLogOut } from "react-icons/io";
+
 export const featuredJobs = [
   {
     id: 1,
@@ -300,5 +305,28 @@ export const nigeriaStatesWithLGAs = [
     Adamawa: ["Demsa", "Fufore", "Ganye", "Girei", "Gombi"],
     Lagos: ["Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Apapa"],
     FCT: ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal"],
+  },
+];
+
+export const jobseekerDashNav = [
+  {
+    item: "Dashboard",
+    icon: TbLayoutDashboardFilled,
+    link: "/dashboard-jobseeker",
+  },
+  {
+    item: "Explore Companies",
+    icon: GrOrganization,
+    link: "/",
+  },
+  {
+    item: "Settings",
+    icon: IoMdSettings,
+    link: "/",
+  },
+  {
+    item: "Log Out",
+    icon: IoMdLogOut,
+    link: "/",
   },
 ];

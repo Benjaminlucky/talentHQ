@@ -57,6 +57,36 @@ export default function JobSeekerSignupPage() {
     resume: null,
     agreeToTerms: false,
   });
+
+  const { password } = formData;
+
+  // Password Requirements
+  const requirements = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const allPassed = Object.values(requirements).every(Boolean);
+
+  // Password Strength
+  const strengthLevel = Object.values(requirements).filter(Boolean).length;
+  const strengthLabel =
+    strengthLevel <= 2
+      ? "Weak"
+      : strengthLevel === 3 || strengthLevel === 4
+      ? "Fair"
+      : "Strong";
+
+  const strengthColor =
+    strengthLevel <= 2
+      ? "bg-red-500"
+      : strengthLevel === 3 || strengthLevel === 4
+      ? "bg-yellow-500"
+      : "bg-green-500";
+
   const [resumeFileName, setResumeFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const handleChange = (e) => {
@@ -202,6 +232,63 @@ export default function JobSeekerSignupPage() {
               className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
               onChange={handleChange}
             />
+          </div>
+
+          {/* Password */}
+          <div>
+            {/* Strength Meter */}
+            {password && (
+              <div className="mt-2">
+                <div className="h-2 rounded bg-gray-200">
+                  <div
+                    className={`h-2 rounded transition-all duration-300 ${strengthColor}`}
+                    style={{ width: `${(strengthLevel / 5) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm mt-1 text-gray-600">
+                  Strength: {strengthLabel}
+                </p>
+              </div>
+            )}
+
+            {/* Password Checklist */}
+            <ul className="mt-3 flex gap-2 text-[12px] space-y-1">
+              <li
+                className={
+                  requirements.length ? "text-green-600" : "text-red-500"
+                }
+              >
+                {requirements.length ? "✔" : "✖"} At least 8 characters
+              </li>
+              <li
+                className={
+                  requirements.uppercase ? "text-green-600" : "text-red-500"
+                }
+              >
+                {requirements.uppercase ? "✔" : "✖"} One uppercase letter
+              </li>
+              <li
+                className={
+                  requirements.lowercase ? "text-green-600" : "text-red-500"
+                }
+              >
+                {requirements.lowercase ? "✔" : "✖"} One lowercase letter
+              </li>
+              <li
+                className={
+                  requirements.number ? "text-green-600" : "text-red-500"
+                }
+              >
+                {requirements.number ? "✔" : "✖"} One number
+              </li>
+              <li
+                className={
+                  requirements.specialChar ? "text-green-600" : "text-red-500"
+                }
+              >
+                {requirements.specialChar ? "✔" : "✖"} One special character
+              </li>
+            </ul>
           </div>
 
           {/* Location Selects */}

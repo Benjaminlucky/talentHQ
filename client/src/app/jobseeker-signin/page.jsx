@@ -1,16 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ImSpinner2 } from "react-icons/im";
 
-export default function page() {
+export default function Page() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter(); // use router for redirection
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,26 +42,46 @@ export default function page() {
       setLoading(false);
 
       if (response.ok) {
-        // ✅ Store tokens in localStorage
         localStorage.setItem("accessToken", result.token);
-        localStorage.setItem("refreshToken", result.refreshToken); // if you return it in login
+        localStorage.setItem("refreshToken", result.refreshToken);
 
-        alert("Login successful!");
-        // Navigate to dashboard or reload
-        window.location.href = "/dashboard"; // or use Next router
+        toast.success("Login successful! Redirecting...", {
+          position: "top-center",
+          autoClose: 2500,
+          hideProgressBar: false,
+          pauseOnHover: false,
+          theme: "colored",
+        });
+
+        // Redirect after short delay
+        setTimeout(() => {
+          router.push("/jobseeker-dashboard");
+        }, 3000);
       } else {
-        alert(result.message || "Login failed.");
+        toast.error(
+          result.message || "Login failed. Please check your credentials.",
+          {
+            position: "top-center",
+            autoClose: 4000,
+            theme: "colored",
+          }
+        );
       }
     } catch (error) {
-      console.error("Error logging in:", error);
-      alert("An error occurred. Please try again later.");
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred. Please try again later.", {
+        position: "top-center",
+        autoClose: 4000,
+        theme: "colored",
+      });
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen  flex justify-center items-center px-4">
-      <div className="w-full max-w-md bg-white  shadow-2xl rounded-2xl p-8">
+    <div className="min-h-screen flex justify-center items-center px-4">
+      <ToastContainer />
+      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 animate-fade-in">
         <h2 className="text-4xl font-extrabold text-center text-lime-600 mb-10">
           Job Seeker Login
         </h2>
