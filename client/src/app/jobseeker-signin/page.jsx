@@ -55,7 +55,7 @@ export default function Page() {
 
         // Redirect after short delay
         setTimeout(() => {
-          router.push("/jobseeker-dashboard");
+          router.push("/dashboard-jobseeker");
         }, 3000);
       } else {
         toast.error(

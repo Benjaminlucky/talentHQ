@@ -2,6 +2,7 @@ import { TbLayoutDashboardFilled } from "react-icons/tb";
 import { GrOrganization } from "react-icons/gr";
 import { IoMdSettings } from "react-icons/io";
 import { IoMdLogOut } from "react-icons/io";
+import { MdEditDocument } from "react-icons/md";
 
 export const featuredJobs = [
   {
@@ -313,6 +314,11 @@ export const jobseekerDashNav = [
     item: "Dashboard",
     icon: TbLayoutDashboardFilled,
     link: "/dashboard-jobseeker",
+  },
+  {
+    item: "Applications",
+    icon: MdEditDocument,
+    link: "/dashboard-jobseeker/applications",
   },
   {
     item: "Explore Companies",
