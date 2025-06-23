@@ -28,7 +28,7 @@ export default function Page() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobseekers/login`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/jobseekers/login`,
         {
           method: "POST",
           headers: {
