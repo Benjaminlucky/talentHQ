@@ -3,6 +3,13 @@ import { GrOrganization } from "react-icons/gr";
 import { IoMdSettings } from "react-icons/io";
 import { IoMdLogOut } from "react-icons/io";
 import { MdEditDocument } from "react-icons/md";
+import { FaMagnifyingGlass } from "react-icons/fa6";
+import { FaFolder } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
+import { AiFillMessage } from "react-icons/ai";
+import { FaUserAlt } from "react-icons/fa";
+import { IoDocumentSharp } from "react-icons/io5";
+import { FaMoneyBill } from "react-icons/fa";
 
 export const featuredJobs = [
   {
@@ -313,22 +320,95 @@ export const jobseekerDashNav = [
   {
     item: "Dashboard",
     icon: TbLayoutDashboardFilled,
-    link: "/dashboard-jobseeker",
+    link: "/dashboard-handyman",
   },
   {
-    item: "Applications",
+    item: "Browse Jobs",
+    icon: FaMagnifyingGlass,
+    link: "/dashboard-handyman/browse-jobs",
+  },
+  {
+    item: "My Applications",
     icon: MdEditDocument,
-    link: "/dashboard-jobseeker/applications",
+    link: "/dashboard-handyman/my-applications",
   },
   {
-    item: "Explore Companies",
-    icon: GrOrganization,
-    link: "/",
+    item: "My Jobs",
+    icon: FaFolder,
+    link: "/dashboard-handyman/my-jobs",
+  },
+  {
+    item: "Saved Jobs",
+    icon: FaSave,
+    link: "/dashboard-handyman/saved-jobs",
+  },
+  {
+    item: "Messages / Chats",
+    icon: AiFillMessage,
+    link: "/dashboard-handyman/messages",
+  },
+  {
+    item: "Profile",
+    icon: FaUserAlt,
+    link: "/dashboard-handyman/profile",
+  },
+  {
+    item: "Resume Builder",
+    icon: IoDocumentSharp,
+    link: "/dashboard-handyman/resume-builder",
   },
   {
     item: "Settings",
     icon: IoMdSettings,
+    link: "/dashboard-handyman/settings",
+  },
+  {
+    item: "Log Out",
+    icon: IoMdLogOut,
     link: "/",
+  },
+];
+export const handymanDashNav = [
+  {
+    item: "Dashboard",
+    icon: TbLayoutDashboardFilled,
+    link: "/dashboard-handyman",
+  },
+  {
+    item: "Browse Jobs",
+    icon: FaMagnifyingGlass,
+    link: "/dashboard-handyman/browse-jobs",
+  },
+  {
+    item: "My Applications",
+    icon: MdEditDocument,
+    link: "/dashboard-handyman/my-applications",
+  },
+  {
+    item: "My Jobs",
+    icon: FaFolder,
+    link: "/dashboard-handyman/my-jobs",
+  },
+  {
+    item: "Messages / Chats",
+    icon: AiFillMessage,
+    link: "/dashboard-handyman/messages",
+  },
+  {
+    item: "Earnings",
+    icon: FaMoneyBill,
+    link: "/dashboard-handyman/earnings",
+  },
+  {
+    item: "Profile",
+    icon: FaUserAlt,
+    link: "/dashboard-handyman/profile",
+  },
+
+  {
+    item: "Settings",
+    icon: IoMdSettings,
+    link: "/dashboard-handyman/settings",
   },
   {
     item: "Log Out",

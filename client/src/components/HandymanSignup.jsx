@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
+import { ImSpinner2 } from "react-icons/im";
+import "react-toastify/dist/ReactToastify.css";
 
 const nigeriaStatesWithLGAs = {
   Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],
@@ -56,7 +60,28 @@ export default function HandySignup() {
     agreeToTerms: false,
   });
 
+  const [loading, setLoading] = useState(false);
   const [resumeFileName, setResumeFileName] = useState("");
+  const router = useRouter();
+
+  const password = formData.password;
+  const requirements = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const strengthLevel = Object.values(requirements).filter(Boolean).length;
+  const strengthLabel =
+    strengthLevel <= 2 ? "Weak" : strengthLevel <= 4 ? "Fair" : "Strong";
+  const strengthColor =
+    strengthLevel <= 2
+      ? "bg-red-500"
+      : strengthLevel <= 4
+      ? "bg-yellow-500"
+      : "bg-green-500";
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -86,9 +111,99 @@ export default function HandySignup() {
     setFormData({ ...formData, jobType: updatedTypes });
   };
 
-  const handleSubmit = (e) => {
+  const trimFormData = (data) => {
+    const trimmed = {};
+    for (const key in data) {
+      if (typeof data[key] === "string") {
+        trimmed[key] = data[key].trim();
+      } else {
+        trimmed[key] = data[key];
+      }
+    }
+    return trimmed;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+
+    const trimmed = trimFormData(formData);
+
+    const passwordValid = Object.values(requirements).every(Boolean);
+    if (trimmed.password !== trimmed.confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
+    if (!passwordValid) {
+      toast.error("Password must meet all strength requirements.");
+      return;
+    }
+
+    if (!trimmed.agreeToTerms) {
+      toast.error("You must agree to the terms and conditions.");
+      return;
+    }
+
+    const formPayload = new FormData();
+    for (const key in trimmed) {
+      if (key === "jobType") {
+        trimmed.jobType.forEach((type) =>
+          formPayload.append("jobType[]", type)
+        );
+      } else if (key === "skills") {
+        trimmed.skills
+          .split(",")
+          .map((s) => s.trim())
+          .forEach((skill) => formPayload.append("skills[]", skill));
+      } else if (key === "expectedSalary") {
+        formPayload.append(key, Number(trimmed[key]));
+      } else if (key === "resume" && formData.resume) {
+        formPayload.append("resume", formData.resume);
+      } else {
+        formPayload.append(key, trimmed[key]);
+      }
+    }
+
+    try {
+      setLoading(true);
+
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://talenthq-1.onrender.com"
+          : "http://localhost:5000";
+
+      const response = await fetch(`${baseUrl}/api/handyman/signup`, {
+        method: "POST",
+        body: formPayload,
+      });
+
+      const result = await response.json();
+      setLoading(false);
+
+      if (response.ok) {
+        toast.success("Signup successful! Redirecting to login...", {
+          position: "top-center",
+          autoClose: 3000,
+          theme: "colored",
+        });
+
+        setTimeout(() => {
+          router.push("/handyman-signin");
+        }, 3000);
+      } else {
+        toast.error(result.message || "Signup failed.", {
+          position: "top-center",
+          theme: "colored",
+        });
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("An unexpected error occurred. Please try again later.", {
+        position: "top-center",
+        theme: "colored",
+      });
+      setLoading(false);
+    }
   };
 
   const states = Object.keys(nigeriaStatesWithLGAs);
@@ -146,6 +261,55 @@ export default function HandySignup() {
             required
             className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
           />
+
+          {/* Password Strength Indicator */}
+          {formData.password && (
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className={`h-2 w-full rounded ${strengthColor}`} />
+                <span className="text-sm font-semibold text-gray-600">
+                  {strengthLabel}
+                </span>
+              </div>
+              <ul className="text-sm text-gray-600 list-disc list-inside">
+                <li
+                  className={
+                    requirements.length ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  At least 8 characters
+                </li>
+                <li
+                  className={
+                    requirements.uppercase ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Uppercase letter
+                </li>
+                <li
+                  className={
+                    requirements.lowercase ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Lowercase letter
+                </li>
+                <li
+                  className={
+                    requirements.number ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Number
+                </li>
+                <li
+                  className={
+                    requirements.specialChar ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Special character
+                </li>
+              </ul>
+            </div>
+          )}
 
           <input
             name="confirmPassword"
@@ -333,11 +497,22 @@ export default function HandySignup() {
 
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700"
+            disabled={loading}
+            className={`w-full flex justify-center items-center gap-2 bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700 ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            Submit Application
+            {loading ? (
+              <>
+                <ImSpinner2 className="animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Application"
+            )}
           </button>
         </form>
+        <ToastContainer />
       </div>
     </div>
   );

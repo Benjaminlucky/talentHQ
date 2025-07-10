@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ImSpinner2 } from "react-icons/im";
 
-export default function page() {
+export default function HandymanLogin() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,36 +26,61 @@ export default function page() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/jobseekers/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://talenthq-1.onrender.com"
+          : "http://localhost:5000";
+
+      const response = await fetch(`${baseUrl}/api/handyman/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
       const result = await response.json();
       setLoading(false);
 
       if (response.ok) {
-        alert("Signup successful!");
-        // Clear form or redirect here
+        localStorage.setItem("accessToken", result.token);
+        localStorage.setItem("refreshToken", result.refreshToken);
+
+        toast.success("Login successful! Redirecting...", {
+          position: "top-center",
+          autoClose: 2500,
+          hideProgressBar: false,
+          pauseOnHover: false,
+          theme: "colored",
+        });
+
+        setTimeout(() => {
+          router.push("/dashboard-handyman"); // ✅ change path if needed
+        }, 3000);
       } else {
-        alert(result.message || "Signup failed.");
+        toast.error(
+          result.message || "Login failed. Please check your credentials.",
+          {
+            position: "top-center",
+            autoClose: 4000,
+            theme: "colored",
+          }
+        );
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("An error occurred. Please try again later.");
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred. Please try again later.", {
+        position: "top-center",
+        autoClose: 4000,
+        theme: "colored",
+      });
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen  flex justify-center items-center px-4">
-      <div className="w-full max-w-md bg-white  shadow-2xl rounded-2xl p-8">
+    <div className="min-h-screen flex justify-center items-center px-4">
+      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8">
         <h2 className="text-4xl font-extrabold text-center text-lime-600 mb-10">
           Handyman Login
         </h2>
@@ -119,6 +148,9 @@ export default function page() {
           </button>
         </form>
       </div>
+
+      {/* ✅ Toast Container */}
+      <ToastContainer />
     </div>
   );
 }
