@@ -10,6 +10,7 @@ import { AiFillMessage } from "react-icons/ai";
 import { FaUserAlt } from "react-icons/fa";
 import { IoDocumentSharp } from "react-icons/io5";
 import { FaMoneyBill } from "react-icons/fa";
+import { FaBookmark } from "react-icons/fa";
 
 export const featuredJobs = [
   {
@@ -410,6 +411,51 @@ export const handymanDashNav = [
     icon: IoMdSettings,
     link: "/dashboard-handyman/settings",
   },
+  {
+    item: "Log Out",
+    icon: IoMdLogOut,
+    link: "/",
+  },
+];
+export const employerDashNav = [
+  {
+    item: "Dashboard",
+    icon: TbLayoutDashboardFilled,
+    link: "/dashboard-employer",
+  },
+
+  {
+    item: "Job Posts Manager",
+    icon: FaFolder,
+    link: "/dashboard-handyman/job-posts-manager",
+  },
+  {
+    item: "Post New Job",
+    icon: MdEditDocument,
+    link: "/dashboard-handyman/post-new-job",
+  },
+  {
+    item: "Browse Candidates",
+    icon: FaMagnifyingGlass,
+    link: "/dashboard-handyman/browse-candidates",
+  },
+  {
+    item: "Shortlisted Candidates",
+    icon: FaBookmark,
+    link: "/dashboard-handyman/shortlisted-candidates",
+  },
+  {
+    item: "Messages / Chats",
+    icon: AiFillMessage,
+    link: "/dashboard-handyman/messages",
+  },
+
+  {
+    item: "Company Profile Settings",
+    icon: GrOrganization,
+    link: "/dashboard-handyman/profile",
+  },
+
   {
     item: "Log Out",
     icon: IoMdLogOut,
