@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const nigeriaStatesWithLGAs = {
   Lagos: ["Ikeja", "Surulere", "Epe", "Ikorodu"],
@@ -9,6 +11,8 @@ const nigeriaStatesWithLGAs = {
 };
 
 export default function EmployerSignup() {
+  const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     companyName: "",
     industry: "",
@@ -33,6 +37,17 @@ export default function EmployerSignup() {
 
   const [logoFileName, setLogoFileName] = useState("");
 
+  const password = formData.password;
+  const requirements = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const strengthLevel = Object.values(requirements).filter(Boolean).length;
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
@@ -50,9 +65,101 @@ export default function EmployerSignup() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    setIsLoading(true);
+
+    const passwordValid = Object.values(requirements).every(Boolean);
+    if (!passwordValid) {
+      toast.error("Password must meet all strength requirements.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      toast.error("You must agree to the terms and conditions.");
+      setIsLoading(false);
+      return;
+    }
+
+    const convertLogoToBase64 = () => {
+      return new Promise((resolve, reject) => {
+        if (!formData.logo) return resolve(null);
+        const reader = new FileReader();
+        reader.readAsDataURL(formData.logo);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (err) => reject(err);
+      });
+    };
+
+    try {
+      const base64Logo = await convertLogoToBase64();
+
+      const finalPayload = {
+        ...formData,
+        logo: base64Logo,
+      };
+
+      delete finalPayload.confirmPassword;
+
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://talenthq-1.onrender.com"
+          : "http://localhost:5000";
+
+      const response = await fetch(`${baseUrl}/api/employers/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(finalPayload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Signup successful! Redirecting to login...");
+        setFormData({
+          companyName: "",
+          industry: "",
+          companySize: "",
+          state: "",
+          lga: "",
+          address: "",
+          companyEmail: "",
+          phoneNumber: "",
+          website: "",
+          linkedin: "",
+          cacNumber: "",
+          password: "",
+          confirmPassword: "",
+          logo: null,
+          agreeToTerms: false,
+          contactPersonName: "",
+          contactPersonDesignation: "",
+          contactPersonEmail: "",
+          contactPersonPhone: "",
+        });
+        setLogoFileName("");
+
+        setTimeout(() => {
+          window.location.href = "/employer-signin";
+        }, 3000);
+      } else {
+        toast.error(result.message || "Signup failed.");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const states = Object.keys(nigeriaStatesWithLGAs);
@@ -198,6 +305,64 @@ export default function EmployerSignup() {
             required
           />
 
+          {/* Password Strength Indicator */}
+          {formData.password && (
+            <div className="space-y-1 mt-2">
+              <div className="flex items-center space-x-2">
+                <div
+                  className={`h-2 rounded transition-all duration-300`}
+                  style={{
+                    width: `${(strengthLevel / 5) * 100}%`,
+                    backgroundColor:
+                      strengthLevel <= 2
+                        ? "#ef4444" // red-500
+                        : strengthLevel <= 4
+                        ? "#facc15" // yellow-400
+                        : "#22c55e", // green-500
+                  }}
+                />
+                <span className="text-sm font-semibold text-gray-600"></span>
+              </div>
+              <ul className="text-sm text-gray-600 list-disc list-inside">
+                <li
+                  className={
+                    requirements.length ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  At least 8 characters
+                </li>
+                <li
+                  className={
+                    requirements.uppercase ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Uppercase letter
+                </li>
+                <li
+                  className={
+                    requirements.lowercase ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Lowercase letter
+                </li>
+                <li
+                  className={
+                    requirements.number ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Number
+                </li>
+                <li
+                  className={
+                    requirements.special ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  Special character
+                </li>
+              </ul>
+            </div>
+          )}
+
           <input
             type="password"
             name="confirmPassword"
@@ -294,11 +459,35 @@ export default function EmployerSignup() {
 
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700"
+            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700 flex justify-center items-center"
+            disabled={isLoading}
           >
-            Register Company
+            {isLoading ? (
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                ></path>
+              </svg>
+            ) : null}
+            {isLoading ? "Registering..." : "Register Company"}
           </button>
         </form>
+        <ToastContainer position="top-center" autoClose={3000} />
       </div>
     </div>
   );

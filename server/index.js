@@ -7,6 +7,7 @@ import multer from "multer";
 import path from "path";
 import jobSeekerRoutes from "./routes/jobSeekerRoutes.js";
 import handymanRoutes from "./routes/handymanRoutes.js";
+import employerRoutes from "./routes/employerRoutes.js";
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.post("/api/upload-resume", upload.single("resume"), (req, res) => {
 // API Routes
 app.use("/api/jobseekers", jobSeekerRoutes);
 app.use("/api/handyman", handymanRoutes);
+app.use("/api/employers", employerRoutes);
 
 // MongoDB Connection
 mongoose
