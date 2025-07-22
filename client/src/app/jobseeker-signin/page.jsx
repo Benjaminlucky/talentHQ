@@ -43,8 +43,9 @@ export default function Page() {
       setLoading(false);
 
       if (response.ok) {
-        localStorage.setItem("accessToken", result.token);
+        localStorage.setItem("accessToken", result.accessToken);
         localStorage.setItem("refreshToken", result.refreshToken);
+        localStorage.setItem("jobSeeker", JSON.stringify(result.jobSeeker)); // 👈 Save user role
 
         toast.success("Login successful! Redirecting...", {
           position: "top-center",
@@ -54,7 +55,6 @@ export default function Page() {
           theme: "colored",
         });
 
-        // Redirect after short delay
         setTimeout(() => {
           router.push("/dashboard-jobseeker");
         }, 3000);

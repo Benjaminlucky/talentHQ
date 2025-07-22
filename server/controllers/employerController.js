@@ -184,3 +184,23 @@ export const logoutEmployer = async (req, res) => {
     res.status(500).json({ message: "Logout failed." });
   }
 };
+
+// ✅ Protected Employer Dashboard
+export const getEmployerDashboard = async (req, res) => {
+  try {
+    const employer = await EmployerModel.findById(req.user.id).select(
+      "-password -refreshToken"
+    );
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found." });
+    }
+
+    res.status(200).json({
+      message: "Welcome to your dashboard.",
+      employer,
+    });
+  } catch (error) {
+    console.error("Dashboard error:", error);
+    res.status(500).json({ message: "Failed to load dashboard." });
+  }
+};

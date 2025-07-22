@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import { FiMenu } from "react-icons/fi";
 import { IoMdClose } from "react-icons/io";
 
+import employerAuthRedirect from "../utils/employerAuthRedirect.js";
+
 export default function DashboardLayout({ children }) {
+  employerAuthRedirect("employer");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {

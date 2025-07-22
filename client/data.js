@@ -11,6 +11,17 @@ import { FaUserAlt } from "react-icons/fa";
 import { IoDocumentSharp } from "react-icons/io5";
 import { FaMoneyBill } from "react-icons/fa";
 import { FaBookmark } from "react-icons/fa";
+import {
+  MdDashboard,
+  MdWork,
+  MdReport,
+  MdCampaign,
+  MdVerifiedUser,
+  MdBarChart,
+} from "react-icons/md";
+import { FiUsers, FiSettings } from "react-icons/fi";
+
+import { Children } from "react";
 
 export const featuredJobs = [
   {
@@ -460,5 +471,105 @@ export const employerDashNav = [
     item: "Log Out",
     icon: IoMdLogOut,
     link: "/",
+  },
+];
+
+export const superAdminMenu = [
+  {
+    title: "Dashboard",
+    icon: <MdDashboard />,
+    path: "/admin/dashboard",
+  },
+  {
+    title: "Users",
+    icon: <FiUsers />,
+    children: [
+      {
+        title: "All Users",
+        path: "/admin/users/all",
+      },
+      {
+        title: "Employers",
+        path: "/admin/users/employers",
+      },
+      {
+        title: "Handymen",
+        path: "/admin/users/handymen",
+      },
+      {
+        title: "Jobseekers",
+        path: "/admin/users/jobseekers",
+      },
+    ],
+  },
+  {
+    title: "Jobs",
+    icon: <MdWork />,
+    children: [
+      {
+        title: "All Jobs",
+        path: "/admin/jobs/all",
+      },
+      {
+        title: "Pending Approvals",
+        path: "/admin/jobs/pending",
+      },
+      {
+        title: "Reported Jobs",
+        path: "/admin/jobs/reported",
+      },
+    ],
+  },
+  {
+    title: "Employer Verification",
+    icon: <MdVerifiedUser />,
+    path: "/admin/employer-verification",
+  },
+  {
+    title: "Reports",
+    icon: <MdReport />,
+    children: [
+      {
+        title: "Reported Users",
+        path: "/admin/reports/users",
+      },
+      {
+        title: "Reported Jobs",
+        path: "/admin/reports/jobs",
+      },
+    ],
+  },
+  {
+    title: "Announcements",
+    icon: <MdCampaign />,
+    path: "/admin/announcements",
+  },
+  {
+    title: "Statistics",
+    icon: <MdBarChart />,
+    children: [
+      {
+        title: "User Analytics",
+        path: "/admin/stats/users",
+      },
+      {
+        title: "Job Analytics",
+        path: "/admin/stats/jobs",
+      },
+    ],
+  },
+  {
+    title: "Settings",
+    icon: <FiSettings />,
+    children: [
+      {
+        title: "Profile Settings",
+        path: "/admin/settings/profile",
+      },
+      {
+        title: "Security",
+        path: "/admin/settings/security",
+      },
+    ],
   },
 ];

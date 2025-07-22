@@ -1,20 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ImSpinner2 } from "react-icons/im";
 
 export default function EmployerLogin() {
   const [formData, setFormData] = useState({
-    email: "",
+    companyEmail: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value.trim() }));
   };
 
   const handleSubmit = async (e) => {
@@ -22,35 +26,62 @@ export default function EmployerLogin() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/jobseekers/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? "https://talenthq-1.onrender.com"
+          : "http://localhost:5000";
+
+      const response = await fetch(`${baseUrl}/api/employers/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
       const result = await response.json();
       setLoading(false);
 
       if (response.ok) {
-        alert("Signup successful!");
-        // Clear form or redirect here
+        localStorage.setItem("accessToken", result.accessToken);
+        localStorage.setItem("refreshToken", result.refreshToken);
+        localStorage.setItem("user", JSON.stringify(result.employer)); // store the employer user object
+
+        toast.success("Login successful! Redirecting...", {
+          position: "top-center",
+        });
+
+        const role = result?.employer?.role || result?.user?.role;
+
+        setTimeout(() => {
+          if (role === "employer") {
+            router.push("/dashboard-employer");
+          } else if (role === "handyman") {
+            router.push("/dashboard-handyman");
+          } else if (role === "jobseeker") {
+            router.push("/dashboard-jobseeker");
+          } else {
+            toast.error("Unauthorized role", { position: "top-center" });
+          }
+        }, 1500);
       } else {
-        alert(result.message || "Signup failed.");
+        toast.error(result?.message || "Invalid credentials", {
+          position: "top-center",
+        });
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("An error occurred. Please try again later.");
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred. Please try again later.", {
+        position: "top-center",
+        autoClose: 4000,
+        theme: "colored",
+      });
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center px-4">
+    <div className="min-h-screen flex justify-center items-center px-4">
       <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8">
         <h2 className="text-4xl font-extrabold text-center text-lime-600 mb-10">
           Employer Login
@@ -59,20 +90,20 @@ export default function EmployerLogin() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col">
             <label
-              htmlFor="email"
+              htmlFor="companyEmail"
               className="text-sm font-medium text-gray-700 mb-2"
             >
               Email Address
             </label>
             <input
               type="email"
-              name="email"
-              id="email"
-              value={formData.email}
+              name="companyEmail"
+              id="companyEmail"
+              value={formData.companyEmail}
               onChange={handleChange}
               required
-              placeholder="e.g. johndoe@example.com"
-              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500 transition-all duration-200"
+              placeholder="e.g. employer@example.com"
+              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500"
             />
           </div>
 
@@ -91,7 +122,7 @@ export default function EmployerLogin() {
               onChange={handleChange}
               required
               placeholder="••••••••"
-              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500 pr-12 transition-all duration-200"
+              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500 pr-12"
             />
             <button
               type="button"
@@ -119,6 +150,8 @@ export default function EmployerLogin() {
           </button>
         </form>
       </div>
+
+      <ToastContainer />
     </div>
   );
 }

@@ -2,11 +2,13 @@
 
 import HandymanDashboardSidebar from "@/components/HandymanDashboardSidebar";
 import { useEffect, useState } from "react";
-
 import { FiMenu } from "react-icons/fi";
 import { IoMdClose } from "react-icons/io";
+import handyManAuthRedirect from "../utils/handyManAuthRedirect";
 
 export default function DashboardLayout({ children }) {
+  handyManAuthRedirect("handyman"); // ✅ Protect handyman dashboard
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row w-full relative">
-      {/* Mobile Menu Button */}
+      {/* Mobile Button */}
       <button
         className="absolute top-4 left-4 z-30 md:hidden text-2xl text-gray-700"
         onClick={() => setSidebarOpen(true)}
@@ -27,12 +29,12 @@ export default function DashboardLayout({ children }) {
         <FiMenu />
       </button>
 
-      {/* Sidebar - Desktop */}
+      {/* Sidebar */}
       <aside className="hidden md:block md:w-64 bg-white shadow-md p-4 border-r border-gray-200">
         <HandymanDashboardSidebar />
       </aside>
 
-      {/* Sidebar - Mobile (Drawer) */}
+      {/* Drawer for mobile */}
       {sidebarOpen && (
         <>
           <div
@@ -54,7 +56,7 @@ export default function DashboardLayout({ children }) {
         </>
       )}
 
-      {/* Main Content */}
+      {/* Content */}
       <main className="flex-1 mt-8 md:mt-0 p-4 md:p-6 w-full z-10">
         {children}
       </main>

@@ -18,7 +18,7 @@ export default function EmployerLogin() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value.trim() }));
   };
 
   const handleSubmit = async (e) => {
@@ -45,25 +45,29 @@ export default function EmployerLogin() {
       if (response.ok) {
         localStorage.setItem("accessToken", result.accessToken);
         localStorage.setItem("refreshToken", result.refreshToken);
+        localStorage.setItem("user", JSON.stringify(result.employer)); // store the employer user object
 
         toast.success("Login successful! Redirecting...", {
           position: "top-center",
-          autoClose: 2500,
-          theme: "colored",
         });
 
+        const role = result?.employer?.role || result?.user?.role;
+
         setTimeout(() => {
-          router.push("/dashboard-employer");
-        }, 3000);
-      } else {
-        toast.error(
-          result.message || "Login failed. Please check your credentials.",
-          {
-            position: "top-center",
-            autoClose: 4000,
-            theme: "colored",
+          if (role === "employer") {
+            router.push("/dashboard-employer");
+          } else if (role === "handyman") {
+            router.push("/dashboard-handyman");
+          } else if (role === "jobseeker") {
+            router.push("/dashboard-jobseeker");
+          } else {
+            toast.error("Unauthorized role", { position: "top-center" });
           }
-        );
+        }, 1500);
+      } else {
+        toast.error(result?.message || "Invalid credentials", {
+          position: "top-center",
+        });
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -86,7 +90,7 @@ export default function EmployerLogin() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col">
             <label
-              htmlFor="email"
+              htmlFor="companyEmail"
               className="text-sm font-medium text-gray-700 mb-2"
             >
               Email Address
@@ -94,8 +98,8 @@ export default function EmployerLogin() {
             <input
               type="email"
               name="companyEmail"
-              id="email"
-              value={formData.email}
+              id="companyEmail"
+              value={formData.companyEmail}
               onChange={handleChange}
               required
               placeholder="e.g. employer@example.com"

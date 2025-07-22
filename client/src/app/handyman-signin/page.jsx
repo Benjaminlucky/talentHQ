@@ -45,6 +45,7 @@ export default function HandymanLogin() {
       if (response.ok) {
         localStorage.setItem("accessToken", result.token);
         localStorage.setItem("refreshToken", result.refreshToken);
+        localStorage.setItem("user", JSON.stringify(result.handyman)); // includes role
 
         toast.success("Login successful! Redirecting...", {
           position: "top-center",

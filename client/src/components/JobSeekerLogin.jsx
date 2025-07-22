@@ -7,7 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ImSpinner2 } from "react-icons/im";
 
-export default function JobSeekerLogin() {
+export default function Page() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -43,8 +43,9 @@ export default function JobSeekerLogin() {
       setLoading(false);
 
       if (response.ok) {
-        localStorage.setItem("accessToken", result.token);
+        localStorage.setItem("accessToken", result.accessToken);
         localStorage.setItem("refreshToken", result.refreshToken);
+        localStorage.setItem("jobSeeker", JSON.stringify(result.jobSeeker)); // 👈 Save user role
 
         toast.success("Login successful! Redirecting...", {
           position: "top-center",
@@ -54,7 +55,6 @@ export default function JobSeekerLogin() {
           theme: "colored",
         });
 
-        // Redirect after short delay
         setTimeout(() => {
           router.push("/dashboard-jobseeker");
         }, 3000);
