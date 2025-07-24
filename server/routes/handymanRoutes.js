@@ -4,6 +4,7 @@ import express from "express";
 import upload from "../middlewares/upload.js";
 import {
   loginHandyman,
+  logoutHandyman,
   refreshAccessToken,
   signupHandyman,
 } from "../controllers/handymanController.js";
@@ -14,5 +15,6 @@ const router = express.Router();
 router.post("/signup", upload.single("resume"), signupHandyman);
 router.post("/login", loginHandyman);
 router.post("/refresh-token", refreshAccessToken);
+router.post("/logout", logoutHandyman);
 
 export default router;

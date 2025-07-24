@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }) {
       </button>
 
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:block md:w-64 bg-white shadow-md p-4 border-r border-gray-200">
+      <aside className="hidden md:block md:w-74 bg-white shadow-md p-4 border-r border-gray-200">
         <EmployerDashboardSidebar />
       </aside>
 

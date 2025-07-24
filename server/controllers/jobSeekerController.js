@@ -181,22 +181,27 @@ export const refreshAccessToken = async (req, res) => {
 };
 
 /// JOB SEEKER LOGOUT CONTROLLER
-
-export const logoutJobSeeker = async (req, res) => {
+export const logoutJobSeeker = async () => {
   try {
-    const { id } = req.body;
+    const userData = JSON.parse(localStorage.getItem("user"));
+    const jobSeekerId = userData?.id;
 
-    const jobSeeker = await JobseekerModel.findById(id);
-    if (!jobSeeker) {
-      return res.status(404).json({ message: "User not found." });
+    const response = await fetch("/api/jobseekers/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: jobSeekerId }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Logout failed");
     }
 
-    jobSeeker.refreshToken = null;
-    await jobSeeker.save();
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
 
-    res.status(200).json({ message: "Logged out successfully." });
+    window.location.href = "/jobseeker/login"; // or homepage
   } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({ message: "Logout failed." });
+    console.error("Logout Error:", error);
   }
 };

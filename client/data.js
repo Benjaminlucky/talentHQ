@@ -332,7 +332,7 @@ export const jobseekerDashNav = [
   {
     item: "Dashboard",
     icon: TbLayoutDashboardFilled,
-    link: "/dashboard-handyman",
+    link: "/dashboard-jobseeker",
   },
   {
     item: "Browse Jobs",
@@ -377,7 +377,7 @@ export const jobseekerDashNav = [
   {
     item: "Log Out",
     icon: IoMdLogOut,
-    link: "/",
+    link: "/logout",
   },
 ];
 export const handymanDashNav = [

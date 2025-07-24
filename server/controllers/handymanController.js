@@ -177,9 +177,16 @@ export const refreshAccessToken = async (req, res) => {
 };
 
 // ✅ Logout
+// ✅ Logout Handyman
 export const logoutHandyman = async (req, res) => {
   try {
     const { id } = req.body;
+
+    if (!id) {
+      return res
+        .status(400)
+        .json({ message: "User ID is required to logout." });
+    }
 
     const handyman = await HandymanModel.findById(id);
     if (!handyman) {

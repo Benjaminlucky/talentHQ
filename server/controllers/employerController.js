@@ -166,22 +166,33 @@ export const refreshEmployerToken = async (req, res) => {
 };
 
 // ✅ Logout
+// ✅ Employer Logout
 export const logoutEmployer = async (req, res) => {
   try {
     const { id } = req.body;
 
+    if (!id) {
+      return res
+        .status(400)
+        .json({ message: "Employer ID is required for logout." });
+    }
+
     const employer = await EmployerModel.findById(id);
+
     if (!employer) {
       return res.status(404).json({ message: "Employer not found." });
     }
 
+    // Invalidate the refresh token
     employer.refreshToken = null;
     await employer.save();
 
-    res.status(200).json({ message: "Logout successful." });
+    res
+      .status(200)
+      .json({ message: "Logout successful. Refresh token cleared." });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({ message: "Logout failed." });
+    res.status(500).json({ message: "Logout failed due to server error." });
   }
 };
 
