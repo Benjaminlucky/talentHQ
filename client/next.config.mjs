@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
+  images: {
+    unoptimized: false, // ✅ Required for static export mode when using base64 images
+  },
 };
 
 export default nextConfig;

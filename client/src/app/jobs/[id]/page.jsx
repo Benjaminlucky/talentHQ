@@ -1,6 +1,7 @@
 import { featuredJobs } from "../../../../data";
 import "./page.css";
 import Link from "next/link";
+import Image from "next/image"; // ✅ Don't forget to import this
 
 export async function generateStaticParams() {
   return featuredJobs.map((job) => ({ id: job.id.toString() }));
@@ -14,136 +15,153 @@ export default async function JobDetailPage({ params }) {
   }
 
   return (
-    <main className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-6">
-      <div className="wrapper w-full mx-auto">
-        <div className="jobContent w-full">
-          <div className="jobTitle w-full bg-primary-200 rounded-md">
-            <div className="titleContent w-full flex flex-col px-6 sm:px-10 md:px-16 py-16 sm:py-20">
-              <h2 className="w-full flex text-center md:text-left text-4xl sm:text-5xl md:text-6xl font-bold">
-                {job.title}
-              </h2>
-              <p className="w-full text-black text-3xl text-center md:text-left sm:text-4xl md:text-6xl flex-wrap items-center gap-3 sm:gap-6 mt-2">
-                <span className="px-2">at</span>
-                <span className="font-bold">{job.company}</span>
-              </p>
-              <div className="buttons w-full md:w-6/12 py-10 flex flex-col md:flex-row gap-3">
-                <button className="bg-white w-full uppercase px-6 py-3 font-semibold text-lg rounded-sm text-primary-500 hover:bg-lime-50 transition-all duration-300">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex flex-col lg:flex-row gap-12">
+        {/* Main Content */}
+        <div className="w-full lg:w-3/4">
+          {/* Header */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-y-6">
+              {/* Left section: Logo + Title + Info */}
+              <div className="flex flex-col md:flex-row items-center md:items-start md: gap-4">
+                {/* ✅ Company Logo */}
+                {job.companyLogo && (
+                  <div className="w-16 h-16 relative flex-shrink-0">
+                    <Image
+                      src={job.companyLogo}
+                      alt={`${job.company} Logo`}
+                      fill
+                      className="object-contain rounded"
+                    />
+                  </div>
+                )}
+
+                {/* Title + Info */}
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                    {job.title}
+                  </h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-gray-600 text-sm sm:text-base">
+                    <span className="font-semibold">{job.company}</span> •
+                    <span>{job.location}</span> •
+                    <span>{job.experience || "2-4 Years"}</span> •
+                    <span>{job.type}</span> •<span>{job.mode}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:items-center">
+                <button className="border px-4 py-2 rounded text-lime-600 font-semibold hover:bg-lime-50">
                   View Company
                 </button>
-
-                <Link
-                  href={`/signup?redirect=/jobs/${job.id}`}
-                  passHref
-                  className="bg-lime-500 text-center uppercase w-full px-6 py-3 uppercase font-semibold text-lg rounded-sm text-white hover:bg-lime-700 transition-all duration-300"
-                >
-                  <button className="uppercase">Apply for this job</button>
+                <Link href={`/signup?redirect=/jobs/${job.jobId}`}>
+                  <button className="bg-lime-500 text-white px-5 py-2 rounded hover:bg-lime-600 font-semibold">
+                    Apply Now
+                  </button>
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="jobDetails py-12 w-full">
-            <div className="detailsWrapper w-full">
-              <div className="title">
-                <h5 className="py-8 font-bold text-gray-500 text-2xl sm:text-3xl">
-                  About this Role
-                </h5>
-              </div>
-              <div className="detailsContent w-full mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 justify-center gap-8">
-                {/* About Company */}
-                <div className="aboutCompany">
-                  <div className="companyContent">
-                    <div className="companyInfo w-full  flex flex-col justify-center md:flex-row items-start gap-4">
-                      <div className="logo flex-shrink-0 bg-white p-2 rounded-md">
-                        <img
-                          src={job.companyLogo}
-                          alt={job.company}
-                          className="w-20 md:w-30"
-                        />
-                      </div>
-                      <div className="info">
-                        <div className="role text-sm font-bold text-primary-500">
-                          {job.title}{" "}
-                          <span className="text-gray-400">{job.mode}</span>
-                        </div>
-                        <div className="companyLocation">
-                          <div className="company text-black font-bold">
-                            {job.company}
-                          </div>
-                          <div className="location">{job.location}</div>
-                          <div className="salary text-gray-900 font-bold">
-                            {job.salary}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {/* About This Role */}
+          <section className="mt-8 bg-white p-6 rounded-lg shadow">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              About this role
+            </h2>
+            <p className="text-gray-700">{job.detailedBrief}</p>
+          </section>
 
-                {/* Job Brief */}
-                <div className="jobBrief">
-                  <div className="briefContent">
-                    <p className="text-justify hyphens-auto">
-                      {job.detailedBrief}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Skills and Benefits */}
-                <div className="furtherDetails">
-                  <div className="furtherContent">
-                    <div className="qualification mb-4">
-                      <h4 className="font-bold text-black text-xl">
-                        Qualification
-                      </h4>
-                      <p>{job.qualification}</p>
-                    </div>
-
-                    <div className="skills py-4">
-                      <h4 className="font-bold text-black text-xl">
-                        Skills Required
-                      </h4>
-                      {Array.isArray(job.skills) && job.skills.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {job.skills.map((skill, index) => (
-                            <span
-                              key={index}
-                              className="bg-lime-100 text-lime-500 px-4 py-2 rounded-md"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-red-500">No skills listed</p>
-                      )}
-                    </div>
-
-                    <div className="benefits py-4">
-                      <h4 className="font-bold text-black text-xl">Benefits</h4>
-                      {Array.isArray(job.benefits) &&
-                      job.benefits.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {job.benefits.map((benefit, index) => (
-                            <span
-                              key={index}
-                              className="bg-lime-100 text-lime-500 px-4 py-2 rounded-md"
-                            >
-                              {benefit}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-red-500">No benefits listed</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>{" "}
-              {/* End detailsContent */}
+          {/* Qualifications, Responsibilities, Skills */}
+          <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Qualification
+              </h3>
+              <p className="text-gray-700">{job.qualification}</p>
             </div>
-          </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Responsibilities
+              </h3>
+              <ul className="list-disc list-inside text-gray-700 space-y-2">
+                {job.responsibilities?.map((res, i) => (
+                  <li key={i}>{res}</li>
+                )) || <p>No responsibilities listed</p>}
+              </ul>
+            </div>
+          </section>
+
+          {/* Skills and Benefits */}
+          <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Skills
+              </h3>
+              {job.skills?.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {job.skills.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="bg-lime-100 text-lime-600 px-3 py-1 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No skills listed</p>
+              )}
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Benefits
+              </h3>
+              {job.benefits?.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {job.benefits.map((benefit, i) => (
+                    <span
+                      key={i}
+                      className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
+                    >
+                      {benefit}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No benefits listed</p>
+              )}
+            </div>
+          </section>
         </div>
+
+        {/* Sidebar (Similar Jobs Placeholder) */}
+        <aside className="w-full lg:w-1/4 space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">
+              Other Jobs at {job.company}
+            </h3>
+            <ul className="space-y-4 text-sm text-gray-700">
+              {featuredJobs
+                .filter((j) => j.company === job.company && j.id !== job.id)
+                .map((related) => (
+                  <li key={related.id}>
+                    <Link
+                      href={`/jobs/${related.id}`}
+                      className="hover:text-lime-600 transition"
+                    >
+                      {related.title}
+                    </Link>
+                    <p className="text-xs text-gray-500">
+                      {related.type} • {related.mode}
+                    </p>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </aside>
       </div>
     </main>
   );

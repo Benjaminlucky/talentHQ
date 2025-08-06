@@ -1,17 +1,16 @@
 "use client";
-import { useSuperAdminAuthRedirect } from "../utils/superAdminAuthRedirect.js";
 
-export default function AdminDashboardHome() {
-  useSuperAdminAuthRedirect(); // 🔐 Protect this page
+import { useSuperAdminAuthRedirect } from "../utils/superAdminAuthRedirect";
+
+export default function AdminDashboardPage() {
+  const isAuthorized = useSuperAdminAuthRedirect();
+
+  if (!isAuthorized) return null; // 👈 Prevent unauthorized flash
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-lime-700 mb-4">
-        Super Admin Dashboard
-      </h1>
-      <p>
-        Welcome back! Use the sidebar to manage users, handle reports, and post
-        announcements.
-      </p>
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold">Welcome, Super Admin</h1>
+      {/* Your dashboard UI */}
     </div>
   );
 }

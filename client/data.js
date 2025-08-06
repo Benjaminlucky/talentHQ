@@ -478,7 +478,7 @@ export const superAdminMenu = [
   {
     title: "Dashboard",
     icon: <MdDashboard />,
-    path: "/admin/dashboard",
+    path: "/dashboard-admin",
   },
   {
     title: "Users",
@@ -503,9 +503,31 @@ export const superAdminMenu = [
     ],
   },
   {
+    title: "Candidates",
+    icon: <FaUserAlt />,
+    children: [
+      {
+        title: "Add Jobseeker",
+        path: "/dashboard-admin/candidates/add-jobseeker",
+      },
+      {
+        title: "Add Handyman",
+        path: "/dashboard-admin/candidates/add-handyman",
+      },
+      {
+        title: "Add Employer",
+        path: "/dashboard-admin/candidates/add-employer",
+      },
+    ],
+  },
+  {
     title: "Jobs",
     icon: <MdWork />,
     children: [
+      {
+        title: "Post New Job",
+        path: "/dashboard-admin/jobs/new-job",
+      },
       {
         title: "All Jobs",
         path: "/admin/jobs/all",

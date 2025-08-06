@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { superAdminMenu } from "../../../data";
-import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
 import { usePathname } from "next/navigation";
+import { FiLogOut, FiMenu, FiX } from "react-icons/fi";
+import { superAdminMenu } from "../../../data";
 
 export default function SuperAdminLayout({ children }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,26 +15,17 @@ export default function SuperAdminLayout({ children }) {
     setActiveDropdown((prev) => (prev === menuTitle ? "" : menuTitle));
   };
 
-  // utils/logoutSuperAdmin.js
   const logoutSuperAdmin = async () => {
-    const userData = JSON.parse(localStorage.getItem("user"));
     const refreshToken = localStorage.getItem("refreshToken");
 
     try {
       await fetch("/api/superadmin/logout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
       });
 
-      // Clear local storage
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-
-      // Optional: Redirect to login
+      localStorage.clear();
       window.location.href = "/admin/login";
     } catch (error) {
       console.error("Logout failed", error);
@@ -61,16 +52,23 @@ export default function SuperAdminLayout({ children }) {
 
           <ul className="p-4 space-y-2">
             {superAdminMenu.map((item, index) => {
-              const isActiveTop = item.path === pathname;
+              // Check if item or any child is active
+              const isTopLevelActive = item.path && pathname === item.path;
+
+              const isDropdownChildActive = item.children?.some(
+                (child) => pathname === child.path
+              );
+
+              const isActive = isTopLevelActive || isDropdownChildActive;
 
               return (
                 <li key={index}>
-                  {item.type === "link" ? (
+                  {item.type === "link" || item.path ? (
                     <Link
                       href={item.path}
-                      className={`flex items-center py-2 px-3 rounded ${
-                        isActiveTop
-                          ? "bg-lime-500 font-semibold"
+                      className={`flex items-center py-2 px-3 rounded transition-all duration-150 ${
+                        isActive
+                          ? "bg-lime-700 font-semibold"
                           : "hover:bg-lime-500"
                       }`}
                     >
@@ -81,13 +79,18 @@ export default function SuperAdminLayout({ children }) {
                     <div>
                       <button
                         onClick={() => toggleDropdown(item.title)}
-                        className="flex items-center w-full py-2 px-3 hover:bg-lime-500 rounded"
+                        className={`flex items-center w-full py-2 px-3 rounded transition-all duration-150 ${
+                          isDropdownChildActive
+                            ? "bg-lime-700 font-semibold"
+                            : "hover:bg-lime-500"
+                        }`}
                       >
                         {item.icon}
                         <span className="ml-2">{item.title}</span>
                       </button>
+
                       <ul
-                        className={`pl-6 mt-1 transition-all duration-300 ease-in-out overflow-hidden ${
+                        className={`pl-3 mt-1 transition-all duration-300 ease-in-out overflow-hidden ${
                           activeDropdown === item.title
                             ? "max-h-96 opacity-100"
                             : "max-h-0 opacity-0"
@@ -100,9 +103,9 @@ export default function SuperAdminLayout({ children }) {
                             <li key={idx}>
                               <Link
                                 href={child.path}
-                                className={`block py-1 px-3 rounded ${
+                                className={`block py-2 px-3 rounded-sm transition-all duration-150 ${
                                   isChildActive
-                                    ? "bg-lime-500 font-semibold"
+                                    ? "bg-lime-700 font-semibold"
                                     : "hover:bg-lime-500"
                                 }`}
                               >
@@ -120,7 +123,7 @@ export default function SuperAdminLayout({ children }) {
           </ul>
         </div>
 
-        {/* Logout link pinned to bottom */}
+        {/* Logout */}
         <div className="p-4 border-t border-lime-500">
           <button
             onClick={logoutSuperAdmin}
@@ -134,7 +137,6 @@ export default function SuperAdminLayout({ children }) {
 
       {/* Main Content */}
       <div className="flex-1 bg-gray-100 p-6 min-h-screen">
-        {/* Mobile menu toggle */}
         <div className="md:hidden mb-4">
           <button onClick={() => setIsOpen(true)} className="text-lime-600">
             <FiMenu size={24} />

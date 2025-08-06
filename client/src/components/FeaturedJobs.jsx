@@ -51,7 +51,7 @@ export default function FeaturedJobs() {
           {[...featuredJobs, ...featuredJobs].map((job, idx) => (
             <div
               key={idx}
-              className="min-w-[300px] max-w-xs w-full p-6 rounded-lg bg-white shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
+              className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
             >
               <div className="flex items-center justify-between mb-4">
                 <div>

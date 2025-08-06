@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, memo } from "react";
 import { Menu, X } from "lucide-react"; // Run: npm install lucide-react
 
 const navItems = [
@@ -13,8 +13,9 @@ const navItems = [
   { href: "/reach-us", label: "Reach Us" },
 ];
 
-export default function Navbar() {
+function NavbarComponent() {
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
@@ -23,7 +24,7 @@ export default function Navbar() {
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link href="/" className="text-xl font-bold text-gray-800">
+        <Link href="/" prefetch className="text-xl font-bold text-gray-800">
           Talent<span className="text-primary-500">HQ</span>
         </Link>
 
@@ -34,6 +35,8 @@ export default function Navbar() {
               <li key={href}>
                 <Link
                   href={href}
+                  prefetch
+                  onMouseEnter={() => router.prefetch(href)}
                   className={`hover:text-lime-500 transition-colors ${
                     pathname === href
                       ? "text-lime-500 font-semibold"
@@ -50,12 +53,16 @@ export default function Navbar() {
           <div className="flex space-x-4">
             <Link
               href="/login"
+              prefetch
+              onMouseEnter={() => router.prefetch("/login")}
               className="px-4 py-2 border border-lime-500 text-primary-400 rounded hover:bg-blue-50 transition"
             >
               Login
             </Link>
             <Link
               href="/signup"
+              prefetch
+              onMouseEnter={() => router.prefetch("/signup")}
               className="px-4 py-2 bg-lime text-white rounded hover:bg-green-800 transition"
             >
               Sign Up
@@ -76,7 +83,7 @@ export default function Navbar() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          <Link href="/" className="text-xl font-bold text-gray-800">
+          <Link href="/" prefetch className="text-xl font-bold text-gray-800">
             TalentHQ
           </Link>
           <button onClick={toggleMenu}>
@@ -89,6 +96,8 @@ export default function Navbar() {
             <li key={href}>
               <Link
                 href={href}
+                prefetch
+                onMouseEnter={() => router.prefetch(href)}
                 onClick={() => setMenuOpen(false)}
                 className={`block text-lg hover:text-lime-500 transition-colors ${
                   pathname === href
@@ -106,6 +115,8 @@ export default function Navbar() {
         <div className="px-6 mt-6 flex flex-col space-y-4">
           <Link
             href="/login"
+            prefetch
+            onMouseEnter={() => router.prefetch("/login")}
             onClick={() => setMenuOpen(false)}
             className="text-center px-4 py-2 border border-lime-500 text-lime-800 rounded hover:bg-blue-50 transition"
           >
@@ -113,6 +124,8 @@ export default function Navbar() {
           </Link>
           <Link
             href="/signup"
+            prefetch
+            onMouseEnter={() => router.prefetch("/signup")}
             onClick={() => setMenuOpen(false)}
             className="text-center px-4 py-2 bg-lime-500 text-white rounded hover:bg-green-800 transition"
           >
@@ -123,3 +136,5 @@ export default function Navbar() {
     </nav>
   );
 }
+
+export default memo(NavbarComponent);

@@ -113,7 +113,8 @@
 }
 
 body {
-  background-color: var(--color-primary-500);
+  /* background-color: var(--color-primary-500); */
+  background-color: whitesmoke;
 }
 
 /* ===========TEXT==============*/
