@@ -7,6 +7,14 @@ export const createJob = async (req, res) => {
     const {
       title,
       description,
+      qualification,
+      responsibilities,
+      skills,
+      benefits,
+      salary,
+      experienceLevel,
+      deadline,
+      company,
       location,
       state,
       lga,
@@ -14,25 +22,38 @@ export const createJob = async (req, res) => {
       phoneNumber,
       category,
       type,
-      salary,
-      experienceLevel,
-      deadline,
-      companyId,
-      postedBy,
       jobFor,
     } = req.body;
 
-    let employer = null;
-    if (companyId) {
-      employer = await EmployerModel.findById(companyId);
+    let companyId = company;
+
+    // If employer, force attach their own company
+    if (req.user.role === "employer") {
+      const employer = await EmployerModel.findById(req.user.id);
       if (!employer) {
         return res.status(404).json({ message: "Employer not found" });
       }
+      companyId = employer._id;
     }
 
-    const job = new JobModel({
+    // If superadmin posting but no company provided
+    if (req.user.role === "superadmin" && !companyId) {
+      return res
+        .status(400)
+        .json({ message: "Superadmin must provide company id" });
+    }
+
+    const newJob = new JobModel({
       title,
       description,
+      qualification,
+      responsibilities,
+      skills,
+      benefits,
+      salary,
+      experienceLevel,
+      deadline,
+      company: companyId,
       location,
       state,
       lga,
@@ -40,27 +61,20 @@ export const createJob = async (req, res) => {
       phoneNumber,
       category,
       type,
-      salary,
-      experienceLevel,
-      deadline,
-      company: employer?._id || null,
-      postedBy: postedBy || "employer",
       jobFor,
+      postedBy: req.user.role,
     });
 
-    await job.save();
+    await newJob.save();
 
-    res.status(201).json({
-      message: "Job created successfully",
-      job,
-    });
+    res.status(201).json({ message: "Job created successfully", job: newJob });
   } catch (error) {
     console.error("Error creating job:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error while creating job" });
   }
 };
 
-// ✅ Get Paginated Jobs with full company details
+// ✅ Get Paginated Jobs
 export const getJobs = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", location = "" } = req.query;
@@ -90,14 +104,14 @@ export const getJobs = async (req, res) => {
   }
 };
 
-// ✅ Get Job by ID with company details
+// ✅ Get Job by ID
 export const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const job = await JobModel.findById(id)
-      .populate("company", "companyName logo") // <-- this links to Employer
-      .lean(); // makes it a plain object for easy use
+      .populate("company", "companyName logo")
+      .lean();
 
     if (!job) {
       return res.status(404).json({ message: "Job not found" });

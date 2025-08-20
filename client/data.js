@@ -443,7 +443,7 @@ export const employerDashNav = [
   {
     item: "Post New Job",
     icon: MdEditDocument,
-    link: "/dashboard-handyman/post-new-job",
+    link: "/dashboard-employer/post-job",
   },
   {
     item: "Browse Candidates",

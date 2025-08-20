@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getAllEmployers,
   getEmployerDashboard,
   loginEmployer,
   logoutEmployer,
@@ -22,6 +23,8 @@ router.get(
   authorizeRole("employer"),
   getEmployerDashboard
 );
+
+router.get("/employers", getAllEmployers); // ✅ New route
 router.post("/logout", logoutEmployer);
 
 export default router;

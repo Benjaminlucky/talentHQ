@@ -55,7 +55,7 @@ export const signupEmployer = async (req, res) => {
       linkedin,
       cacNumber,
       password: hashedPassword,
-      logo, // should already be base64 string from frontend
+      logo, // base64 string from frontend
       contactPersonName,
       contactPersonDesignation,
       contactPersonEmail,
@@ -65,13 +65,21 @@ export const signupEmployer = async (req, res) => {
 
     await newEmployer.save();
 
-    const token = jwt.sign(
+    // Generate tokens
+    const accessToken = jwt.sign(
       { id: newEmployer._id, role: "employer" },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "15m" }
     );
+
+    const refreshToken = jwt.sign(
+      { id: newEmployer._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    newEmployer.refreshToken = refreshToken;
+    await newEmployer.save();
 
     res.status(201).json({
       message: "Employer registered successfully.",
@@ -81,7 +89,8 @@ export const signupEmployer = async (req, res) => {
         companyEmail: newEmployer.companyEmail,
         role: "employer",
       },
-      token,
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -123,14 +132,14 @@ export const loginEmployer = async (req, res) => {
 
     res.status(200).json({
       message: "Login successful.",
-      accessToken,
-      refreshToken,
       employer: {
         id: employer._id,
         companyName: employer.companyName,
         companyEmail: employer.companyEmail,
         role: "employer",
       },
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -142,14 +151,14 @@ export const loginEmployer = async (req, res) => {
 export const refreshEmployerToken = async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken)
-    return res.status(401).json({ message: "Token required." });
+    return res.status(401).json({ message: "Refresh token required." });
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     const employer = await EmployerModel.findById(decoded.id);
 
     if (!employer || employer.refreshToken !== refreshToken) {
-      return res.status(403).json({ message: "Invalid token." });
+      return res.status(403).json({ message: "Invalid refresh token." });
     }
 
     const newAccessToken = jwt.sign(
@@ -165,7 +174,6 @@ export const refreshEmployerToken = async (req, res) => {
   }
 };
 
-// ✅ Logout
 // ✅ Employer Logout
 export const logoutEmployer = async (req, res) => {
   try {
@@ -183,7 +191,6 @@ export const logoutEmployer = async (req, res) => {
       return res.status(404).json({ message: "Employer not found." });
     }
 
-    // Invalidate the refresh token
     employer.refreshToken = null;
     await employer.save();
 
@@ -196,7 +203,7 @@ export const logoutEmployer = async (req, res) => {
   }
 };
 
-// ✅ Protected Employer Dashboard
+// ✅ Employer Dashboard
 export const getEmployerDashboard = async (req, res) => {
   try {
     const employer = await EmployerModel.findById(req.user.id).select(
@@ -213,5 +220,19 @@ export const getEmployerDashboard = async (req, res) => {
   } catch (error) {
     console.error("Dashboard error:", error);
     res.status(500).json({ message: "Failed to load dashboard." });
+  }
+};
+
+// ✅ Get all employers
+export const getAllEmployers = async (req, res) => {
+  try {
+    const employers = await EmployerModel.find(
+      {},
+      "companyName companyEmail logo industry"
+    );
+    res.status(200).json(employers);
+  } catch (error) {
+    console.error("Error fetching employers:", error);
+    res.status(500).json({ message: "Failed to fetch employers" });
   }
 };

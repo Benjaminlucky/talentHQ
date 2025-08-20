@@ -1,11 +1,27 @@
+// controllers/superAdminController.js
+import dotenv from "dotenv";
+dotenv.config();
+
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import SuperAdmin from "../models/superAdmin.model.js";
 
-// Environment secret
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+// Use env, with safe fallbacks so the app never crashes if .env isn't loaded early enough
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || "fallback_refresh_secret";
 
+const signAccessToken = (admin) =>
+  jwt.sign({ id: admin._id, role: "superadmin" }, JWT_SECRET, {
+    expiresIn: "1h",
+  });
+
+const signRefreshToken = (admin) =>
+  jwt.sign({ id: admin._id, role: "superadmin" }, JWT_REFRESH_SECRET, {
+    expiresIn: "7d",
+  });
+
+// POST /api/superadmin/register
 export const registerSuperAdmin = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
@@ -21,10 +37,12 @@ export const registerSuperAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newAdmin = await SuperAdmin.create({
+    await SuperAdmin.create({
       fullName,
       email,
       password: hashedPassword,
+      // ensure role is set in your model schema default; otherwise uncomment next line:
+      // role: "superadmin",
     });
 
     return res
@@ -36,6 +54,7 @@ export const registerSuperAdmin = async (req, res) => {
   }
 };
 
+// POST /api/superadmin/login
 export const loginSuperAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -47,17 +66,9 @@ export const loginSuperAdmin = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    const accessToken = jwt.sign(
-      { id: admin._id, role: admin.role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: admin._id, role: admin.role },
-      JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
+    // Ensure role in token payload is `superadmin`
+    const accessToken = signAccessToken(admin);
+    const refreshToken = signRefreshToken(admin);
 
     admin.refreshToken = refreshToken;
     await admin.save();
@@ -70,7 +81,7 @@ export const loginSuperAdmin = async (req, res) => {
         id: admin._id,
         fullName: admin.fullName,
         email: admin.email,
-        role: admin.role,
+        role: admin.role || "superadmin",
       },
     });
   } catch (error) {
@@ -79,6 +90,7 @@ export const loginSuperAdmin = async (req, res) => {
   }
 };
 
+// POST /api/superadmin/refresh-token
 export const refreshSuperAdminToken = async (req, res) => {
   const { refreshToken } = req.body;
 
@@ -95,31 +107,45 @@ export const refreshSuperAdminToken = async (req, res) => {
         return res.status(403).json({ message: "Token verification failed." });
       }
 
-      const accessToken = jwt.sign(
-        { id: admin._id, role: admin.role },
-        JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
+      const accessToken = signAccessToken(admin);
       return res.status(200).json({ accessToken });
     });
   } catch (error) {
+    console.error("Refresh error:", error);
     return res.status(500).json({ message: "Server error." });
   }
 };
 
+// POST /api/superadmin/logout
+// Accepts either { refreshToken } OR { id } in body for convenience
 export const logoutSuperAdmin = async (req, res) => {
-  const { refreshToken } = req.body;
-
   try {
-    const admin = await SuperAdmin.findOne({ refreshToken });
-    if (!admin) return res.status(204).send();
+    const { refreshToken, id } = req.body;
 
-    admin.refreshToken = "";
+    if (!refreshToken && !id) {
+      return res
+        .status(400)
+        .json({ message: "refreshToken or id is required." });
+    }
+
+    let admin = null;
+    if (refreshToken) {
+      admin = await SuperAdmin.findOne({ refreshToken });
+    } else if (id) {
+      admin = await SuperAdmin.findById(id);
+    }
+
+    if (!admin) {
+      // 204 so client can clear its tokens without error spam
+      return res.status(204).send();
+    }
+
+    admin.refreshToken = null;
     await admin.save();
 
     return res.status(200).json({ message: "Logged out successfully." });
   } catch (error) {
+    console.error("Logout error:", error);
     return res.status(500).json({ message: "Server error." });
   }
 };

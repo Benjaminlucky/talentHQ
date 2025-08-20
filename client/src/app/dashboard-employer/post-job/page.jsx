@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer, toast } from "react-toastify";
-import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
+import employerAuthRedirect from "@/app/utils/employerAuthRedirect.js";
 
 const JobPostForm = () => {
-  const status = useSuperAdminAuthRedirect();
+  const status = employerAuthRedirect("employer"); // ✅ enforce employer auth
 
   const [formData, setFormData] = useState({
     title: "",
@@ -22,8 +22,8 @@ const JobPostForm = () => {
     salary: "",
     experienceLevel: "",
     deadline: "",
-    company: "", // required when admin posts
-    postedBy: "admin",
+    company: "", // ✅ FIXED: use `company` (not companyId)
+    postedBy: "employer",
     jobFor: "professional",
     qualification: "",
     responsibilities: "",
@@ -31,25 +31,16 @@ const JobPostForm = () => {
     benefits: "",
   });
 
-  const [companies, setCompanies] = useState([]);
-
-  // ✅ fetch employers for company dropdown
+  // ✅ auto-set company and postedBy from localStorage user
   useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        const token = localStorage.getItem("superadminToken"); // 🔑 use correct storage key
-        const res = await axios.get(
-          "http://localhost:5000/api/employers/employers",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setCompanies(res.data);
-      } catch (error) {
-        console.error("Failed to fetch companies:", error);
-      }
-    };
-    fetchCompanies();
+    const userData = JSON.parse(localStorage.getItem("user"));
+    if (userData?.role === "employer") {
+      setFormData((prev) => ({
+        ...prev,
+        postedBy: "employer",
+        company: userData._id, // ✅ matches backend
+      }));
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -81,7 +72,7 @@ const JobPostForm = () => {
         salary: "",
         experienceLevel: "",
         deadline: "",
-        company: "", // ✅ correct
+        company: "", // ✅ reset
       });
     } catch (err) {
       console.error("Job post failed:", err);
@@ -116,7 +107,7 @@ const JobPostForm = () => {
       {/* Description */}
       <textarea
         name="description"
-        placeholder="About this role / Job Description"
+        placeholder="Job Description"
         value={formData.description}
         onChange={handleChange}
         required
@@ -267,22 +258,6 @@ const JobPostForm = () => {
         onChange={handleChange}
         className="w-full border border-gray-400 rounded-sm px-4 py-3"
       />
-
-      {/* Company dropdown (Admin only) */}
-      <select
-        name="company"
-        value={formData.company}
-        onChange={handleChange}
-        required
-        className="w-full border border-gray-400 rounded-sm px-4 py-3"
-      >
-        <option value="">-- Select Company --</option>
-        {companies.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.companyName}
-          </option>
-        ))}
-      </select>
 
       {/* Submit */}
       <button

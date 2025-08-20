@@ -4,11 +4,23 @@ import {
   createJob,
   getJobById,
 } from "../controllers/jobController.js";
+import {
+  authenticateToken,
+  authorizeRole,
+} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getJobs); // ✅ Paginated list
-router.get("/:id", getJobById); // ✅ Single job
-router.post("/", createJob); // ✅ Create job
+// Public
+router.get("/", getJobs);
+router.get("/:id", getJobById);
+
+// Protected: employer OR superadmin
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRole("employer", "superadmin"),
+  createJob
+);
 
 export default router;
