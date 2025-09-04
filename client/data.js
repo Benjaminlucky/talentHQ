@@ -342,7 +342,7 @@ export const jobseekerDashNav = [
   {
     item: "My Applications",
     icon: MdEditDocument,
-    link: "/dashboard-handyman/my-applications",
+    link: "/dashboard-jobseeker/my-applications",
   },
   {
     item: "My Jobs",

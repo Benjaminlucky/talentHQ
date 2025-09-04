@@ -1,18 +1,56 @@
-import { featuredJobs } from "../../../../data";
-import "./page.css";
-import Link from "next/link";
-import Image from "next/image"; // ✅ Don't forget to import this
+// app/jobs/[id]/page.jsx
+"use client";
 
-export async function generateStaticParams() {
-  return featuredJobs.map((job) => ({ id: job.id.toString() }));
-}
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import axios from "axios";
+import Image from "next/image";
+import { IoLocationOutline } from "react-icons/io5";
+import { FiBriefcase } from "react-icons/fi";
+import { CheckCircle2 } from "lucide-react"; // ✅ For checklist icons
 
-export default async function JobDetailPage({ params }) {
-  const job = featuredJobs.find((job) => job.id.toString() === params.id);
+export default function JobDetailPage() {
+  const { id } = useParams();
+  const [job, setJob] = useState(null);
+  const [relatedJobs, setRelatedJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!job) {
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/jobs/${id}`);
+        setJob(res.data);
+
+        // Fetch related jobs by same company
+        if (res.data?.company?._id) {
+          const relatedRes = await axios.get("http://localhost:5000/api/jobs", {
+            params: { company: res.data.company._id, limit: 5 },
+          });
+          setRelatedJobs(relatedRes.data.jobs.filter((j) => j._id !== id));
+        }
+      } catch (err) {
+        console.error("Failed to fetch job:", err);
+        setError(err.response?.data?.message || "Failed to load job details");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) fetchJob();
+  }, [id]);
+
+  if (isLoading) return <div className="p-10 text-center">Loading...</div>;
+  if (error)
+    return <div className="p-10 text-center text-red-500">{error}</div>;
+  if (!job)
     return <div className="p-10 text-center text-red-500">Job not found</div>;
-  }
+
+  const responsibilities = job.responsibilities
+    ?.split(",")
+    .map((r) => r.trim());
+  const skills = job.skills?.split(",").map((s) => s.trim());
+  const benefits = job.benefits?.split(",").map((b) => b.trim());
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -22,44 +60,43 @@ export default async function JobDetailPage({ params }) {
           {/* Header */}
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-y-6">
-              {/* Left section: Logo + Title + Info */}
-              <div className="flex flex-col md:flex-row items-center md:items-start md: gap-4">
-                {/* ✅ Company Logo */}
-                {job.companyLogo && (
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
+                {job.company?.logo && (
                   <div className="w-16 h-16 relative flex-shrink-0">
                     <Image
-                      src={job.companyLogo}
-                      alt={`${job.company} Logo`}
+                      src={job.company.logo}
+                      alt={job.company?.companyName || "Company Logo"}
                       fill
                       className="object-contain rounded"
                     />
                   </div>
                 )}
-
-                {/* Title + Info */}
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                  <h1 className="text-3xl font-bold text-gray-800">
                     {job.title}
                   </h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-gray-600 text-sm sm:text-base">
-                    <span className="font-semibold">{job.company}</span> •
-                    <span>{job.location}</span> •
-                    <span>{job.experience || "2-4 Years"}</span> •
-                    <span>{job.type}</span> •<span>{job.mode}</span>
+                  <div className="mt-2 flex flex-col  gap-2 text-gray-600">
+                    <span className="font-semibold text-sm">
+                      {job.company?.companyName || "Unknown Company"}
+                    </span>
+                    <div>
+                      <span>{job.location}</span>{" "}
+                      <span className="text-lime-500 font-bold">
+                        {job.type}
+                      </span>{" "}
+                      <span>{job.jobFor}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:items-center">
-                <button className="border px-4 py-2 rounded text-lime-600 font-semibold hover:bg-lime-50">
+                <button className="border px-3 py-2 rounded text-lime-600 font-semibold hover:bg-lime-50">
                   View Company
                 </button>
-                <Link href={`/signup?redirect=/jobs/${job.jobId}`}>
-                  <button className="bg-lime-500 text-white px-5 py-2 rounded hover:bg-lime-600 font-semibold">
-                    Apply Now
-                  </button>
-                </Link>
+                <button className="bg-lime-500 text-white px-3 py-2 rounded hover:bg-lime-600 font-semibold">
+                  Apply Now
+                </button>
               </div>
             </div>
           </div>
@@ -69,39 +106,54 @@ export default async function JobDetailPage({ params }) {
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               About this role
             </h2>
-            <p className="text-gray-700">{job.detailedBrief}</p>
+            <p className="text-gray-700 leading-relaxed">{job.description}</p>
           </section>
 
-          {/* Qualifications, Responsibilities, Skills */}
+          {/* Responsibilities + Qualification */}
           <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Qualification
-              </h3>
-              <p className="text-gray-700">{job.qualification}</p>
-            </div>
-
+            {/* Responsibilities */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
                 Responsibilities
               </h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                {job.responsibilities?.map((res, i) => (
-                  <li key={i}>{res}</li>
-                )) || <p>No responsibilities listed</p>}
-              </ul>
+              {responsibilities?.length ? (
+                <ul className="space-y-3">
+                  {responsibilities.map((res, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2 bg-lime-50 px-3 py-2 rounded-lg"
+                    >
+                      <CheckCircle2 className="text-lime-600 mt-1" size={18} />
+                      <span className="text-gray-700">{res}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No responsibilities listed</p>
+              )}
+            </div>
+
+            {/* Qualification */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Qualification
+              </h3>
+              <p className="italic bg-gray-50 border-l-4 border-lime-500 p-4 rounded text-gray-700">
+                {job.qualification || "Not specified"}
+              </p>
             </div>
           </section>
 
-          {/* Skills and Benefits */}
+          {/* Skills + Benefits */}
           <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Skills */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
                 Skills
               </h3>
-              {job.skills?.length > 0 ? (
+              {skills?.length ? (
                 <div className="flex flex-wrap gap-2">
-                  {job.skills.map((skill, i) => (
+                  {skills.map((skill, i) => (
                     <span
                       key={i}
                       className="bg-lime-100 text-lime-600 px-3 py-1 rounded-full text-sm"
@@ -115,13 +167,14 @@ export default async function JobDetailPage({ params }) {
               )}
             </div>
 
+            {/* Benefits */}
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
                 Benefits
               </h3>
-              {job.benefits?.length > 0 ? (
+              {benefits?.length ? (
                 <div className="flex flex-wrap gap-2">
-                  {job.benefits.map((benefit, i) => (
+                  {benefits.map((benefit, i) => (
                     <span
                       key={i}
                       className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
@@ -135,31 +188,103 @@ export default async function JobDetailPage({ params }) {
               )}
             </div>
           </section>
+
+          {/* Job Details */}
+          <section className="mt-8 bg-white p-6 rounded-lg shadow">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Job Details
+            </h3>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-gray-700 text-sm">
+              <div>
+                <dt className="font-medium text-gray-600">Category</dt>
+                <dd>{job.category || "N/A"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-600">Experience Level</dt>
+                <dd>{job.experienceLevel || "N/A"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-600">Salary</dt>
+                <dd>{job.salary || "Not specified"}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-600">Deadline</dt>
+                <dd>
+                  {job.deadline
+                    ? new Date(job.deadline).toLocaleDateString()
+                    : "N/A"}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-600">Job For</dt>
+                <dd>{job.jobFor}</dd>
+              </div>
+              <div>
+                <dt className="font-medium text-gray-600">Posted By</dt>
+                <dd>{job.postedBy}</dd>
+              </div>
+              {job.state && (
+                <div>
+                  <dt className="font-medium text-gray-600">State</dt>
+                  <dd>{job.state}</dd>
+                </div>
+              )}
+              {job.lga && (
+                <div>
+                  <dt className="font-medium text-gray-600">LGA</dt>
+                  <dd>{job.lga}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+
+          {/* Contact Info */}
+          <section className="mt-8 bg-white p-6 rounded-lg shadow">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Contact Information
+            </h3>
+            <dl className="space-y-3 text-gray-700 text-sm">
+              {job.phoneNumber && (
+                <div>
+                  <dt className="font-medium text-gray-600">Phone</dt>
+                  <dd>{job.phoneNumber}</dd>
+                </div>
+              )}
+              {job.address && (
+                <div>
+                  <dt className="font-medium text-gray-600">Address</dt>
+                  <dd>{job.address}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
         </div>
 
-        {/* Sidebar (Similar Jobs Placeholder) */}
+        {/* Sidebar */}
         <aside className="w-full lg:w-1/4 space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Other Jobs at {job.company}
+              Other Jobs at {job.company?.companyName || "Company"}
             </h3>
-            <ul className="space-y-4 text-sm text-gray-700">
-              {featuredJobs
-                .filter((j) => j.company === job.company && j.id !== job.id)
-                .map((related) => (
-                  <li key={related.id}>
-                    <Link
-                      href={`/jobs/${related.id}`}
-                      className="hover:text-lime-600 transition"
+            {relatedJobs.length ? (
+              <ul className="space-y-4 text-sm text-gray-700">
+                {relatedJobs.map((rj) => (
+                  <li key={rj._id}>
+                    <a
+                      href={`/jobs/${rj._id}`}
+                      className="block hover:text-lime-600 transition"
                     >
-                      {related.title}
-                    </Link>
+                      {rj.title}
+                    </a>
                     <p className="text-xs text-gray-500">
-                      {related.type} • {related.mode}
+                      {rj.type} • {rj.location}
                     </p>
                   </li>
                 ))}
-            </ul>
+              </ul>
+            ) : (
+              <p className="text-gray-500 text-sm">No other jobs available.</p>
+            )}
           </div>
         </aside>
       </div>

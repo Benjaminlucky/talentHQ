@@ -1,4 +1,4 @@
-// src/app/find-jobs/page.jsx (or wherever FindJobsPage is located)
+// src/app/find-jobs/page.jsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,11 +7,7 @@ import { FiBriefcase } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-const uniqueCategories = [
-  "IT",
-  "Plumbing",
-  "Teaching" /* Add other categories from DB */,
-];
+const uniqueCategories = ["IT", "Plumbing", "Teaching"];
 const jobTypes = ["Full-time", "Part-time", "Contract"];
 const jobsPerPage = 9;
 
@@ -24,7 +20,14 @@ export default function FindJobsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [jobs, setJobs] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
+
   const router = useRouter();
+
+  useEffect(() => {
+    // Reset jobs when filters change
+    setJobs([]);
+    setCurrentPage(1);
+  }, [search, location, category, jobType]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -40,27 +43,34 @@ export default function FindJobsPage() {
             limit: jobsPerPage,
           },
         });
-        setJobs(res.data.jobs || []);
+
+        // Append new jobs instead of replacing
+        setJobs((prev) =>
+          currentPage === 1
+            ? res.data.jobs || []
+            : [...prev, ...(res.data.jobs || [])]
+        );
+
         setTotalPages(res.data.totalPages || 1);
       } catch (err) {
         console.error("Failed to fetch jobs:", err);
-        setJobs([]);
-        alert("Failed to load jobs. Please try again later.");
+        if (currentPage === 1) setJobs([]);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchJobs();
   }, [search, location, category, jobType, currentPage]);
 
   const handleApply = (jobId) => {
-    console.log("Navigating to job:", jobId);
     router.push(`/findjob/${jobId}`);
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
   };
 
   return (
@@ -110,12 +120,12 @@ export default function FindJobsPage() {
         </select>
       </form>
 
-      {/* Layout */}
+      {/* Jobs Grid */}
       <div className="grid md:grid-cols-[3fr_1fr] gap-8">
         {/* Jobs Listing */}
         <div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6">
-            {isLoading
+            {isLoading && jobs.length === 0
               ? Array.from({ length: 6 }).map((_, idx) => (
                   <div
                     key={idx}
@@ -151,7 +161,7 @@ export default function FindJobsPage() {
                       )}
                     </div>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                      {job.description.slice(0, 100)}...
+                      {job.description?.slice(0, 100)}...
                     </p>
                     <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-1">
@@ -170,7 +180,9 @@ export default function FindJobsPage() {
                         </p>
                         <p className="text-gray-500 text-xs">
                           Deadline:{" "}
-                          {new Date(job.deadline).toLocaleDateString()}
+                          {job.deadline
+                            ? new Date(job.deadline).toLocaleDateString()
+                            : "N/A"}
                         </p>
                       </div>
                       <button
@@ -184,24 +196,15 @@ export default function FindJobsPage() {
                 ))}
           </div>
 
-          {/* Pagination */}
-          {!isLoading && totalPages > 1 && (
-            <div className="flex justify-center mt-10 space-x-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 rounded ${
-                      currentPage === page
-                        ? "bg-lime-500 text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    } transition`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
+          {/* Load More Button */}
+          {!isLoading && currentPage < totalPages && (
+            <div className="flex justify-center mt-10">
+              <button
+                onClick={handleLoadMore}
+                className="px-6 py-3 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
+              >
+                Load More
+              </button>
             </div>
           )}
         </div>

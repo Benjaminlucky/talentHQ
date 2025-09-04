@@ -1,14 +1,27 @@
+// src/components/FeaturedJobs.jsx
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { use, useEffect } from "react";
-import { featuredJobs } from "../../data";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
-export default function FeaturedJobs() {
+export default function FeaturedJobs({
+  search = "",
+  location = "",
+  category = "",
+  jobType = "",
+  currentPage = 1,
+  jobsPerPage = 10,
+}) {
   const controls = useAnimation();
+  const router = useRouter();
+
+  const [jobs, setJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     controls.start({
@@ -20,9 +33,35 @@ export default function FeaturedJobs() {
       },
     });
   }, [controls]);
-  const router = useRouter();
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get("http://localhost:5000/api/jobs/", {
+          params: {
+            search,
+            location,
+            category,
+            jobType,
+            page: currentPage,
+            limit: jobsPerPage,
+          },
+        });
+        setJobs(res.data.jobs || []);
+      } catch (err) {
+        console.error("Failed to fetch jobs:", err);
+        setError("Failed to load jobs. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [search, location, category, jobType, currentPage, jobsPerPage]);
+
   const handleApply = (jobId) => {
-    //Navigate to the Job Detail Page
     router.push(`/jobs/${jobId}`);
   };
 
@@ -32,72 +71,100 @@ export default function FeaturedJobs() {
         Featured Jobs
       </h2>
 
-      <div className="relative w-full overflow-hidden">
-        <motion.div
-          className="flex gap-4 w-max"
-          animate={controls}
-          onMouseEnter={() => controls.stop()}
-          onMouseLeave={() =>
-            controls.start({
-              x: ["0%", "-100%"],
-              transition: {
-                repeat: Infinity,
-                duration: 60,
-                ease: "linear",
-              },
-            })
-          }
-        >
-          {[...featuredJobs, ...featuredJobs].map((job, idx) => (
-            <div
-              key={idx}
-              className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-800">
-                    {job.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">{job.company}</p>
-                </div>
-                <img
-                  src={job.companyLogo}
-                  alt={job.company}
-                  className="w-12 h-12 object-contain"
-                />
-              </div>
+      {isLoading && (
+        <p className="text-center text-gray-400">Loading jobs...</p>
+      )}
 
-              <p className="text-gray-600 text-sm mb-4 break-words line-clamp-3">
-                {job.brief}
-              </p>
+      {error && <p className="text-center text-red-500">{error}</p>}
 
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                <div className="flex items-center gap-1">
-                  <IoLocationOutline className="text-lime-500" />
-                  <span>{job.location}</span>
+      {!isLoading && !error && jobs.length === 0 && (
+        <p className="text-center text-gray-400">
+          No jobs available right now.
+        </p>
+      )}
+
+      {jobs.length > 0 && (
+        <div className="relative w-full overflow-hidden">
+          <motion.div
+            className="flex gap-4 w-max"
+            animate={controls}
+            onMouseEnter={() => controls.stop()}
+            onMouseLeave={() =>
+              controls.start({
+                x: ["0%", "-100%"],
+                transition: {
+                  repeat: Infinity,
+                  duration: 60,
+                  ease: "linear",
+                },
+              })
+            }
+          >
+            {[...jobs, ...jobs].map((job, idx) => (
+              <div
+                key={idx}
+                className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {job.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {job.company?.companyName || "Unknown Company"}
+                    </p>
+                  </div>
+                  {job.company?.logo && (
+                    <img
+                      src={job.company.logo}
+                      alt={job.company.companyName}
+                      className="w-12 h-12 object-contain"
+                    />
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <FiBriefcase className="text-lime-500" />
-                  <span>{job.mode}</span>
+
+                {/* Description */}
+                <p className="text-gray-600 text-sm mb-4 break-words line-clamp-3">
+                  {job.description?.slice(0, 100) || "No description"}...
+                </p>
+
+                {/* Job Info */}
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                  <div className="flex items-center gap-1">
+                    <IoLocationOutline className="text-lime-500" />
+                    <span>{job.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FiBriefcase className="text-lime-500" />
+                    <span>{job.type}</span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between mt-6">
+                  <div>
+                    <p className="text-gray-800 font-semibold">
+                      {job.salary || "Not specified"}
+                    </p>
+                    {job.deadline && (
+                      <p className="text-gray-500 text-xs">
+                        Deadline: {new Date(job.deadline).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
+                    onClick={() => handleApply(job._id)}
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between mt-6">
-                <div>
-                  <p className="text-gray-800 font-semibold">{job.salary}</p>
-                  <p className="text-gray-500 text-xs">{job.time}</p>
-                </div>
-                <button
-                  className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
-                  onClick={() => handleApply(job.id)}
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          ))}
-        </motion.div>
-      </div>
+            ))}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
