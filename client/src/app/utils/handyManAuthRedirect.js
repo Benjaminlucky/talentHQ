@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const handyManAuthRedirect = (allowedRole) => {
+const useHandyManAuthRedirect = (allowedRole) => {
   const router = useRouter();
 
   useEffect(() => {
@@ -26,4 +26,4 @@ const handyManAuthRedirect = (allowedRole) => {
   }, [allowedRole, router]);
 };
 
-export default handyManAuthRedirect;
+export default useHandyManAuthRedirect;

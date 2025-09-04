@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer, toast } from "react-toastify";
-import employerAuthRedirect from "@/app/utils/employerAuthRedirect.js";
+import useEmployerAuthRedirect from "@/app/utils/employerAuthRedirect.js";
 
 const JobPostForm = () => {
-  const status = employerAuthRedirect("employer"); // ✅ enforce employer auth
+  const status = useEmployerAuthRedirect("employer"); // ✅ enforce employer auth
 
   const [formData, setFormData] = useState({
     title: "",

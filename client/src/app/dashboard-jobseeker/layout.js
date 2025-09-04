@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import JobSeekerdashboardSidebar from "@/components/JobSeekerdashboardSidebar";
 import { FiMenu } from "react-icons/fi";
 import { IoMdClose } from "react-icons/io";
-import { jobSeekerAuthRedirect } from "../utils/jobSeekerAuthRedirects";
+import { useJobSeekerAuthRedirect } from "../utils/jobSeekerAuthRedirects";
 
 export default function DashboardLayout({ children }) {
-  jobSeekerAuthRedirect("jobseeker"); // ✅ Protect this route
+  useJobSeekerAuthRedirect("jobseeker"); // ✅ Protect this route
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

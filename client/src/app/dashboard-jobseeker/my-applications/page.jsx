@@ -1,7 +1,7 @@
 "use client";
 
-import { jobSeekerAuthRedirect } from "@/app/utils/jobSeekerAuthRedirects";
-import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
+import { useJobSeekerAuthRedirect } from "@/app/utils/jobSeekerAuthRedirects";
+
 import { useState } from "react";
 import { ImSpinner8 } from "react-icons/im";
 import { ToastContainer, toast } from "react-toastify";
@@ -36,7 +36,7 @@ const nigeriaStatesWithLGAs = {
 };
 
 export default function Page() {
-  const authStatus = jobSeekerAuthRedirect("jobseeker");
+  const authStatus = useJobSeekerAuthRedirect("jobseeker");
 
   const [formData, setFormData] = useState({
     fullName: "",

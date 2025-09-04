@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function jobSeekerAuthRedirect(allowedRole = "jobseeker") {
+export function useJobSeekerAuthRedirect(allowedRole = "jobseeker") {
   const [status, setStatus] = useState("loading");
   // status can be: "loading" | "authorized" | "unauthorized"
 

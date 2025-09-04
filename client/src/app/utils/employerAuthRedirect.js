@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const employerAuthRedirect = (allowedRole) => {
+const useEmployerAuthRedirect = (allowedRole) => {
   const router = useRouter();
   const [status, setStatus] = useState("checking"); // ✅ track state
 
@@ -35,4 +35,4 @@ const employerAuthRedirect = (allowedRole) => {
   return status; // ✅ return status to consuming component
 };
 
-export default employerAuthRedirect;
+export default useEmployerAuthRedirect;
