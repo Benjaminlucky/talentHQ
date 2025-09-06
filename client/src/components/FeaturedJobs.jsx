@@ -40,7 +40,6 @@ export default function FeaturedJobs({
       setError(null);
       try {
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
-
         const res = await axios.get(`${baseUrl}/api/jobs`, {
           params: {
             search,
@@ -67,6 +66,32 @@ export default function FeaturedJobs({
     router.push(`/jobs/${jobId}`);
   };
 
+  // Skeleton Loader
+  const SkeletonCard = () => (
+    <div className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 animate-pulse">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
+          <div className="h-3 w-20 bg-gray-200 rounded"></div>
+        </div>
+        <div className="w-12 h-12 bg-gray-200 rounded"></div>
+      </div>
+      <div className="h-3 w-full bg-gray-200 rounded mb-2"></div>
+      <div className="h-3 w-5/6 bg-gray-200 rounded mb-4"></div>
+      <div className="flex justify-between mb-4">
+        <div className="h-3 w-16 bg-gray-200 rounded"></div>
+        <div className="h-3 w-16 bg-gray-200 rounded"></div>
+      </div>
+      <div className="flex justify-between mt-6">
+        <div>
+          <div className="h-4 w-20 bg-gray-300 rounded mb-2"></div>
+          <div className="h-3 w-24 bg-gray-200 rounded"></div>
+        </div>
+        <div className="h-8 w-20 bg-gray-300 rounded"></div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="featuredJobs mt-12 overflow-hidden">
       <h2 className="text-4xl font-bold text-center text-gray-300 my-8">
@@ -74,7 +99,13 @@ export default function FeaturedJobs({
       </h2>
 
       {isLoading && (
-        <p className="text-center text-gray-400">Loading jobs...</p>
+        <div className="relative w-full overflow-hidden">
+          <div className="flex gap-4 w-max">
+            {[...Array(4)].map((_, idx) => (
+              <SkeletonCard key={idx} />
+            ))}
+          </div>
+        </div>
       )}
 
       {error && <p className="text-center text-red-500">{error}</p>}
@@ -85,7 +116,7 @@ export default function FeaturedJobs({
         </p>
       )}
 
-      {jobs.length > 0 && (
+      {!isLoading && jobs.length > 0 && (
         <div className="relative w-full overflow-hidden">
           <motion.div
             className="flex gap-4 w-max"
