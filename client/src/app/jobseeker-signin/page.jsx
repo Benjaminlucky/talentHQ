@@ -27,10 +27,8 @@ export default function Page() {
     setLoading(true);
 
     try {
-      const baseUrl =
-        process.env.NODE_ENV === "production"
-          ? "https://talenthq-1.onrender.com"
-          : "http://localhost:5000";
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
+
       const response = await fetch(`${baseUrl}/api/jobseekers/login`, {
         method: "POST",
         headers: {
