@@ -39,7 +39,11 @@ export default function FeaturedJobs({
       setIsLoading(true);
       setError(null);
       try {
-        const res = await axios.get("http://localhost:5000/api/jobs/", {
+        const baseUrl =
+          process.env.NODE_ENV === "production"
+            ? "https://talenthq-1.onrender.com"
+            : "http://localhost:5000";
+        const res = await axios.get(`${baseUrl}/api/jobs`, {
           params: {
             search,
             location,
