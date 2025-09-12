@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class", // enable dark mode using the `.dark` class
+  content: [
+    "./src/app/**/*.{js,jsx,ts,tsx}",
+    "./src/components/**/*.{js,jsx,ts,tsx}",
+  ],
   theme: {
     extend: {
       colors: {
@@ -64,6 +68,11 @@ module.exports = {
           800: "#000000",
           900: "#000000",
         },
+      },
+      borderRadius: {
+        lg: "var(--radius-lg, 0.5rem)",
+        xl: "var(--radius-xl, 0.75rem)",
+        "2xl": "var(--radius-2xl, 1rem)",
       },
       animation: {
         "slide-in": "slideIn 0.3s ease-out forwards",

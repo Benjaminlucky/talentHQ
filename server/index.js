@@ -5,15 +5,24 @@ import dotenv from "dotenv";
 import fs from "fs";
 import multer from "multer";
 import path from "path";
-import jobSeekerRoutes from "./routes/jobSeekerRoutes.js";
-import handymanRoutes from "./routes/handymanRoutes.js";
+import cookieParser from "cookie-parser"; // ✅ Needed for reading cookies
+
+// Routes
 import employerRoutes from "./routes/employerRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
+import authRoutes from "./routes/auth.js";
+import onboardingRoutes from "./routes/OnboardingRoutes.js";
+import profileRoutes from "./routes/profileRoutes.js";
 
 dotenv.config();
 
 const app = express();
+
+// ✅ Middleware with larger payload limit (fix PayloadTooLargeError)
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(cookieParser()); // ✅ Must be before routes to read cookies
 
 // Ensure uploads/resumes folder exists
 const resumePath = "./uploads/resumes";
@@ -33,10 +42,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use("/uploads", express.static("uploads")); // optional: serve static files
+// ✅ Dynamic CORS setup
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://talenthq.netlify.app"]
+    : ["http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // ✅ allow sending cookies
+  })
+);
+
+// ✅ Static files
+app.use("/uploads", express.static("uploads"));
 
 // Root Route
 app.get("/", (req, res) => {
@@ -55,18 +81,18 @@ app.post("/api/upload-resume", upload.single("resume"), (req, res) => {
 });
 
 // API Routes
-app.use("/api/jobseekers", jobSeekerRoutes);
-app.use("/api/handyman", handymanRoutes);
 app.use("/api/employers", employerRoutes);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/onboarding", onboardingRoutes);
+app.use("/api/profile", profileRoutes);
 
 // MongoDB Connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB Connected Successfully");
-    // Start Server Only After DB Connects
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
@@ -74,5 +100,5 @@ mongoose
   })
   .catch((error) => {
     console.error("❌ MongoDB Connection Error:", error.message);
-    process.exit(1); // Exit process if DB fails
+    process.exit(1);
   });

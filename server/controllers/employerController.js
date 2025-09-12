@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import EmployerModel from "../models/Employer.model.js";
+import Employer from "../models/Employer.js";
 
 // ✅ Employer Signup
 export const signupEmployer = async (req, res) => {
@@ -33,7 +33,7 @@ export const signupEmployer = async (req, res) => {
       });
     }
 
-    const existingUser = await EmployerModel.findOne({ companyEmail });
+    const existingUser = await Employer.findOne({ companyEmail });
     if (existingUser) {
       return res
         .status(409)

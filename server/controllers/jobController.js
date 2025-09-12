@@ -1,4 +1,4 @@
-import EmployerModel from "../models/Employer.model.js";
+import Employer from "../models/Employer.js";
 import JobModel from "../models/job.model.js";
 
 // ✅ Create Job
@@ -29,7 +29,7 @@ export const createJob = async (req, res) => {
 
     // If employer, force attach their own company
     if (req.user.role === "employer") {
-      const employer = await EmployerModel.findById(req.user.id);
+      const employer = await Employer.findById(req.user.id);
       if (!employer) {
         return res.status(404).json({ message: "Employer not found" });
       }
