@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import multer from "multer";
 import path from "path";
-import cookieParser from "cookie-parser"; // ✅ Needed for reading cookies
+import cookieParser from "cookie-parser";
 
 // Routes
 import employerRoutes from "./routes/employerRoutes.js";
@@ -19,10 +19,10 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Middleware with larger payload limit (fix PayloadTooLargeError)
+// Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(cookieParser()); // ✅ Must be before routes to read cookies
+app.use(cookieParser());
 
 // Ensure uploads/resumes folder exists
 const resumePath = "./uploads/resumes";
@@ -42,7 +42,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Dynamic CORS setup
+// ✅ Strict CORS config (no wildcard when credentials are used)
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? ["https://talenthq.netlify.app"]
@@ -51,17 +51,17 @@ const allowedOrigins =
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      if (!origin) return callback(null, true); // allow Postman/cURL
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
+      return callback(new Error("Not allowed by CORS"));
     },
-    credentials: true, // ✅ allow sending cookies
+    credentials: true,
   })
 );
 
-// ✅ Static files
+// Static files
 app.use("/uploads", express.static("uploads"));
 
 // Root Route
