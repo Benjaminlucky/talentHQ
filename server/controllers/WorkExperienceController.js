@@ -1,4 +1,4 @@
-import WorkExperience from "../models/WorkExperience.js";
+import Workexperience from "../models/Workexperience.js";
 
 export const addWorkExperience = async (req, res) => {
   try {
@@ -13,7 +13,7 @@ export const addWorkExperience = async (req, res) => {
 
 export const updateWorkExperience = async (req, res) => {
   try {
-    const exp = await WorkExperience.findOneAndUpdate(
+    const exp = await Workexperience.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true }

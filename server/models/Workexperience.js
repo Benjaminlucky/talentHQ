@@ -29,5 +29,5 @@ const workExperience = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.WorkExperience ||
-  mongoose.model("WorkExperience", workExperience);
+export default mongoose.models.workExperience ||
+  mongoose.model("workExperience", workExperience);
