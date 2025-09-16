@@ -14,6 +14,7 @@ import jobRoutes from "./routes/jobRoutes.js";
 import authRoutes from "./routes/auth.js";
 import onboardingRoutes from "./routes/OnboardingRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import jobseekerApplicationRoutes from "./routes/JobseekerApplicationsRoutes.js";
 
 dotenv.config();
 
@@ -87,6 +88,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/profile", jobseekerApplicationRoutes);
 
 // MongoDB Connection
 mongoose

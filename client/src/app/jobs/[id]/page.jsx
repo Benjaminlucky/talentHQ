@@ -19,14 +19,19 @@ export default function JobDetailPage() {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/jobs/${id}`);
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE}/api/jobs/${id}`
+        );
         setJob(res.data);
 
         // Fetch related jobs by same company
         if (res.data?.company?._id) {
-          const relatedRes = await axios.get("http://localhost:5000/api/jobs", {
-            params: { company: res.data.company._id, limit: 5 },
-          });
+          const relatedRes = await axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE}/api/jobs`,
+            {
+              params: { company: res.data.company._id, limit: 5 },
+            }
+          );
           setRelatedJobs(relatedRes.data.jobs.filter((j) => j._id !== id));
         }
       } catch (err) {
