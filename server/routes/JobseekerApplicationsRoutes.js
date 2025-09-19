@@ -5,6 +5,7 @@ import {
   getAllApplications,
   getMyApplications,
   updateApplicationStatus,
+  deleteApplication,
 } from "../controllers/JobseekerApplicationsController.js";
 
 const router = express.Router();
@@ -12,6 +13,7 @@ const router = express.Router();
 // jobseeker
 router.post("/me/applications", verifyToken, createApplication);
 router.get("/me/applications", verifyToken, getMyApplications);
+router.delete("/me/applications/:id", verifyToken, deleteApplication);
 
 // employers (public listing or admin)
 router.get("/applications", getAllApplications);

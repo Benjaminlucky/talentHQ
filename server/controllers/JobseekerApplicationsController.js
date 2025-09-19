@@ -1,7 +1,6 @@
 import JobseekerApplication from "../models/JobseekerApplication.js";
 
-// Jobseeker creates new Application for definite roles
-
+// Jobseeker creates new Application
 export const createApplication = async (req, res) => {
   try {
     const {
@@ -19,7 +18,7 @@ export const createApplication = async (req, res) => {
       preferredLocation,
       coverLetter,
       portfolioLinks,
-      resume: req.body.resume || "", // reuse profile resume if not provided
+      resume: req.body.resume || "",
     });
 
     res.status(201).json(newApplication);
@@ -48,11 +47,10 @@ export const getAllApplications = async (req, res) => {
       "fullName avatar email location headline tagline"
     );
 
-    // Hide resume path from public
     const safeApplications = apps.map((applications) => ({
       ...applications.toObject(),
-      resume: undefined, // remove resume file path
-      resumeAvailable: true, // just a flag
+      resume: undefined,
+      resumeAvailable: true,
     }));
 
     res.json(safeApplications);
@@ -61,7 +59,7 @@ export const getAllApplications = async (req, res) => {
   }
 };
 
-// Update application status (for employers/admin)
+// Update application status
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -76,22 +74,32 @@ export const updateApplicationStatus = async (req, res) => {
   }
 };
 
-//resume request endPoint
+// Delete application (jobseeker only)
+export const deleteApplication = async (req, res) => {
+  try {
+    const app = await JobseekerApplication.findById(req.params.id);
+    if (!app) return res.status(404).json({ error: "Application not found" });
 
+    if (app.jobseeker.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    await app.deleteOne();
+    res.json({ message: "Application deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Resume endpoint
 export const getResume = async (req, res) => {
   try {
     const app = await JobseekerApplication.findById(req.params.id).populate(
       "jobseeker"
     );
-
     if (!app) return res.status(404).json({ error: "Application not found" });
-
-    // 🔒 Add auth/role check here (only employers or admins)
-    // e.g. if (req.user.role !== "employer") return res.status(403).json({ error: "Forbidden" });
-
-    if (!app.resume) {
+    if (!app.resume)
       return res.status(400).json({ error: "No resume uploaded" });
-    }
 
     res.json({ resume: app.resume });
   } catch (err) {
