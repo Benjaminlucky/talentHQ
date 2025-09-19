@@ -33,16 +33,19 @@ export default function FindJobsPage() {
     const fetchJobs = async () => {
       setIsLoading(true);
       try {
-        const res = await axios.get("http://localhost:5000/api/jobs/", {
-          params: {
-            search,
-            location,
-            category,
-            jobType,
-            page: currentPage,
-            limit: jobsPerPage,
-          },
-        });
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE}/api/jobs`,
+          {
+            params: {
+              search,
+              location,
+              category,
+              jobType,
+              page: currentPage,
+              limit: jobsPerPage,
+            },
+          }
+        );
 
         // Append new jobs instead of replacing
         setJobs((prev) =>
