@@ -32,23 +32,28 @@ if (!fs.existsSync(resumePath)) {
 }
 
 // Multer setup
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, resumePath);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + "-" + file.fieldname + ext);
-  },
-});
-const upload = multer({ storage });
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, resumePath);
+//   },
+//   filename: function (req, file, cb) {
+//     const ext = path.extname(file.originalname);
+//     cb(null, Date.now() + "-" + file.fieldname + ext);
+//   },
+// });
+// const upload = multer({ storage });
 
 // ✅ Strict CORS config (no wildcard when credentials are used)
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://talenthq.netlify.app"]
-    : ["http://localhost:3000"];
-
+    ? [
+        "https://talenthq.netlify.app",
+        "https://talenthq-1.onrender.com", // backend prod
+      ]
+    : [
+        "http://localhost:3000", // frontend dev
+        "http://localhost:5000", // backend dev
+      ];
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -62,24 +67,29 @@ app.use(
   })
 );
 
-// Static files
-app.use("/uploads", express.static("uploads"));
+// ✅ Serve local resumes only in development
+if (process.env.NODE_ENV !== "production") {
+  const __dirname = path.resolve();
+  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+}
 
 // Root Route
 app.get("/", (req, res) => {
   res.send("API is running");
 });
 
-// Upload resume route
-app.post("/api/upload-resume", upload.single("resume"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-  res.status(200).json({
-    message: "Resume uploaded successfully",
-    filePath: `/uploads/resumes/${req.file.filename}`,
-  });
-});
+// // Upload resume route
+// app.post("/api/upload-resume", upload.single("resume"), (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).json({ error: "No file uploaded" });
+//   }
+//   res.status(200).json({
+//     message: "Resume uploaded successfully",
+//     filePath: `/uploads/resumes/${req.file.filename}`,
+//   });
+// });
+
+// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // API Routes
 app.use("/api/employers", employerRoutes);

@@ -1,13 +1,33 @@
+// frontend/components/FeaturedCandidates.jsx
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { useEffect } from "react";
-import { featuredCandidates, featuredJobs } from "../../data";
+import { useEffect, useState } from "react";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 
 export default function FeaturedCandidates() {
   const controls = useAnimation();
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/profile/applications`);
+        if (!res.ok) throw new Error("Failed to fetch applications");
+        const data = await res.json();
+        setApplications(data);
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+  }, [baseUrl]);
 
   useEffect(() => {
     controls.start({
@@ -20,15 +40,35 @@ export default function FeaturedCandidates() {
     });
   }, [controls]);
 
+  // Skeleton loader card
+  const SkeletonCard = () => (
+    <div className="min-w-[320px] max-w-sm w-full p-6 rounded-2xl bg-gradient-to-br from-gray-900 to-black shadow-lg flex-shrink-0">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="h-5 w-28 bg-gray-700 rounded animate-pulse mb-3" />
+          <div className="h-4 w-20 bg-gray-800 rounded animate-pulse" />
+        </div>
+        <div className="w-16 h-16 rounded-full bg-gray-700 animate-pulse" />
+      </div>
+      <div className="h-3 w-full bg-gray-700 rounded animate-pulse mb-2" />
+      <div className="h-3 w-3/4 bg-gray-700 rounded animate-pulse mb-4" />
+      <div className="flex items-center justify-between text-sm mb-6">
+        <div className="h-3 w-24 bg-gray-700 rounded animate-pulse" />
+        <div className="h-3 w-16 bg-gray-700 rounded animate-pulse" />
+      </div>
+      <div className="h-10 w-full bg-gray-700 rounded-full animate-pulse" />
+    </div>
+  );
+
   return (
-    <div className="featuredJobs mt-12 overflow-hidden">
-      <h2 className="text-4xl font-bold text-center text-gray-300 my-8">
+    <div className="featuredJobs mt-16 overflow-hidden">
+      <h2 className="text-4xl font-extrabold text-center bg-gradient-to-r from-lime-400 to-emerald-500 bg-clip-text text-transparent my-12">
         Featured Candidates
       </h2>
 
       <div className="relative w-full overflow-hidden">
         <motion.div
-          className="flex gap-4 w-max"
+          className="flex gap-6 w-max"
           animate={controls}
           onMouseEnter={() => controls.stop()}
           onMouseLeave={() =>
@@ -42,55 +82,65 @@ export default function FeaturedCandidates() {
             })
           }
         >
-          {[...featuredCandidates, ...featuredCandidates].map(
-            (candidate, idx) => (
-              <div
-                key={idx}
-                className="min-w-[300px] max-w-xs w-full p-6 rounded-lg bg-black shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">
-                      {candidate.role}
-                    </h3>
-                    <p className=" text-primary-500 font-semibold text-lg">
-                      {candidate.name}
-                    </p>
+          {loading
+            ? Array.from({ length: 4 }).map((_, idx) => (
+                <SkeletonCard key={idx} />
+              ))
+            : [...applications, ...applications].map((app, idx) => (
+                <motion.div
+                  key={idx}
+                  className="min-w-[320px] max-w-sm w-full p-6 rounded-2xl bg-gradient-to-br from-gray-900 via-black to-gray-800 shadow-lg flex-shrink-0 hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-700/50"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: idx * 0.05 }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-1">
+                        {app.roleTitle || "Role not specified"}
+                      </h3>
+                      <p className="text-lime-400 font-medium text-base">
+                        {app.jobseeker?.fullName || "Anonymous"}
+                      </p>
+                    </div>
+                    <img
+                      src={app.jobseeker?.avatar || "/default-avatar.png"}
+                      alt={app.jobseeker?.fullName || "candidate"}
+                      className="w-16 h-16 rounded-full object-cover ring-2 ring-lime-400"
+                    />
                   </div>
-                  <img
-                    src={candidate.avatar}
-                    alt={candidate.name}
-                    className="w-14 h-14 rounded-full object-cover"
-                  />
-                </div>
 
-                <p className="text-gray-600 text-sm mb-4 break-words line-clamp-3">
-                  {candidate.brief}
-                </p>
+                  <p className="text-gray-400 text-sm mb-6 break-words line-clamp-3">
+                    {app.coverLetter || "No cover letter provided."}
+                  </p>
 
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                  <div className="flex items-center gap-1">
-                    <IoLocationOutline className="text-lime-500" />
-                    <span className="text-sm text-white">
-                      {candidate.qualification}
-                    </span>
+                  <div className="flex items-center justify-between text-sm text-gray-400 mb-6">
+                    <div className="flex items-center gap-2">
+                      <IoLocationOutline className="text-lime-400 text-lg" />
+                      <span className="text-sm text-white">
+                        {app.jobseeker?.location
+                          ? `${app.jobseeker.location.city || ""} ${
+                              app.jobseeker.location.country || ""
+                            }`
+                          : "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <FiBriefcase className="text-lime-400 text-lg" />
+                      <span className="text-sm text-white">
+                        {app.roleType || "N/A"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <FiBriefcase className="text-lime-500" />
-                    <span className="text-sm text-gray-50">
-                      {candidate.location}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="flex w-full items-center  mt-6">
-                  <button className="w-full px-3 py-2 border border-lime-500 text-white text-sm font-medium rounded-full hover:bg-lime-700 transition">
-                    View Candidate
-                  </button>
-                </div>
-              </div>
-            )
-          )}
+                  <div className="flex w-full items-center mt-4">
+                    <button className="w-full px-4 py-2 rounded-full text-sm font-medium text-white bg-gradient-to-r from-lime-500 to-emerald-600 hover:from-lime-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg">
+                      View Candidate
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
         </motion.div>
       </div>
     </div>

@@ -197,7 +197,7 @@ export default function JobseekerProfilePage() {
             <Edit className="h-4 w-4 mr-1" /> Edit
           </Button>
         </CardHeader>
-        <CardContent className="flex flex-col md:flex-row gap-6">
+        <CardContent className="flex flex-col md:flex-row gap-6 ">
           <img
             src={profile.avatar || "/avatar-placeholder.png"}
             alt="Profile"
@@ -464,12 +464,12 @@ export default function JobseekerProfilePage() {
 
       {/* Modal */}
       <Dialog open={!!openModal} onOpenChange={() => setOpenModal(null)}>
-        <DialogContent>
+        <DialogContent className="bg-white/90 backdrop-blur-md border max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit {openModal}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 ">
             {openModal === "summary" && (
               <>
                 <Input

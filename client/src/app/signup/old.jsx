@@ -5,7 +5,7 @@ import JobSeekerSignupModal from "@/components/JobSeekerSignupModal";
 import HandymanSignupModal from "@/components/HandymanSignupModal";
 import EmployerSignupModal from "@/components/EmployerSignupModal";
 
-export default function Page() {
+export default function OldPage() {
   const [activeModal, setActiveModal] = useState(null); // 'jobseeker' | 'handyman' | null
 
   return (

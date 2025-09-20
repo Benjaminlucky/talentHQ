@@ -13,7 +13,13 @@ const JobseekerApplicationSchema = new mongoose.Schema(
     }, // e.g Frontend Developer
     roleType: {
       type: String,
-      enum: ["full-time", "part-time", "contract", "internship"], // ✅ typo fixed
+      enum: [
+        "full-time",
+        "full-time role",
+        "part-time",
+        "contract",
+        "internship",
+      ], // ✅ typo fixed
       default: "full-time",
     },
     preferredLocation: {

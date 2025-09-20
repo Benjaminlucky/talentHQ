@@ -1,24 +1,22 @@
+// controllers/ProfileController.js
 import Certification from "../models/Certification.js";
 import Education from "../models/Education.js";
 import Jobnode from "../models/Jobnode.js";
-
 import Project from "../models/Project.js";
-
 import Skill from "../models/Skill.js";
 import Workexperience from "../models/Workexperience.js";
+import cloudinary from "../middlewares/cloudinary.js";
 
 // ✅ GET full profile
 export const getMyProfile = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // base jobseeker info
     const jobseeker = await Jobnode.findById(userId).select("-password -__v");
     if (!jobseeker) {
       return res.status(404).json({ message: "Jobseeker not found" });
     }
 
-    // fetch referenced data
     const [skills, certifications, work, education, projects] =
       await Promise.all([
         Skill.find({ user: userId }),
@@ -28,18 +26,16 @@ export const getMyProfile = async (req, res) => {
         Project.find({ user: userId }),
       ]);
 
-    // ✅ ensure backward compatibility for location
     const jobseekerObj = jobseeker.toObject();
 
+    // ✅ ensure backward compatibility for location
     if (typeof jobseekerObj.location === "string") {
-      // convert old string location to structured object
       jobseekerObj.location = {
         country: jobseekerObj.location,
         city: "",
         area: "",
       };
     } else {
-      // ensure object exists
       jobseekerObj.location = jobseekerObj.location || {
         area: "",
         city: "",
@@ -57,36 +53,47 @@ export const getMyProfile = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ getMyProfile error:", err);
-    res.status(500).json({
-      message: "Failed to fetch profile",
-      error: err.message,
-    });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch profile", error: err.message });
   }
 };
 
 // ✅ Update base jobseeker profile
-// UPDATE my profile
 export const updateMyProfile = async (req, res) => {
   try {
     const updates = { ...req.body };
 
-    // ✅ Handle location being either string or object
+    // ✅ Normalize location
     if (updates.location) {
       if (typeof updates.location === "object") {
-        // normalize to object { country, city, area }
         updates.location = {
           country: updates.location.country || "",
           city: updates.location.city || "",
           area: updates.location.area || "",
         };
       } else if (typeof updates.location === "string") {
-        // keep it as string if that's how it's sent
         updates.location = updates.location.trim();
       }
     }
 
-    const profile = await Jobnode.findOneAndUpdate(
-      { user: req.user.id },
+    // ✅ Handle avatar (Base64 → Cloudinary)
+    if (updates.avatar && updates.avatar.startsWith("data:image")) {
+      try {
+        const uploadRes = await cloudinary.uploader.upload(updates.avatar, {
+          folder: "avatars",
+          public_id: `avatar_${req.user.id}`,
+          overwrite: true,
+        });
+        updates.avatar = uploadRes.secure_url;
+      } catch (uploadErr) {
+        console.error("❌ Avatar upload failed:", uploadErr);
+        return res.status(500).json({ message: "Avatar upload failed" });
+      }
+    }
+
+    const profile = await Jobnode.findByIdAndUpdate(
+      req.user.id,
       { $set: updates },
       { new: true, runValidators: true }
     );
@@ -95,27 +102,20 @@ export const updateMyProfile = async (req, res) => {
 
     res.json(profile);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error("❌ updateMyProfile error:", err);
+    res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
 
-// controllers/ProfileController.js
-// controllers/ProfileController.js
-// controllers/ProfileController.js
-
+// ✅ Resume upload (unchanged)
 export const updateResume = async (req, res) => {
   try {
-    // Handle Multer file errors (file size, invalid type, etc.)
     if (req.fileValidationError) {
       return res.status(400).json({ message: req.fileValidationError });
     }
-
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-
-    // ✅ If file is too large, Multer will throw LIMIT_FILE_SIZE
     if (req.fileSizeLimitError) {
       return res
         .status(400)
@@ -123,7 +123,6 @@ export const updateResume = async (req, res) => {
     }
 
     const filePath = `/uploads/resumes/${req.file.filename}`;
-
     const user = await Jobnode.findByIdAndUpdate(
       req.user.id,
       { resume: filePath },
@@ -132,13 +131,11 @@ export const updateResume = async (req, res) => {
 
     res.json(user);
   } catch (err) {
-    // Catch Multer errors specifically
     if (err.code === "LIMIT_FILE_SIZE") {
       return res
         .status(400)
         .json({ message: "File too large. Max size is 10MB." });
     }
-
     res
       .status(500)
       .json({ message: "Resume upload failed", error: err.message });
