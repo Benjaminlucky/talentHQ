@@ -49,4 +49,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// ✅ Safe hook with fallback to prevent build-time errors
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    return { user: null, setUser: () => {}, logout: () => {}, loading: true };
+  }
+  return context;
+};

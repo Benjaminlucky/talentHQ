@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic"; // ✅ disable prerendering for auth-dependent page
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
