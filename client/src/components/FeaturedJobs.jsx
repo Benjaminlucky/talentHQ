@@ -23,20 +23,17 @@ export default function FeaturedJobs({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const startAnimation = () => {
+  // continuous auto-scroll (same as FeaturedCandidates)
+  useEffect(() => {
     controls.start({
       x: ["0%", "-50%"],
       transition: {
         repeat: Infinity,
-        duration: 40,
+        duration: 40, // adjust speed
         ease: "linear",
       },
     });
-  };
-
-  useEffect(() => {
-    startAnimation();
-  }, []);
+  }, [controls]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -121,7 +118,16 @@ export default function FeaturedJobs({
             className="flex gap-6 px-4 md:px-0 w-max"
             animate={controls}
             onMouseEnter={() => controls.stop()}
-            onMouseLeave={() => startAnimation()}
+            onMouseLeave={() =>
+              controls.start({
+                x: ["0%", "-50%"],
+                transition: {
+                  repeat: Infinity,
+                  duration: 40,
+                  ease: "linear",
+                },
+              })
+            }
           >
             {[...jobs, ...jobs].map((job, idx) => (
               <div
