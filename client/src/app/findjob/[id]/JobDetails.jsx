@@ -7,18 +7,25 @@ import Image from "next/image";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 
+// Skeleton Loader Component
+const Skeleton = ({ className }) => (
+  <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />
+);
+
 export default function JobDetails() {
   const { id: jobId } = useParams();
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
+
   useEffect(() => {
     if (!jobId) return;
 
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/jobs/${jobId}`);
+        const res = await axios.get(`${baseUrl}/api/jobs/${jobId}`);
         setJob(res.data);
       } catch (err) {
         console.error("Failed to fetch job:", err);
@@ -29,14 +36,60 @@ export default function JobDetails() {
     };
 
     fetchJob();
-  }, [jobId]);
+  }, [jobId, baseUrl]);
 
-  if (isLoading)
+  // 🔹 Skeleton Loader
+  if (isLoading) {
     return (
-      <div className="p-10 text-center text-gray-500">
-        Loading job details...
-      </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* MAIN CONTENT */}
+          <div className="w-full lg:w-3/4 space-y-8">
+            {/* Header */}
+            <div className="bg-white p-6 rounded-2xl shadow-md">
+              <div className="flex items-center gap-4">
+                <Skeleton className="w-20 h-20" />
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-72" />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </div>
+
+            {/* About */}
+            <div className="bg-white p-6 rounded-2xl shadow-md space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+
+            {/* Job Details */}
+            <div className="bg-white p-6 rounded-2xl shadow-md space-y-4">
+              <Skeleton className="h-5 w-36" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 8 }).map((_, idx) => (
+                  <Skeleton key={idx} className="h-4 w-40" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="w-full lg:w-1/4">
+            <div className="bg-white p-6 rounded-2xl shadow-md space-y-4">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </aside>
+        </div>
+      </main>
     );
+  }
+
   if (error)
     return <div className="p-10 text-center text-red-500">{error}</div>;
   if (!job)
@@ -48,7 +101,7 @@ export default function JobDetails() {
         {/* MAIN CONTENT */}
         <div className="w-full lg:w-3/4 space-y-8">
           {/* HEADER */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               {/* Logo + Info */}
               <div className="flex items-center gap-4">
@@ -83,11 +136,11 @@ export default function JobDetails() {
 
               {/* Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <button className="border border-lime-500 text-lime-600 px-3 py-3 rounded-sm font-medium hover:bg-lime-50 transition">
+                <button className="border border-lime-500 text-lime-600 px-4 py-3 rounded-lg font-medium hover:bg-lime-50 transition">
                   View Company
                 </button>
                 <button
-                  className="bg-lime-500 text-white px-3 py-3 rounded-sm hover:bg-lime-600 transition font-medium"
+                  className="bg-lime-500 text-white px-4 py-3 rounded-lg hover:bg-lime-600 transition font-medium"
                   onClick={() => alert("Apply functionality to be implemented")}
                 >
                   Apply Now
@@ -97,7 +150,7 @@ export default function JobDetails() {
           </div>
 
           {/* ABOUT */}
-          <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <section className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               About this role
             </h2>
@@ -105,7 +158,7 @@ export default function JobDetails() {
           </section>
 
           {/* JOB DETAILS */}
-          <section className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <section className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
             <h3 className="text-xl font-semibold text-gray-800 mb-6">
               Job Details
             </h3>
@@ -170,7 +223,7 @@ export default function JobDetails() {
 
         {/* SIDEBAR */}
         <aside className="w-full lg:w-1/4 space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Other Jobs at {job.company?.companyName || "this company"}
             </h3>

@@ -6,6 +6,7 @@ import {
   getMyApplications,
   updateApplicationStatus,
   deleteApplication,
+  getApplicationById,
 } from "../controllers/JobseekerApplicationsController.js";
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.delete("/me/applications/:id", verifyToken, deleteApplication);
 // employers (public listing or admin)
 router.get("/applications", getAllApplications);
 router.put("/applications/:id/status", updateApplicationStatus);
+router.get("/applications/:id", getApplicationById);
 
 export default router;

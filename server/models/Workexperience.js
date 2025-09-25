@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const workExperience = new mongoose.Schema(
+const WorkExperience = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -29,5 +29,5 @@ const workExperience = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.workExperience ||
-  mongoose.model("workExperience", workExperience);
+export default mongoose.models.WorkExperience ||
+  mongoose.model("WorkExperience", WorkExperience);

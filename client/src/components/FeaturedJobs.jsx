@@ -1,4 +1,3 @@
-// src/components/FeaturedJobs.jsx
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
@@ -7,6 +6,8 @@ import axios from "axios";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import useMediaQuery from "@/hooks/useMediaQuery.js";
+import LoadingButton from "./LoadingButton";
 
 export default function FeaturedJobs({
   search = "",
@@ -18,22 +19,30 @@ export default function FeaturedJobs({
 }) {
   const controls = useAnimation();
   const router = useRouter();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  // Start auto-scroll animation
+  const startAnimation = () => {
     controls.start({
-      x: ["0%", "-100%"],
+      x: ["0%", "-50%"],
       transition: {
         repeat: Infinity,
-        duration: 60,
+        duration: 40,
         ease: "linear",
       },
     });
-  }, [controls]);
+  };
 
+  useEffect(() => {
+    if (isDesktop) startAnimation();
+    else controls.stop();
+  }, [isDesktop]);
+
+  // Fetch jobs
   useEffect(() => {
     const fetchJobs = async () => {
       setIsLoading(true);
@@ -62,13 +71,9 @@ export default function FeaturedJobs({
     fetchJobs();
   }, [search, location, category, jobType, currentPage, jobsPerPage]);
 
-  const handleApply = (jobId) => {
-    router.push(`/jobs/${jobId}`);
-  };
-
-  // Skeleton Loader
+  // Skeleton card
   const SkeletonCard = () => (
-    <div className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 animate-pulse">
+    <div className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 animate-pulse">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
@@ -94,13 +99,13 @@ export default function FeaturedJobs({
 
   return (
     <div className="featuredJobs mt-12 overflow-hidden">
-      <h2 className="text-4xl font-bold text-center text-gray-300 my-8">
+      <h2 className="text-4xl font-extrabold text-center text-gray-800 my-8">
         Featured Jobs
       </h2>
 
       {isLoading && (
-        <div className="relative w-full overflow-hidden">
-          <div className="flex gap-4 w-max">
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div className="flex gap-4">
             {[...Array(4)].map((_, idx) => (
               <SkeletonCard key={idx} />
             ))}
@@ -119,32 +124,23 @@ export default function FeaturedJobs({
       {!isLoading && jobs.length > 0 && (
         <div className="relative w-full overflow-hidden">
           <motion.div
-            className="flex gap-4 w-max"
-            animate={controls}
+            className="flex gap-6 px-4 md:px-0 w-max"
+            animate={isDesktop ? controls : undefined}
             onMouseEnter={() => controls.stop()}
-            onMouseLeave={() =>
-              controls.start({
-                x: ["0%", "-100%"],
-                transition: {
-                  repeat: Infinity,
-                  duration: 60,
-                  ease: "linear",
-                },
-              })
-            }
+            onMouseLeave={() => startAnimation()}
           >
-            {[...jobs, ...jobs].map((job, idx) => (
+            {[...jobs, ...(isDesktop ? jobs : [])].map((job, idx) => (
               <div
                 key={idx}
-                className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-lg bg-white shadow-md flex-shrink-0 hover:shadow-lg transition duration-300"
+                className="min-w-[300px] max-w-xs w-full my-6 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">
+                    <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
                       {job.title}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 line-clamp-1">
                       {job.company?.companyName || "Unknown Company"}
                     </p>
                   </div>
@@ -152,7 +148,7 @@ export default function FeaturedJobs({
                     <img
                       src={job.company.logo}
                       alt={job.company.companyName}
-                      className="w-12 h-12 object-contain"
+                      className="w-12 h-12 object-contain rounded-full border"
                     />
                   )}
                 </div>
@@ -166,7 +162,7 @@ export default function FeaturedJobs({
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                     <IoLocationOutline className="text-lime-500" />
-                    <span>{job.location}</span>
+                    <span className="line-clamp-1">{job.location}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <FiBriefcase className="text-lime-500" />
@@ -186,12 +182,13 @@ export default function FeaturedJobs({
                       </p>
                     )}
                   </div>
-                  <button
-                    className="px-3 py-2 bg-lime-500 text-white text-sm font-medium rounded hover:bg-lime-700 transition"
-                    onClick={() => handleApply(job._id)}
+                  <LoadingButton
+                    className="px-4 py-2 bg-lime-600 text-white text-sm font-medium rounded-xl hover:bg-lime-700 transition"
+                    onClick={() => router.push(`/findjob/${job._id}`)}
+                    loadingText="Opening..."
                   >
                     View Details
-                  </button>
+                  </LoadingButton>
                 </div>
               </div>
             ))}

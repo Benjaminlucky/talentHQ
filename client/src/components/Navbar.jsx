@@ -8,7 +8,7 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/postjob", label: "Post Job" },
   { href: "/findjob", label: "Find Job" },
-  { href: "/find-candidate", label: "Find Candidate" },
+  { href: "/find-candidates", label: "Find Candidate" },
   { href: "/post-advert", label: "Post Advert" },
   { href: "/reach-us", label: "Reach Us" },
 ];
