@@ -1,15 +1,32 @@
+// src/app/dashboard/layout.jsx
 "use client";
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
+import LoadingSpinner from "@/components/LoadingSpinner"; // ✅ import spinner
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (loading) return null;
-  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600">Checking authentication...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-600 font-semibold">
+          Not logged in — please go to /login
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -27,7 +44,10 @@ export default function DashboardLayout({ children }) {
           <h1 className="font-bold text-lg">TalentHQ</h1>
         </div>
 
-        <main className="flex-1 p-6 md:p-10">{children}</main>
+        {/* ✅ Wrap dashboard children with LoadingSpinner */}
+        <main className="flex-1 p-6 md:p-10">
+          <LoadingSpinner>{children}</LoadingSpinner>
+        </main>
       </div>
     </div>
   );

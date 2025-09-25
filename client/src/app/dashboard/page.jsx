@@ -1,12 +1,16 @@
+// src/app/dashboard/page.js
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    if (loading) return;
+
     if (!user) {
       router.push("/login");
       return;
@@ -28,7 +32,7 @@ export default function DashboardPage() {
       default:
         router.push("/login");
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   return <p>Redirecting to your dashboard...</p>;
 }

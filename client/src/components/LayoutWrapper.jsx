@@ -13,11 +13,11 @@ export default function LayoutWrapper({ children }) {
     <>
       {!hideNavbar && <Navbar />}
       <main
-        className={
-          isDashboard
-            ? "w-full px-0 py-0 bg-white" // Full width layout for dashboard
-            : "max-w-7xl mx-auto px-4 py-6" // Default layout for rest of the app
-        }
+      // className={
+      //   isDashboard
+      //     ? "w-full px-0 py-0 bg-white" // Full width layout for dashboard
+      //     : "max-w-7xl mx-auto px-4 py-6" // Default layout for rest of the app
+      // }
       >
         {children}
       </main>

@@ -26,8 +26,9 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true); // ✅ for skeleton
   const [deletingId, setDeletingId] = useState(null);
-  const [deleteStatus, setDeleteStatus] = useState(null); // "success" | "error"
+  const [deleteStatus, setDeleteStatus] = useState(null);
 
   useEffect(() => {
     fetchApplications();
@@ -35,6 +36,7 @@ export default function ApplicationsPage() {
 
   const fetchApplications = async () => {
     try {
+      setFetching(true);
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/profile/me/applications`,
         { withCredentials: true }
@@ -43,13 +45,14 @@ export default function ApplicationsPage() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to load applications");
+    } finally {
+      setFetching(false);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     const lowercaseFields = ["roleType", "preferredLocation", "portfolioLinks"];
-
     setFormData((p) => ({
       ...p,
       [name]: lowercaseFields.includes(name) ? value.toLowerCase() : value,
@@ -94,6 +97,19 @@ export default function ApplicationsPage() {
       setDeletingId(null);
     }
   };
+
+  // ✅ Inline skeleton loader
+  const SkeletonCard = () => (
+    <div className="p-3 border rounded-lg flex justify-between items-start animate-pulse">
+      <div className="space-y-2">
+        <div className="h-5 w-40 bg-gray-200 rounded"></div>
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+        <div className="h-4 w-64 bg-gray-200 rounded"></div>
+        <div className="h-3 w-32 bg-gray-200 rounded"></div>
+      </div>
+      <div className="h-6 w-6 bg-gray-200 rounded-full"></div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -149,93 +165,106 @@ export default function ApplicationsPage() {
           <CardTitle>My Applications</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {applications.map((app) => (
-            <div
-              key={app._id}
-              className="p-3 border rounded-lg flex justify-between items-start"
-            >
-              <div>
-                <p className="font-bold">{app.roleTitle}</p>
-                <p className="text-gray-500">{app.roleType}</p>
-                <p className="italic">{app.coverLetter}</p>
-                <p className="text-sm text-gray-400">
-                  Status: {app.status} • Applied:{" "}
-                  {new Date(app.createdAt).toLocaleDateString()}
-                </p>
+          {fetching ? (
+            // ✅ Show skeleton while loading
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : applications.length === 0 ? (
+            <p className="text-gray-500 italic">
+              No applications submitted yet.
+            </p>
+          ) : (
+            applications.map((app) => (
+              <div
+                key={app._id}
+                className="p-3 border rounded-lg flex justify-between items-start"
+              >
+                <div>
+                  <p className="font-bold">{app.roleTitle}</p>
+                  <p className="text-gray-500">{app.roleType}</p>
+                  <p className="italic">{app.coverLetter}</p>
+                  <p className="text-sm text-gray-400">
+                    Status: {app.status} • Applied:{" "}
+                    {new Date(app.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+
+                {/* Delete Confirmation Modal */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-800 hover:bg-red-100"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent
+                    asChild
+                    className="bg-white/90 backdrop-blur-md border"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Delete this application?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently
+                          remove your application for <b>{app.roleTitle}</b>.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      {/* Animated success/error feedback */}
+                      <AnimatePresence>
+                        {deleteStatus === "success" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="flex items-center gap-2 text-green-600 mt-2"
+                          >
+                            <CheckCircle2 className="h-5 w-5" />
+                            <span>Application deleted successfully</span>
+                          </motion.div>
+                        )}
+                        {deleteStatus === "error" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="flex items-center gap-2 text-red-600 mt-2"
+                          >
+                            <XCircle className="h-5 w-5" />
+                            <span>Failed to delete application</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={() => handleDelete(app._id)}
+                          disabled={deletingId === app._id}
+                        >
+                          {deletingId === app._id ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </motion.div>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-
-              {/* Delete Confirmation Modal */}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-600 hover:text-red-800 hover:bg-red-100"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent
-                  asChild
-                  className="bg-white/90 backdrop-blur-md border"
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Delete this application?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently
-                        remove your application for <b>{app.roleTitle}</b>.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    {/* Animated success/error feedback */}
-                    <AnimatePresence>
-                      {deleteStatus === "success" && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="flex items-center gap-2 text-green-600 mt-2"
-                        >
-                          <CheckCircle2 className="h-5 w-5" />
-                          <span>Application deleted successfully</span>
-                        </motion.div>
-                      )}
-                      {deleteStatus === "error" && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="flex items-center gap-2 text-red-600 mt-2"
-                        >
-                          <XCircle className="h-5 w-5" />
-                          <span>Failed to delete application</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                        onClick={() => handleDelete(app._id)}
-                        disabled={deletingId === app._id}
-                      >
-                        {deletingId === app._id ? "Deleting..." : "Delete"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </motion.div>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,10 +1,10 @@
+// controllers/authController.js
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
 
-// helper: check unique email across all 3 collections
 const emailExistsAnywhere = async (email) => {
   const [j, h, e] = await Promise.all([
     Jobnode.findOne({ email }).lean(),
@@ -20,6 +20,37 @@ const sanitize = (doc) => {
   return rest;
 };
 
+const findUserById = async (id, role) => {
+  switch (role) {
+    case "jobseeker":
+      return await Jobnode.findById(id).lean();
+    case "handyman":
+      return await Handyman.findById(id).lean();
+    case "employer":
+      return await Employer.findById(id).lean();
+    default:
+      return null;
+  }
+};
+
+// helper: issue JWT + set cookie
+const issueToken = (res, user) => {
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return token;
+};
+
 // POST /api/auth/signup2
 export const signup2 = async (req, res) => {
   try {
@@ -28,10 +59,8 @@ export const signup2 = async (req, res) => {
       fullName,
       email,
       password,
-      // handyman extras
       skills,
       location,
-      // employer extras
       companyName,
       companyWebsite,
     } = req.body;
@@ -43,7 +72,6 @@ export const signup2 = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // unique email across all role collections
     if (await emailExistsAnywhere(email)) {
       return res.status(409).json({ message: "Email already in use" });
     }
@@ -87,17 +115,7 @@ export const signup2 = async (req, res) => {
       });
     }
 
-    // JWT cookie
-    const token = jwt.sign({ id: created._id, role }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    issueToken(res, created);
 
     return res.status(201).json({
       message: "Signup successful",
@@ -109,11 +127,11 @@ export const signup2 = async (req, res) => {
   }
 };
 
+// POST /api/auth/login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 🔎 Search user across collections
     let user =
       (await Jobnode.findOne({ email })) ||
       (await Handyman.findOne({ email })) ||
@@ -123,35 +141,16 @@ export const login = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🔑 Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 🎟️ Generate JWT with role
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // 🍪 Send cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    issueToken(res, user);
 
     res.status(200).json({
       message: "Login successful",
-      user: {
-        id: user._id,
-        role: user.role,
-        email: user.email,
-        fullName: user.fullName, // ✅ added
-      },
+      user: sanitize(user),
     });
   } catch (err) {
     console.error("❌ Login error:", err);
@@ -159,19 +158,20 @@ export const login = async (req, res) => {
   }
 };
 
-export const getMe = (req, res) => {
+// GET /api/auth/me
+export const getMe = async (req, res) => {
   try {
-    const user = req.user; // set by verifyToken middleware
-    res.status(200).json({
-      user: {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-        fullName: user.fullName, // ✅ added
-      },
-    });
+    const { id, role } = req.user;
+    const user = await findUserById(id, role);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user: sanitize(user) });
   } catch (err) {
-    res.status(401).json({ message: "Unauthorized" });
+    console.error("❌ getMe error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -182,6 +182,5 @@ export const logout = (req, res) => {
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
-
   return res.status(200).json({ message: "Logged out successfully" });
 };
