@@ -6,7 +6,6 @@ import axios from "axios";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import useMediaQuery from "@/hooks/useMediaQuery.js";
 import LoadingButton from "./LoadingButton";
 
 export default function FeaturedJobs({
@@ -19,13 +18,11 @@ export default function FeaturedJobs({
 }) {
   const controls = useAnimation();
   const router = useRouter();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Start auto-scroll animation
   const startAnimation = () => {
     controls.start({
       x: ["0%", "-50%"],
@@ -38,11 +35,9 @@ export default function FeaturedJobs({
   };
 
   useEffect(() => {
-    if (isDesktop) startAnimation();
-    else controls.stop();
-  }, [isDesktop]);
+    startAnimation();
+  }, []);
 
-  // Fetch jobs
   useEffect(() => {
     const fetchJobs = async () => {
       setIsLoading(true);
@@ -71,7 +66,6 @@ export default function FeaturedJobs({
     fetchJobs();
   }, [search, location, category, jobType, currentPage, jobsPerPage]);
 
-  // Skeleton card
   const SkeletonCard = () => (
     <div className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 animate-pulse">
       <div className="flex items-center justify-between mb-4">
@@ -125,16 +119,15 @@ export default function FeaturedJobs({
         <div className="relative w-full overflow-hidden">
           <motion.div
             className="flex gap-6 px-4 md:px-0 w-max"
-            animate={isDesktop ? controls : undefined}
+            animate={controls}
             onMouseEnter={() => controls.stop()}
             onMouseLeave={() => startAnimation()}
           >
-            {[...jobs, ...(isDesktop ? jobs : [])].map((job, idx) => (
+            {[...jobs, ...jobs].map((job, idx) => (
               <div
                 key={idx}
                 className="min-w-[300px] max-w-xs w-full my-6 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100"
               >
-                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
@@ -153,12 +146,10 @@ export default function FeaturedJobs({
                   )}
                 </div>
 
-                {/* Description */}
                 <p className="text-gray-600 text-sm mb-4 break-words line-clamp-3">
                   {job.description?.slice(0, 100) || "No description"}...
                 </p>
 
-                {/* Job Info */}
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                     <IoLocationOutline className="text-lime-500" />
@@ -170,7 +161,6 @@ export default function FeaturedJobs({
                   </div>
                 </div>
 
-                {/* Footer */}
                 <div className="flex items-center justify-between mt-6">
                   <div>
                     <p className="text-gray-800 font-semibold">

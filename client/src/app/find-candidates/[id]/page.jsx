@@ -177,8 +177,8 @@ export default function CandidateDetailsPage() {
 
         {/* Applied Role */}
         <Card className="rounded-2xl shadow-lg border-l-8 border-lime-500">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-2xl font-bold text-lime-700">
+          <CardHeader className="flex flex-col lg:flex-row items-center justify-between">
+            <CardTitle className="text-xl mb-5 font-bold text-lime-700">
               Applied Role: {candidate.roleTitle || "N/A"}
             </CardTitle>
             <Button className="bg-lime-600 hover:bg-lime-700 text-white px-6 py-2 rounded-xl shadow-md">
