@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
@@ -23,18 +23,12 @@ export default function FeaturedJobs({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // continuous auto-scroll (same as FeaturedCandidates)
-  useEffect(() => {
-    controls.start({
-      x: ["0%", "-50%"],
-      transition: {
-        repeat: Infinity,
-        duration: 40, // adjust speed
-        ease: "linear",
-      },
-    });
-  }, [controls]);
+  const containerRef = useRef(null); // viewport
+  const trackRef = useRef(null); // animated track (duplicated content)
+  const distanceRef = useRef(0); // measured pixel distance to animate
+  const resizeTimeoutRef = useRef(null);
 
+  // Fetch jobs
   useEffect(() => {
     const fetchJobs = async () => {
       setIsLoading(true);
@@ -63,6 +57,74 @@ export default function FeaturedJobs({
     fetchJobs();
   }, [search, location, category, jobType, currentPage, jobsPerPage]);
 
+  // Measure track and start continuous animation (pixel-based) whenever jobs change or on resize
+  useEffect(() => {
+    if (!jobs || jobs.length === 0) return;
+
+    const track = trackRef.current;
+    const container = containerRef.current;
+    if (!track || !container) return;
+
+    const measureAndStart = () => {
+      // full scrollWidth includes duplicated content; we need half (one set)
+      const fullWidth = track.scrollWidth || 0;
+      const distance = Math.floor(fullWidth / 2);
+      distanceRef.current = distance;
+
+      // speed: pixels/second. Adjust as needed.
+      const speedPxPerSec = 40;
+      // duration sec (bounded)
+      const duration = Math.max(20, Math.min(120, distance / speedPxPerSec));
+
+      // restart animation reliably
+      controls.stop();
+      controls.start({
+        x: [0, -distance],
+        transition: {
+          repeat: Infinity,
+          duration,
+          ease: "linear",
+        },
+      });
+    };
+
+    // measure after a small delay so images/fonts can settle
+    const measureTimer = setTimeout(measureAndStart, 120);
+
+    // handle resize with debounce
+    const onResize = () => {
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+      resizeTimeoutRef.current = setTimeout(() => {
+        measureAndStart();
+      }, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      clearTimeout(measureTimer);
+      window.removeEventListener("resize", onResize);
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    };
+  }, [jobs, controls]);
+
+  // Helpers to start/stop using current measured distance (used for mouse/touch)
+  const startLoop = () => {
+    const distance = distanceRef.current;
+    if (!distance) return;
+    const speedPxPerSec = 40;
+    const duration = Math.max(20, Math.min(120, distance / speedPxPerSec));
+    controls.start({
+      x: [0, -distance],
+      transition: {
+        repeat: Infinity,
+        duration,
+        ease: "linear",
+      },
+    });
+  };
+  const stopLoop = () => controls.stop();
+
+  // Skeleton card
   const SkeletonCard = () => (
     <div className="min-w-[300px] max-w-xs w-full my-12 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 animate-pulse">
       <div className="flex items-center justify-between mb-4">
@@ -89,7 +151,7 @@ export default function FeaturedJobs({
   );
 
   return (
-    <div className="featuredJobs mt-12 overflow-hidden">
+    <div className="featuredJobs mt-12">
       <h2 className="text-4xl font-extrabold text-center text-gray-800 my-8">
         Featured Jobs
       </h2>
@@ -113,27 +175,25 @@ export default function FeaturedJobs({
       )}
 
       {!isLoading && jobs.length > 0 && (
-        <div className="relative w-full overflow-hidden">
+        <div ref={containerRef} className="relative w-full overflow-hidden">
           <motion.div
+            ref={trackRef}
             className="flex gap-6 px-4 md:px-0 w-max"
             animate={controls}
-            onMouseEnter={() => controls.stop()}
-            onMouseLeave={() =>
-              controls.start({
-                x: ["0%", "-50%"],
-                transition: {
-                  repeat: Infinity,
-                  duration: 40,
-                  ease: "linear",
-                },
-              })
-            }
+            // pause on hover/touch, resume on leave/end
+            onMouseEnter={stopLoop}
+            onMouseLeave={startLoop}
+            onTouchStart={stopLoop}
+            onTouchEnd={startLoop}
+            style={{ willChange: "transform" }}
           >
+            {/* duplicate for seamless loop */}
             {[...jobs, ...jobs].map((job, idx) => (
               <div
-                key={idx}
+                key={`${job._id || idx}-${idx}`}
                 className="min-w-[300px] max-w-xs w-full my-6 p-6 rounded-2xl bg-white shadow-md flex-shrink-0 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100"
               >
+                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
@@ -152,10 +212,12 @@ export default function FeaturedJobs({
                   )}
                 </div>
 
+                {/* Description */}
                 <p className="text-gray-600 text-sm mb-4 break-words line-clamp-3">
                   {job.description?.slice(0, 100) || "No description"}...
                 </p>
 
+                {/* Job Info */}
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                     <IoLocationOutline className="text-lime-500" />
@@ -167,6 +229,7 @@ export default function FeaturedJobs({
                   </div>
                 </div>
 
+                {/* Footer */}
                 <div className="flex items-center justify-between mt-6">
                   <div>
                     <p className="text-gray-800 font-semibold">
