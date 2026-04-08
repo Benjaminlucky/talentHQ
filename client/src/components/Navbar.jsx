@@ -1,140 +1,185 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, memo } from "react";
-import { Menu, X } from "lucide-react"; // Run: npm install lucide-react
+import { useState, useEffect } from "react";
+import {
+  Menu,
+  X,
+  ChevronDown,
+  Briefcase,
+  Users,
+  Megaphone,
+  Mail,
+  Home,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/postjob", label: "Post Job" },
-  { href: "/findjob", label: "Find Job" },
-  { href: "/find-candidates", label: "Find Candidate" },
-  { href: "/post-advert", label: "Post Advert" },
-  { href: "/reach-us", label: "Reach Us" },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/findjob", label: "Find Jobs", icon: Briefcase },
+  { href: "/find-candidates", label: "Find Talent", icon: Users },
+  { href: "/postjob", label: "Post a Job", icon: Briefcase },
+  { href: "/post-advert", label: "Advertise", icon: Megaphone },
+  { href: "/reach-us", label: "Contact", icon: Mail },
 ];
 
-function NavbarComponent() {
+export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const toggleMenu = () => setMenuOpen(!menuOpen);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  const isActive = (href) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        {/* Logo */}
-        <Link href="/" prefetch className="text-xl font-bold text-gray-800">
-          Talent<span className="text-primary-500">HQ</span>
-        </Link>
-
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center space-x-8">
-          <ul className="flex space-x-6">
-            {navItems.map(({ href, label }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  prefetch
-                  onMouseEnter={() => router.prefetch(href)}
-                  className={`hover:text-lime-500 transition-colors ${
-                    pathname === href
-                      ? "text-lime-500 font-semibold"
-                      : "text-gray-700"
-                  }`}
-                >
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {/* Auth Buttons */}
-          <div className="flex space-x-4">
-            <Link
-              href="/login"
-              prefetch
-              onMouseEnter={() => router.prefetch("/login")}
-              className="px-4 py-2 border border-lime-500 text-primary-400 rounded hover:bg-blue-50 transition"
-            >
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              prefetch
-              onMouseEnter={() => router.prefetch("/signup")}
-              className="px-4 py-2 bg-lime text-white rounded hover:bg-green-800 transition"
-            >
-              Sign Up
-            </Link>
-          </div>
-        </div>
-
-        {/* Mobile Toggle Button */}
-        <button onClick={toggleMenu} className="md:hidden text-gray-700">
-          {menuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu */}
-      <div
-        className={`md:hidden fixed top-0 left-0 w-full h-screen bg-white z-40 transform transition-transform duration-300 ease-in-out ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
+    <>
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-white/95 backdrop-blur-md shadow-[0_1px_20px_rgba(0,0,0,0.08)]"
+            : "bg-white shadow-sm"
         }`}
       >
-        <div className="p-4 flex justify-between items-center border-b">
-          <Link href="/" prefetch className="text-xl font-bold text-gray-800">
-            TalentHQ
-          </Link>
-          <button onClick={toggleMenu}>
-            <X size={28} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-black text-sm">T</span>
+              </div>
+              <span className="font-black text-xl tracking-tight text-gray-900">
+                Talent<span className="text-lime-600">HQ</span>
+              </span>
+            </Link>
+
+            {/* Desktop nav */}
+            <ul className="hidden md:flex items-center gap-1">
+              {navItems.map(({ href, label }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className={`relative px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
+                      isActive(href)
+                        ? "text-lime-700 bg-lime-50"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    {label}
+                    {isActive(href) && (
+                      <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-lime-500 rounded-full" />
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop auth */}
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 text-sm font-semibold text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
+              >
+                Get started
+              </Link>
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 transition"
+              aria-label="Open menu"
+            >
+              <Menu size={22} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Spacer so content doesn't hide under fixed nav */}
+      <div className="h-16" />
+
+      {/* Mobile overlay */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed inset-y-0 right-0 w-72 bg-white z-50 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
+          menuOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <span className="font-black text-lg">
+            Talent<span className="text-lime-600">HQ</span>
+          </span>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
+          >
+            <X size={20} />
           </button>
         </div>
 
-        <ul className="flex flex-col space-y-6 p-6">
-          {navItems.map(({ href, label }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                prefetch
-                onMouseEnter={() => router.prefetch(href)}
-                onClick={() => setMenuOpen(false)}
-                className={`block text-lg hover:text-lime-500 transition-colors ${
-                  pathname === href
-                    ? "text-lime-500 font-semibold"
-                    : "text-gray-700"
-                }`}
-              >
-                {label}
-              </Link>
-            </li>
+        <nav className="p-4 space-y-1">
+          {navItems.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive(href)
+                  ? "bg-lime-50 text-lime-700"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <Icon
+                size={16}
+                className={isActive(href) ? "text-lime-600" : "text-gray-400"}
+              />
+              {label}
+            </Link>
           ))}
-        </ul>
+        </nav>
 
-        {/* Auth Buttons Mobile */}
-        <div className="px-6 mt-6 flex flex-col space-y-4">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t space-y-2">
           <Link
             href="/login"
-            prefetch
-            onMouseEnter={() => router.prefetch("/login")}
-            onClick={() => setMenuOpen(false)}
-            className="text-center px-4 py-2 border border-lime-500 text-lime-800 rounded hover:bg-blue-50 transition"
+            className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold border border-gray-200 rounded-lg hover:bg-gray-50 transition"
           >
-            Login
+            <LogIn size={16} />
+            Log in
           </Link>
           <Link
             href="/signup"
-            prefetch
-            onMouseEnter={() => router.prefetch("/signup")}
-            onClick={() => setMenuOpen(false)}
-            className="text-center px-4 py-2 bg-lime-500 text-white rounded hover:bg-green-800 transition"
+            className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-semibold text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition"
           >
-            Sign Up
+            <UserPlus size={16} />
+            Create account
           </Link>
         </div>
       </div>
-    </nav>
+    </>
   );
 }
-
-export default memo(NavbarComponent);

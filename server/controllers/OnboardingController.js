@@ -1,11 +1,7 @@
 import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
-import Education from "../models/Education.js"; // ✅ add
-import Skill from "../models/Skill.js"; // ✅ add
-import Certification from "../models/Certification.js"; // ✅ add
-import Project from "../models/Project.js"; // ✅ add
-import Workexperience from "../models/Workexperience.js"; // ✅ add
+import Skill from "../models/Skill.js";
 
 const sanitize = (doc) => {
   if (!doc) return null;
@@ -13,7 +9,25 @@ const sanitize = (doc) => {
   return rest;
 };
 
-// PATCH /api/onboarding/jobseeker
+const BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? process.env.RENDER_EXTERNAL_URL || "https://talenthq-1.onrender.com"
+    : "http://localhost:5000";
+
+// When using upload.fields(), uploaded files land in req.files as an object keyed by field name.
+// Each value is an array; we take index [0] for the first (and only) file.
+const getUploadedFileUrl = (req, fieldName) => {
+  const files = req.files?.[fieldName];
+  if (!files || files.length === 0) return null;
+  const file = files[0];
+  // Cloudinary upload gives file.path as the secure_url
+  if (file.path) return file.path;
+  // Local disk storage gives file.filename
+  if (file.filename) return `${BASE_URL}/uploads/resumes/${file.filename}`;
+  return null;
+};
+
+// ─── JOBSEEKER ────────────────────────────────────────────────────────────────
 export const updateJobSeekerOnboarding = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -21,36 +35,32 @@ export const updateJobSeekerOnboarding = async (req, res) => {
 
     const updates = { ...req.body };
 
-    // ✅ Resume handling (Cloudinary or local)
-    if (req.file) {
-      if (req.file.path) {
-        updates.resume = req.file.path; // Cloudinary
-      } else if (req.file.filename) {
-        const BASE_URL =
-          process.env.NODE_ENV === "production"
-            ? process.env.RENDER_EXTERNAL_URL ||
-              "https://talenthq-1.onrender.com"
-            : "http://localhost:5000";
-        updates.resume = `${BASE_URL}/uploads/resumes/${req.file.filename}`;
-      }
-    }
+    // Resume from upload.fields()
+    const resumeUrl = getUploadedFileUrl(req, "resume");
+    if (resumeUrl) updates.resume = resumeUrl;
 
-    // ✅ Normalize skills
+    // Avatar from upload.fields()
+    const avatarUrl = getUploadedFileUrl(req, "avatar");
+    if (avatarUrl) updates.avatar = avatarUrl;
+
+    // Reject any base64 that slipped through (prevents DB bloat)
+    if (updates.avatar?.startsWith("data:")) delete updates.avatar;
+
+    // Skills: convert comma-separated string → array of Skill documents
     if (updates.skills) {
-      let skillsArr = [];
-      if (typeof updates.skills === "string") {
-        skillsArr = updates.skills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      } else if (Array.isArray(updates.skills)) {
-        skillsArr = updates.skills.filter(Boolean);
-      }
+      const raw =
+        typeof updates.skills === "string"
+          ? updates.skills
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : Array.isArray(updates.skills)
+            ? updates.skills.filter(Boolean)
+            : [];
 
-      // Save new skills as documents if they're not ObjectIds
       const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
       updates.skill = await Promise.all(
-        skillsArr.map(async (s) => {
+        raw.map(async (s) => {
           if (isObjectId(s)) return s;
           const skillDoc = await Skill.create({
             user: userId,
@@ -58,97 +68,36 @@ export const updateJobSeekerOnboarding = async (req, res) => {
             level: "Beginner",
           });
           return skillDoc._id;
-        })
+        }),
       );
       delete updates.skills;
     }
 
-    // ✅ Normalize education
-    if (updates.education) {
-      let eduArr = Array.isArray(updates.education)
-        ? updates.education
-        : [updates.education];
-
-      const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
-      updates.education = await Promise.all(
-        eduArr.map(async (e) => {
-          if (isObjectId(e)) return e;
-          const eduDoc = await Education.create({
-            user: userId,
-            degree: e,
-            institution: "Unknown",
-          });
-          return eduDoc._id;
-        })
-      );
+    // Normalize location: state + city → structured object
+    if (updates.state || updates.city) {
+      updates.location = {
+        country: "Nigeria",
+        city: updates.city || "",
+        area: updates.state || "",
+      };
+      delete updates.state;
+      delete updates.city;
+    } else if (typeof updates.location === "string" && updates.location) {
+      const parts = updates.location.split(",").map((p) => p.trim());
+      updates.location = {
+        city: parts[0] || "",
+        country: parts[1] || "Nigeria",
+        area: "",
+      };
     }
 
-    // ✅ Normalize certifications
-    if (updates.certifications) {
-      let certArr = Array.isArray(updates.certifications)
-        ? updates.certifications
-        : [updates.certifications];
-
-      const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
-      updates.certifications = await Promise.all(
-        certArr.map(async (c) => {
-          if (isObjectId(c)) return c;
-          const certDoc = await Certification.create({
-            user: userId,
-            title: c,
-            organization: "Unknown",
-            dateEarned: new Date(),
-          });
-          return certDoc._id;
-        })
-      );
-    }
-
-    // ✅ Normalize projects
-    if (updates.projects) {
-      let projArr = Array.isArray(updates.projects)
-        ? updates.projects
-        : [updates.projects];
-
-      const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
-      updates.projects = await Promise.all(
-        projArr.map(async (p) => {
-          if (isObjectId(p)) return p;
-          const projDoc = await Project.create({
-            user: userId,
-            title: p,
-            description: "",
-          });
-          return projDoc._id;
-        })
-      );
-    }
-
-    // ✅ Normalize workExperience
-    if (updates.workExperience) {
-      let workArr = Array.isArray(updates.workExperience)
-        ? updates.workExperience
-        : [updates.workExperience];
-
-      const isObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
-      updates.workExperience = await Promise.all(
-        workArr.map(async (w) => {
-          if (isObjectId(w)) return w;
-          const workDoc = await Workexperience.create({
-            user: userId,
-            company: w,
-          });
-          return workDoc._id;
-        })
-      );
-    }
+    updates.onboardingComplete = true;
 
     const updated = await Jobnode.findByIdAndUpdate(
       userId,
       { $set: updates },
-      { new: true }
+      { new: true },
     );
-
     if (!updated)
       return res.status(404).json({ message: "Jobseeker not found" });
 
@@ -161,7 +110,7 @@ export const updateJobSeekerOnboarding = async (req, res) => {
   }
 };
 
-// PATCH /api/onboarding/handyman
+// ─── HANDYMAN ─────────────────────────────────────────────────────────────────
 export const updateHandymanOnboarding = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -169,17 +118,26 @@ export const updateHandymanOnboarding = async (req, res) => {
 
     const updates = { ...req.body };
 
-    if (updates.yearsExperience) {
+    if (updates.yearsExperience !== undefined) {
       const n = Number(updates.yearsExperience);
       updates.yearsExperience = Number.isNaN(n) ? 0 : n;
     }
 
+    if (updates.state || updates.city) {
+      updates.location = `${updates.city || ""}, ${updates.state || ""}`
+        .trim()
+        .replace(/^,\s*/, "");
+      delete updates.state;
+      delete updates.city;
+    }
+
+    updates.onboardingComplete = true;
+
     const updated = await Handyman.findByIdAndUpdate(
       userId,
       { $set: updates },
-      { new: true }
+      { new: true },
     );
-
     if (!updated)
       return res.status(404).json({ message: "Handyman not found" });
 
@@ -192,7 +150,7 @@ export const updateHandymanOnboarding = async (req, res) => {
   }
 };
 
-// PATCH /api/onboarding/employer
+// ─── EMPLOYER ─────────────────────────────────────────────────────────────────
 export const updateEmployerOnboarding = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -200,12 +158,25 @@ export const updateEmployerOnboarding = async (req, res) => {
 
     const updates = { ...req.body };
 
+    // Logo from upload.fields()
+    const logoUrl = getUploadedFileUrl(req, "logo");
+    if (logoUrl) updates.logo = logoUrl;
+
+    if (updates.state || updates.city) {
+      updates.location = `${updates.city || ""}, ${updates.state || ""}`
+        .trim()
+        .replace(/^,\s*/, "");
+      delete updates.state;
+      delete updates.city;
+    }
+
+    updates.onboardingComplete = true;
+
     const updated = await Employer.findByIdAndUpdate(
       userId,
       { $set: updates },
-      { new: true }
+      { new: true },
     );
-
     if (!updated)
       return res.status(404).json({ message: "Employer not found" });
 

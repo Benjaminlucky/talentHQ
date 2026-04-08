@@ -1,14 +1,18 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null); // ✅ inline message
-  const [messageType, setMessageType] = useState("error"); // "error" | "success"
+  const [message, setMessage] = useState(null);
+  const [messageType, setMessageType] = useState("error");
   const router = useRouter();
   const { setUser } = useAuth();
 
@@ -26,41 +30,29 @@ export default function LoginPage() {
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/login`,
         formData,
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       const user = res.data.user;
-
-      // update context + localStorage
       setUser(user);
       localStorage.setItem("user", JSON.stringify(user));
 
       setMessageType("success");
-      setMessage("Login successful!");
+      setMessage("Login successful! Redirecting…");
 
-      // Redirect by role after a short delay so user sees the message
       setTimeout(() => {
-        switch (user.role) {
-          case "jobseeker":
-            router.push("/dashboard/jobseeker");
-            break;
-          case "handyman":
-            router.push("/dashboard/handyman");
-            break;
-          case "employer":
-            router.push("/dashboard/employer");
-            break;
-          case "admin":
-            router.push("/dashboard/admin");
-            break;
-          default:
-            router.push("/dashboard");
-        }
-      }, 800);
+        const routes = {
+          jobseeker: "/dashboard/jobseeker",
+          handyman: "/dashboard/handyman",
+          employer: "/dashboard/employer",
+          admin: "/dashboard/admin",
+        };
+        router.push(routes[user.role] || "/dashboard");
+      }, 600);
     } catch (err) {
       setMessageType("error");
       setMessage(
-        err.response?.data?.message || "Login failed. Please try again."
+        err.response?.data?.message || "Login failed. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -68,59 +60,121 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block">
+            <span className="text-2xl font-black text-gray-900">
+              Talent<span className="text-lime-600">HQ</span>
+            </span>
+          </Link>
+          <h1 className="text-2xl font-black text-gray-900 mt-4 mb-1">
+            Welcome back
+          </h1>
+          <p className="text-sm text-gray-500">Log in to your account</p>
+        </div>
 
-        {/* ✅ Inline error/success message */}
-        {message && (
-          <div
-            className={`p-2 mb-4 text-sm rounded ${
-              messageType === "error"
-                ? "bg-red-100 text-red-700 border border-red-300"
-                : "bg-green-100 text-green-700 border border-green-300"
-            }`}
-          >
-            {message}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+          {message && (
+            <div
+              className={`mb-5 px-4 py-3 text-sm rounded-xl border ${
+                messageType === "error"
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "bg-lime-50 text-lime-700 border-lime-200"
+              }`}
+            >
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Email address
+              </label>
+              <div className="relative">
+                <Mail
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  autoComplete="email"
+                  className="w-full pl-9 pr-3 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-700">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-lime-700 hover:text-lime-800 font-semibold"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type={showPw ? "text" : "password"}
+                  name="password"
+                  placeholder="Your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  autoComplete="current-password"
+                  className="w-full pl-9 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-colors"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Logging in…
+                </>
+              ) : (
+                "Log in"
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <p className="text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link
+                href="/signup"
+                className="text-lime-700 font-semibold hover:text-lime-800"
+              >
+                Sign up free
+              </Link>
+            </p>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="w-full border rounded p-2"
-          />
-
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="w-full border rounded p-2"
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-lime-600 text-white py-2 rounded hover:bg-lime-700 disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="text-sm text-center mt-4">
-          Don’t have an account?{" "}
-          <a href="/signup" className="text-lime-600 underline">
-            Sign up
-          </a>
-        </p>
+        </div>
       </div>
     </div>
   );

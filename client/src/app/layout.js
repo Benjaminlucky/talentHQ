@@ -1,17 +1,17 @@
-// src/app/layout.jsx
+// src/app/layout.js
 "use client";
 
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import Providers from "./providers"; // ✅ import your Providers wrapper
+import Providers from "./providers";
 import "./globals.css";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {/* ✅ Wrap everything with Providers (AuthProvider inside) */}
         <Providers>
           <LayoutWrapper>{children}</LayoutWrapper>
         </Providers>
@@ -22,23 +22,30 @@ export default function RootLayout({ children }) {
 
 function LayoutWrapper({ children }) {
   const pathname = usePathname();
-  const isDashboard = pathname.startsWith("/dashboard");
-  const hideNavbar = isDashboard;
+  const isDashboard =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/dashboard-admin") ||
+    pathname.startsWith("/dashboard-employer") ||
+    pathname.startsWith("/dashboard-handyman") ||
+    pathname.startsWith("/dashboard-jobseeker");
 
+  if (isDashboard) {
+    // Dashboard pages: no navbar, no footer, no padding — each dashboard
+    // handles its own layout (sidebar + content area)
+    return <>{children}</>;
+  }
+
+  // Public pages: navbar on top, footer at bottom.
+  // NOTE: <main> has NO max-width or padding here — each page is responsible
+  // for its own inner container (max-w-7xl mx-auto px-4) so full-bleed
+  // sections like hero banners and footers can stretch edge-to-edge.
   return (
-    <>
-      {!hideNavbar && <Navbar />}
-
-      <main
-        className={
-          isDashboard
-            ? "w-full px-0 py-0 bg-white"
-            : "max-w-7xl mx-auto px-4 py-6"
-        }
-      >
-        {/* ✅ Spinner only for non-dashboard pages */}
-        {isDashboard ? children : <LoadingSpinner>{children}</LoadingSpinner>}
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1 w-full">
+        <LoadingSpinner>{children}</LoadingSpinner>
       </main>
-    </>
+      <Footer />
+    </div>
   );
 }
