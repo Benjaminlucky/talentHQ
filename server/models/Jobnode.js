@@ -1,11 +1,8 @@
-// models/Jobnode.js — add auth fields to existing schema
-// PATCH: add these fields inside the jobnodeSchema definition
-
+// server/models/Jobnode.js
 import mongoose from "mongoose";
 
 const jobnodeSchema = new mongoose.Schema(
   {
-    // ── existing signup fields ─────────────────────────────────────────────────
     fullName: { type: String, required: true },
     email: {
       type: String,
@@ -17,7 +14,20 @@ const jobnodeSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { type: String, default: "jobseeker", enum: ["jobseeker"] },
 
-    // ── existing profile fields ────────────────────────────────────────────────
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    emailVerified: { type: Boolean, default: false },
+    banned: { type: Boolean, default: false },
+    onboardingComplete: { type: Boolean, default: false },
+
+    // ── OAuth (Google / LinkedIn) ─────────────────────────────────────────────
+    oauthProvider: {
+      type: String,
+      enum: ["google", "linkedin", null],
+      default: null,
+    },
+    oauthId: { type: String, default: null },
+
+    // ── Profile ───────────────────────────────────────────────────────────────
     headline: String,
     tagline: String,
     phone: String,
@@ -29,7 +39,7 @@ const jobnodeSchema = new mongoose.Schema(
     resume: { type: String, default: "" },
     resumePublic: { type: Boolean, default: true },
 
-    // ── existing references ────────────────────────────────────────────────────
+    // ── References ────────────────────────────────────────────────────────────
     skill: [{ type: mongoose.Schema.Types.ObjectId, ref: "Skill" }],
     certifications: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Certification" },
@@ -39,22 +49,12 @@ const jobnodeSchema = new mongoose.Schema(
     ],
     education: [{ type: mongoose.Schema.Types.ObjectId, ref: "Education" }],
     projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
-
-    // ── from critical blockers delivery ───────────────────────────────────────
-    banned: { type: Boolean, default: false },
-    onboardingComplete: { type: Boolean, default: false },
-
-    // ── NEW: email verification ────────────────────────────────────────────────
-    emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: { type: String, default: null },
-    emailVerificationExpires: { type: Date, default: null },
-
-    // ── NEW: password reset ────────────────────────────────────────────────────
-    resetPasswordToken: { type: String, default: null, index: true },
-    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );
+
+// Compound index so OAuth lookups are fast
+jobnodeSchema.index({ oauthProvider: 1, oauthId: 1 }, { sparse: true });
 
 export default mongoose.models.Jobnode ||
   mongoose.model("Jobnode", jobnodeSchema);

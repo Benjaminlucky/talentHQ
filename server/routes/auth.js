@@ -1,15 +1,16 @@
-// routes/auth.js
 import express from "express";
 import {
   signup2,
   login,
   logout,
   getMe,
-  verifyEmail,
   resendVerification,
+  verifyEmail,
   forgotPassword,
   resetPassword,
-  changePassword,
+  getSessions,
+  revokeSession,
+  revokeAllOtherSessions,
   deleteAccount,
 } from "../controllers/authController.js";
 import { verifyToken } from "../middlewares/auth.js";
@@ -19,19 +20,21 @@ const router = express.Router();
 // ── Public ────────────────────────────────────────────────────────────────────
 router.post("/signup2", signup2);
 router.post("/login", login);
-router.post("/logout", logout);
-
-// Email verification
-router.get("/verify-email", verifyEmail);
-router.post("/resend-verification", resendVerification);
-
-// Password reset
 router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:token", resetPassword);
+router.post("/reset-password", resetPassword);
+router.get("/verify-email", verifyEmail); // token in query string
 
-// ── Protected (requires valid session cookie) ─────────────────────────────────
+// ── Authenticated ─────────────────────────────────────────────────────────────
 router.get("/me", verifyToken, getMe);
-router.post("/change-password", verifyToken, changePassword);
+router.post("/logout", verifyToken, logout);
+router.post("/resend-verification", verifyToken, resendVerification);
+
+// Sessions
+router.get("/sessions", verifyToken, getSessions);
+router.delete("/sessions", verifyToken, revokeAllOtherSessions);
+router.delete("/sessions/:sessionId", verifyToken, revokeSession);
+
+// Account deletion
 router.delete("/account", verifyToken, deleteAccount);
 
 export default router;

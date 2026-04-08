@@ -3,17 +3,24 @@
 // npm install resend
 import { Resend } from "resend";
 
-// ── Startup validation ─────────────────────────────────────────────────────
-// If RESEND_API_KEY is missing, we want a loud crash at boot time,
-// not a silent failure at 3am when a user tries to reset their password.
-if (!process.env.RESEND_API_KEY) {
-  throw new Error(
-    "RESEND_API_KEY is not set. Add it to your .env file. " +
-      "Get a free key at https://resend.com",
-  );
+// ── Lazy Resend initialisation ─────────────────────────────────────────────
+// We cannot validate or instantiate at module load time because ES module
+// imports are hoisted and evaluated before dotenv.config() runs in index.js.
+// env-check.js already enforces RESEND_API_KEY at startup — so by the time
+// sendEmail() is ever called, the key is guaranteed to be present.
+let _resend = null;
+function getResend() {
+  if (!_resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error(
+        "RESEND_API_KEY is not set. Add it to your .env file. " +
+          "Get a free key at https://resend.com",
+      );
+    }
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
 }
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM = process.env.EMAIL_FROM || "TalentHQ <noreply@talenthq.ng>";
 
@@ -127,7 +134,7 @@ function emailHtml(body) {
 // ── Internal send helper ───────────────────────────────────────────────────
 // Wraps Resend's send call with logging and error normalisation.
 async function sendEmail({ to, subject, html }) {
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from: FROM,
     to: Array.isArray(to) ? to : [to],
     subject,

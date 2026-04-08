@@ -1,25 +1,25 @@
-// ── Environment validation MUST run first ─────────────────────────────────────
-// Import dotenv before checkEnv so .env is loaded when we validate.
 import dotenv from "dotenv";
 dotenv.config();
 
 import { checkEnv } from "./utils/env-check.js";
-checkEnv(); // Crashes with a clear message if JWT_SECRET, MONGO_URI, or RESEND_API_KEY missing
+checkEnv();
 
-// ── All other imports ─────────────────────────────────────────────────────────
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
 import cookieParser from "cookie-parser";
+import session from "express-session"; // needed by passport for the OAuth handshake only
 import { rateLimit } from "express-rate-limit";
+import passportMiddleware from "./middlewares/passport.js";
 
 // Routes
+import authRoutes from "./routes/auth.js";
+import oauthRoutes from "./routes/oauthRoutes.js";
 import employerRoutes from "./routes/employerRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
-import authRoutes from "./routes/auth.js";
 import onboardingRoutes from "./routes/OnboardingRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import jobseekerApplicationRoutes from "./routes/JobseekerApplicationsRoutes.js";
@@ -29,16 +29,29 @@ import adminRoutes from "./routes/adminRoutes.js";
 const app = express();
 
 app.set("trust proxy", 1);
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 
-// Ensure local upload folder exists
+// Passport needs a minimal session for the OAuth handshake redirect (not for auth state —
+// we use JWT for that). The session is ephemeral and stores nothing sensitive.
+app.use(
+  session({
+    secret: process.env.JWT_SECRET, // reuse your existing secret
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 5 * 60 * 1000, // 5 minutes — just long enough for the OAuth dance
+    },
+  }),
+);
+app.use(passportMiddleware.initialize());
+app.use(passportMiddleware.session());
+
+// Ensure upload folders exist
 const resumePath = "./uploads/resumes";
-if (!fs.existsSync(resumePath)) {
-  fs.mkdirSync(resumePath, { recursive: true });
-}
+if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins =
@@ -68,7 +81,6 @@ const globalLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many requests. Please wait a few minutes." },
 });
-
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
@@ -76,20 +88,16 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Too many login attempts. Please wait 15 minutes." },
 });
-
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    message: "Too many messages submitted. Please wait before sending again.",
-  },
+  message: { message: "Too many messages. Please wait before sending again." },
 });
 
 app.use(globalLimiter);
 
-// Static files (dev only)
 if (process.env.NODE_ENV !== "production") {
   const __dirname = path.resolve();
   app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -103,8 +111,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// ── API Routes ────────────────────────────────────────────────────────────────
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", oauthRoutes); // Google + LinkedIn OAuth (no rate limit — Google handles abuse)
 app.use("/api/superadmin", authLimiter, superAdminRoutes);
 app.use("/api/contact", contactLimiter, contactRoutes);
 app.use("/api/superadmin", adminRoutes);
@@ -124,9 +133,8 @@ app.use((req, res) => {
 // ── Global error handler ─────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error("❌ Unhandled error:", err.message);
-  if (err.message?.startsWith("CORS:")) {
+  if (err.message?.startsWith("CORS:"))
     return res.status(403).json({ message: err.message });
-  }
   res.status(500).json({
     message:
       process.env.NODE_ENV === "production"
@@ -143,7 +151,6 @@ mongoose
   })
   .then(async () => {
     console.log("✅ MongoDB connected");
-
     try {
       const db = mongoose.connection.db;
       // Core indexes
@@ -152,13 +159,28 @@ mongoose
         .createIndex({ email: 1 }, { unique: true, background: true });
       await db
         .collection("jobnodes")
-        .createIndex({ createdAt: -1 }, { background: true });
+        .createIndex(
+          { oauthProvider: 1, oauthId: 1 },
+          { sparse: true, background: true },
+        );
       await db
         .collection("handymen")
         .createIndex({ email: 1 }, { unique: true, background: true });
       await db
+        .collection("handymen")
+        .createIndex(
+          { oauthProvider: 1, oauthId: 1 },
+          { sparse: true, background: true },
+        );
+      await db
         .collection("employers")
         .createIndex({ email: 1 }, { unique: true, background: true });
+      await db
+        .collection("employers")
+        .createIndex(
+          { oauthProvider: 1, oauthId: 1 },
+          { sparse: true, background: true },
+        );
       await db
         .collection("jobs")
         .createIndex({ category: 1 }, { background: true });
@@ -174,10 +196,7 @@ mongoose
       await db
         .collection("applications")
         .createIndex({ jobseeker: 1 }, { background: true });
-      await db
-        .collection("applications")
-        .createIndex({ status: 1 }, { background: true });
-      // Auth indexes
+      // Auth/session indexes
       await db
         .collection("emailtokens")
         .createIndex({ token: 1 }, { background: true });
@@ -200,16 +219,15 @@ mongoose
           { expireAfterSeconds: 0, background: true },
         );
       console.log("✅ Database indexes ensured");
-    } catch (indexErr) {
-      console.warn("⚠️  Index warning (non-fatal):", indexErr.message);
+    } catch (e) {
+      console.warn("⚠️  Index warning (non-fatal):", e.message);
     }
-
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
+    app.listen(PORT, () =>
       console.log(
-        `🚀 Server running on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
-      );
-    });
+        `🚀 Server on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
+      ),
+    );
   })
   .catch((err) => {
     console.error("❌ MongoDB connection failed:", err.message);

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, User, X } from "lucide-react";
+import { LogOut, User, X, Shield, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar({ open, setOpen }) {
@@ -15,14 +15,17 @@ export default function Sidebar({ open, setOpen }) {
       { href: "/dashboard/jobseeker", label: "Overview" },
       { href: "/dashboard/jobseeker/applications", label: "Applications" },
       { href: "/dashboard/jobseeker/profile", label: "My Profile" },
+      { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     handyman: [
       { href: "/dashboard/handyman", label: "Overview" },
       { href: "/dashboard/handyman/jobs", label: "Jobs" },
+      { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     employer: [
       { href: "/dashboard/employer", label: "Overview" },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
+      { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     admin: [
       { href: "/dashboard/admin", label: "Overview" },
@@ -35,13 +38,78 @@ export default function Sidebar({ open, setOpen }) {
     router.push("/login");
   };
 
+  const NavLink = ({ item, onClick }) => {
+    const isActive = pathname === item.href;
+    const Icon = item.icon;
+    return (
+      <Link
+        href={item.href}
+        onClick={onClick}
+        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+          isActive
+            ? "bg-lime-600 text-white font-semibold"
+            : "text-gray-700 hover:bg-gray-100"
+        }`}
+      >
+        {Icon && (
+          <Icon
+            size={14}
+            className={isActive ? "text-white" : "text-gray-400"}
+          />
+        )}
+        {item.label}
+      </Link>
+    );
+  };
+
+  const UserFooter = ({ onLogout }) => (
+    <div className="border-t pt-4 mt-4">
+      {/* Unverified email warning */}
+      {user && !user.emailVerified && (
+        <Link
+          href="/account/settings"
+          className="flex items-center gap-2 px-3 py-2 mb-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 hover:bg-amber-100 transition"
+        >
+          <AlertTriangle size={12} className="text-amber-600 flex-shrink-0" />
+          Verify your email
+        </Link>
+      )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.fullName}
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {user?.fullName?.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-sm truncate">{user?.fullName}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={onLogout}
+          className="p-2 rounded-lg hover:bg-gray-100 flex-shrink-0"
+          title="Logout"
+        >
+          <LogOut className="w-4 h-4 text-red-500" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      {/* Backdrop (mobile only) */}
+      {/* Mobile backdrop */}
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -50,7 +118,7 @@ export default function Sidebar({ open, setOpen }) {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Mobile drawer */}
       <AnimatePresence>
         {open && (
           <motion.aside
@@ -59,101 +127,52 @@ export default function Sidebar({ open, setOpen }) {
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "tween", duration: 0.3 }}
-            className="fixed inset-y-0 left-0 w-64 bg-white border-r shadow-md p-4 flex flex-col justify-between z-50 md:hidden"
+            className="fixed inset-y-0 left-0 w-64 bg-white border-r shadow-lg p-4 flex flex-col justify-between z-50 md:hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">TalentHQ</h2>
-              <button
-                className="p-2 rounded hover:bg-gray-100"
-                onClick={() => setOpen(false)}
-              >
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
-            </div>
-
-            {/* Navigation */}
-            <nav className="space-y-2 flex-1">
-              {user?.role &&
-                navItems[user.role]?.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`block px-3 py-2 rounded-md ${
-                      pathname === item.href
-                        ? "bg-lime-600 text-white"
-                        : "hover:bg-gray-100"
-                    }`}
-                    onClick={() => setOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-            </nav>
-
-            {/* User menu */}
-            {user && (
-              <div className="border-t pt-4 mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="w-6 h-6 text-gray-500" />
-                  <div>
-                    <p className="font-medium">{user.fullName}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                  </div>
-                </div>
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-lg font-black">
+                  Talent<span className="text-lime-600">HQ</span>
+                </span>
                 <button
-                  onClick={handleLogout}
                   className="p-2 rounded hover:bg-gray-100"
-                  title="Logout"
+                  onClick={() => setOpen(false)}
                 >
-                  <LogOut className="w-5 h-5 text-red-600" />
+                  <X className="h-5 w-5 text-gray-600" />
                 </button>
               </div>
-            )}
+              <nav className="space-y-1">
+                {user?.role &&
+                  navItems[user.role]?.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      onClick={() => setOpen(false)}
+                    />
+                  ))}
+              </nav>
+            </div>
+            {user && <UserFooter onLogout={handleLogout} />}
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar (always visible) */}
-      <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r shadow-md p-4 justify-between">
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r shadow-sm p-4 justify-between min-h-screen">
         <div>
-          <h2 className="text-xl font-bold mb-6">TalentHQ</h2>
-          <nav className="space-y-2">
+          <Link href="/" className="block mb-6">
+            <span className="text-lg font-black">
+              Talent<span className="text-lime-600">HQ</span>
+            </span>
+          </Link>
+          <nav className="space-y-1">
             {user?.role &&
               navItems[user.role]?.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`block px-3 py-2 rounded-md ${
-                    pathname === item.href
-                      ? "bg-lime-600 text-white"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  {item.label}
-                </Link>
+                <NavLink key={item.href} item={item} />
               ))}
           </nav>
         </div>
-
-        {user && (
-          <div className="border-t pt-4 mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="w-6 h-6 text-gray-500" />
-              <div>
-                <p className="font-medium">{user.fullName}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded hover:bg-gray-100"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5 text-red-600" />
-            </button>
-          </div>
-        )}
+        {user && <UserFooter onLogout={handleLogout} />}
       </aside>
     </>
   );

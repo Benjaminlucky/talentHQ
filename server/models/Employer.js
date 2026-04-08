@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const employerSchema = new mongoose.Schema(
   {
-    // ── existing ───────────────────────────────────────────────────────────────
     fullName: { type: String, required: true },
     email: {
       type: String,
@@ -13,6 +12,21 @@ const employerSchema = new mongoose.Schema(
     },
     password: { type: String, required: true },
     role: { type: String, default: "employer", enum: ["employer"] },
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    emailVerified: { type: Boolean, default: false },
+    banned: { type: Boolean, default: false },
+    onboardingComplete: { type: Boolean, default: false },
+
+    // ── OAuth ─────────────────────────────────────────────────────────────────
+    oauthProvider: {
+      type: String,
+      enum: ["google", "linkedin", null],
+      default: null,
+    },
+    oauthId: { type: String, default: null },
+
+    // ── Onboarding ────────────────────────────────────────────────────────────
     companyName: String,
     companyWebsite: String,
     companyLinkedin: String,
@@ -24,20 +38,11 @@ const employerSchema = new mongoose.Schema(
     contactPersonName: String,
     contactPersonDesignation: String,
     logo: String,
-    banned: { type: Boolean, default: false },
-    onboardingComplete: { type: Boolean, default: false },
-
-    // ── NEW: email verification ────────────────────────────────────────────────
-    emailVerified: { type: Boolean, default: false },
-    emailVerificationToken: { type: String, default: null },
-    emailVerificationExpires: { type: Date, default: null },
-
-    // ── NEW: password reset ────────────────────────────────────────────────────
-    resetPasswordToken: { type: String, default: null, index: true },
-    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );
+
+employerSchema.index({ oauthProvider: 1, oauthId: 1 }, { sparse: true });
 
 export default mongoose.models.Employer ||
   mongoose.model("Employer", employerSchema);
