@@ -12,19 +12,31 @@ export default function FeaturedCandidates() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
 
-  // Fetch candidates
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await fetch(`${baseUrl}/api/profile/applications`);
-        if (!res.ok) throw new Error("Failed to fetch applications");
+        const res = await fetch(
+          `${baseUrl}/api/profile/applications?limit=20`,
+          // No credentials — this is a public endpoint
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        setApplications(data);
+
+        // The updated controller returns { applications: [...], total, page, totalPages }
+        // The old controller returned a plain array.
+        // Handle both shapes safely so the page never crashes.
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data.applications)
+            ? data.applications
+            : [];
+
+        setApplications(list);
       } catch (err) {
-        console.error("Error fetching applications:", err);
+        console.error("FeaturedCandidates fetch error:", err.message);
+        setApplications([]); // always keep it an array — never undefined
       } finally {
         setLoading(false);
       }
@@ -32,19 +44,14 @@ export default function FeaturedCandidates() {
     fetchApplications();
   }, [baseUrl]);
 
-  // Auto-scroll animation
   useEffect(() => {
+    if (applications.length === 0) return;
     controls.start({
       x: ["0%", "-50%"],
-      transition: {
-        repeat: Infinity,
-        duration: 60,
-        ease: "linear",
-      },
+      transition: { repeat: Infinity, duration: 60, ease: "linear" },
     });
-  }, [controls]);
+  }, [applications, controls]);
 
-  // Skeleton card
   const SkeletonCard = () => (
     <div className="min-w-[320px] max-w-sm w-full p-6 rounded-2xl bg-gradient-to-br from-gray-900 to-black shadow-lg flex-shrink-0">
       <div className="flex items-center justify-between mb-6">
@@ -64,7 +71,6 @@ export default function FeaturedCandidates() {
     </div>
   );
 
-  // Candidate card
   const CandidateCard = ({ app, idx }) => (
     <motion.div
       key={`${app._id}-${idx}`}
@@ -98,13 +104,10 @@ export default function FeaturedCandidates() {
           <IoLocationOutline className="text-lime-400 text-lg" />
           <span className="text-sm text-white">
             {app.jobseeker?.location
-              ? `${app.jobseeker.location.city || ""} ${
-                  app.jobseeker.location.country || ""
-                }`
+              ? `${app.jobseeker.location.city || ""} ${app.jobseeker.location.country || ""}`.trim()
               : "N/A"}
           </span>
         </div>
-
         <div className="flex items-center gap-2">
           <FiBriefcase className="text-lime-400 text-lg" />
           <span className="text-sm text-white">{app.roleType || "N/A"}</span>
@@ -123,6 +126,9 @@ export default function FeaturedCandidates() {
     </motion.div>
   );
 
+  // Don't render the section at all if there are no candidates and we're done loading
+  if (!loading && applications.length === 0) return null;
+
   return (
     <div className="featuredJobs mt-16 overflow-hidden">
       <h2 className="text-4xl font-extrabold text-center bg-gradient-to-r from-lime-400 to-emerald-500 bg-clip-text text-transparent my-12">
@@ -137,11 +143,7 @@ export default function FeaturedCandidates() {
           onMouseLeave={() =>
             controls.start({
               x: ["0%", "-50%"],
-              transition: {
-                repeat: Infinity,
-                duration: 60,
-                ease: "linear",
-              },
+              transition: { repeat: Infinity, duration: 60, ease: "linear" },
             })
           }
         >
