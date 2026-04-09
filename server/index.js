@@ -26,8 +26,6 @@ import jobseekerApplicationRoutes from "./routes/JobseekerApplicationsRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
-import interviewRoutes from "./routes/interviewroutes.js";
 
 const app = express();
 
@@ -63,8 +61,9 @@ const normalizeOrigin = (o) => (o ? o.replace(/\/$/, "") : o);
 
 const PRODUCTION_ORIGINS = [
   process.env.FRONTEND_URL, // primary — set this in Render env vars
-  "https://talenthq.buzz", // no trailing slash
+  "https://talenthq.buzz", // custom domain
   "https://www.talenthq.buzz", // www variant
+  "https://talenthq.netlify.app", // Netlify subdomain (OAuth redirects here)
 ]
   .filter(Boolean)
   .map(normalizeOrigin);
@@ -136,8 +135,6 @@ app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/profile", jobseekerApplicationRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/interviews", interviewRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
