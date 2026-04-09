@@ -16,6 +16,8 @@ import {
   Link as LinkIcon,
   CheckCircle2,
   AlertCircle,
+  MessageSquare,
+  XCircle,
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
@@ -417,6 +419,53 @@ function AppCard({ app, onDelete }) {
               {link.replace(/^https?:\/\//, "").slice(0, 30)}…
             </a>
           ))}
+        </div>
+      )}
+
+      {/* Employer response message */}
+      {app.employerMessage && (
+        <div
+          className={`mt-3 pt-3 border-t flex items-start gap-2.5 p-3 rounded-xl ${
+            app.status === "accepted"
+              ? "bg-lime-50 border-lime-200"
+              : app.status === "rejected"
+                ? "bg-red-50 border-red-200"
+                : "bg-blue-50 border-blue-200"
+          }`}
+        >
+          <div
+            className={`flex-shrink-0 mt-0.5 ${
+              app.status === "accepted"
+                ? "text-lime-600"
+                : app.status === "rejected"
+                  ? "text-red-500"
+                  : "text-blue-600"
+            }`}
+          >
+            {app.status === "accepted" ? (
+              <CheckCircle2 size={14} />
+            ) : app.status === "rejected" ? (
+              <XCircle size={14} />
+            ) : (
+              <MessageSquare size={14} />
+            )}
+          </div>
+          <div>
+            <p
+              className={`text-[11px] font-bold uppercase tracking-wide mb-0.5 ${
+                app.status === "accepted"
+                  ? "text-lime-700"
+                  : app.status === "rejected"
+                    ? "text-red-600"
+                    : "text-blue-700"
+              }`}
+            >
+              Message from employer
+            </p>
+            <p className="text-xs text-gray-700 leading-relaxed">
+              {app.employerMessage}
+            </p>
+          </div>
         </div>
       )}
     </motion.div>

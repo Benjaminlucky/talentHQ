@@ -24,6 +24,10 @@ export default function Sidebar({ open, setOpen }) {
     ],
     employer: [
       { href: "/dashboard/employer", label: "Overview" },
+      {
+        href: "/dashboard/employer/applications",
+        label: "Applications Pipeline",
+      },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
