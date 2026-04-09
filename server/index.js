@@ -58,7 +58,7 @@ if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? [
-        process.env.FRONTEND_URL || "https://talenthq.netlify.app",
+        process.env.FRONTEND_URL || "https://talenthq.buzz/",
         "https://talenthq-vl3n.onrender.com",
       ]
     : ["http://localhost:3000", "http://localhost:5000"];

@@ -28,7 +28,7 @@ export default function SuperAdminLogin() {
     try {
       const baseUrl =
         process.env.NODE_ENV === "production"
-          ? "https://talenthq-1.onrender.com"
+          ? "https://talenthq-vl3n.onrender.com"
           : "http://localhost:5000";
 
       const response = await fetch(`${baseUrl}/api/superadmin/login`, {
