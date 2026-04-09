@@ -2,7 +2,7 @@
 import Employer from "../models/Employer.js";
 import JobModel from "../models/job.model.js";
 
-// ── Create Job (employer or superadmin) ───────────────────────────────────────
+// ── Create Job ────────────────────────────────────────────────────────────────
 export const createJob = async (req, res) => {
   try {
     const {
@@ -33,14 +33,12 @@ export const createJob = async (req, res) => {
     }
 
     let companyId = company;
-
     if (req.user.role === "employer") {
       const employer = await Employer.findById(req.user.id);
       if (!employer)
         return res.status(404).json({ message: "Employer not found" });
       companyId = employer._id;
     }
-
     if (req.user.role === "superadmin" && !companyId) {
       return res
         .status(400)
@@ -66,6 +64,7 @@ export const createJob = async (req, res) => {
       category: category?.trim() || "",
       type: type || "Full-time",
       jobFor: jobFor || "professional",
+      status: "open",
       postedBy: req.user.role,
     });
 
@@ -76,11 +75,12 @@ export const createJob = async (req, res) => {
   }
 };
 
-// ── Get employer's own jobs ────────────────────────────────────────────────────
+// ── Get employer's own posted jobs ────────────────────────────────────────────
 export const getMyJobs = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
     const query = { company: req.user.id };
+    if (status && status !== "all") query.status = status;
 
     const [jobs, total] = await Promise.all([
       JobModel.find(query)
@@ -104,13 +104,48 @@ export const getMyJobs = async (req, res) => {
   }
 };
 
+// ── Update job status ─────────────────────────────────────────────────────────
+// PATCH /api/jobs/:id/status
+// Employer marks a job as open / filled / closed / paused
+export const updateJobStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const allowed = ["open", "filled", "closed", "paused"];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        message: `Status must be one of: ${allowed.join(", ")}`,
+      });
+    }
+
+    const job = await JobModel.findById(req.params.id);
+    if (!job) return res.status(404).json({ message: "Job not found" });
+
+    // Only the employer who posted or superadmin can change status
+    if (
+      req.user.role !== "superadmin" &&
+      job.company?.toString() !== req.user.id.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Not authorised to update this job" });
+    }
+
+    job.status = status;
+    await job.save();
+
+    res.json({ message: `Job marked as ${status}`, job });
+  } catch (error) {
+    console.error("❌ updateJobStatus:", error);
+    res.status(500).json({ message: "Failed to update job status" });
+  }
+};
+
 // ── Delete employer's own job ─────────────────────────────────────────────────
 export const deleteJob = async (req, res) => {
   try {
     const job = await JobModel.findById(req.params.id);
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    // Only the employer who posted it or superadmin can delete
     if (
       req.user.role !== "superadmin" &&
       job.company?.toString() !== req.user.id.toString()
@@ -142,8 +177,8 @@ export const getJobs = async (req, res) => {
       company = "",
     } = req.query;
 
-    const query = {};
-
+    // Public listing only shows open jobs by default
+    const query = { status: "open" };
     if (search) query.title = { $regex: search, $options: "i" };
     if (location) query.location = { $regex: location, $options: "i" };
     if (category) query.category = { $regex: category, $options: "i" };
@@ -153,7 +188,10 @@ export const getJobs = async (req, res) => {
 
     const [jobs, count] = await Promise.all([
       JobModel.find(query)
-        .populate("company", "companyName logo email phoneNumber industry")
+        .populate(
+          "company",
+          "companyName logo email phoneNumber industry location avgRating reviewCount",
+        )
         .sort({ createdAt: -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
@@ -166,7 +204,7 @@ export const getJobs = async (req, res) => {
       totalPages: Math.ceil(count / Number(limit)),
       currentPage: Number(page),
       total: count,
-      totalJobs: count, // backward compat
+      totalJobs: count,
     });
   } catch (error) {
     console.error("❌ getJobs:", error);
@@ -180,7 +218,7 @@ export const getJobById = async (req, res) => {
     const job = await JobModel.findById(req.params.id)
       .populate(
         "company",
-        "companyName logo companyWebsite industry location phone",
+        "companyName logo companyWebsite industry location phone avgRating reviewCount",
       )
       .lean();
 
@@ -189,5 +227,37 @@ export const getJobById = async (req, res) => {
   } catch (error) {
     console.error("❌ getJobById:", error);
     res.status(500).json({ message: "Failed to fetch job" });
+  }
+};
+
+// ── Get employer public profile ───────────────────────────────────────────────
+// GET /api/jobs/employer/:employerId/profile
+// Returns employer info + their open job listings
+export const getEmployerPublicProfile = async (req, res) => {
+  try {
+    const employer = await Employer.findById(req.params.employerId)
+      .select(
+        "-password -oauthId -oauthProvider -emailVerified -banned -onboardingComplete -__v",
+      )
+      .lean();
+
+    if (!employer)
+      return res.status(404).json({ message: "Employer not found" });
+
+    // All open jobs by this employer
+    const jobs = await JobModel.find({
+      company: req.params.employerId,
+      status: "open",
+    })
+      .select(
+        "title type location salary experienceLevel category jobFor deadline createdAt status",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ employer, jobs });
+  } catch (error) {
+    console.error("❌ getEmployerPublicProfile:", error);
+    res.status(500).json({ message: "Failed to fetch employer profile" });
   }
 };

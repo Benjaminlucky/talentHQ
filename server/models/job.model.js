@@ -1,19 +1,21 @@
+// models/job.model.js
 import mongoose from "mongoose";
 
 const jobSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    description: { type: String, required: true }, // About this role
-    responsibilities: { type: String }, // Comma-separated text
-    qualification: { type: String }, // Single qualification text
-    skills: { type: String }, // Comma-separated skills
-    benefits: { type: String }, // Comma-separated benefits
+    description: { type: String, required: true },
+    responsibilities: { type: String },
+    qualification: { type: String },
+    skills: { type: String },
+    benefits: { type: String },
     location: { type: String, required: true },
     state: String,
     lga: String,
     address: String,
     phoneNumber: String,
     category: String,
+
     jobFor: {
       type: String,
       enum: ["handyman", "professional"],
@@ -24,9 +26,18 @@ const jobSchema = new mongoose.Schema(
       enum: ["Full-time", "Part-time", "Contract"],
       default: "Full-time",
     },
+
+    // ── Job status — employer can manage this ─────────────────────────────────
+    status: {
+      type: String,
+      enum: ["open", "filled", "closed", "paused"],
+      default: "open",
+    },
+
     salary: String,
     experienceLevel: String,
     deadline: Date,
+
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employer",
@@ -37,8 +48,13 @@ const jobSchema = new mongoose.Schema(
       default: "employer",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-const JobModel = mongoose.model("Job", jobSchema);
+jobSchema.index({ company: 1, status: 1 });
+jobSchema.index({ createdAt: -1 });
+jobSchema.index({ jobFor: 1, status: 1 });
+
+const JobModel = mongoose.models.Job || mongoose.model("Job", jobSchema);
+
 export default JobModel;

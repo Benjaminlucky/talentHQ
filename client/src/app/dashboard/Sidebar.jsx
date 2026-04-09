@@ -43,6 +43,7 @@ export default function Sidebar({ open, setOpen }) {
         label: "Applications Pipeline",
       },
       { href: "/dashboard/employer/interviews", label: "Interviews" },
+      { href: "/dashboard/employer/my-jobs", label: "My Jobs" },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
       { href: "/dashboard/employer/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },

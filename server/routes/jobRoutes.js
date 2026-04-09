@@ -5,7 +5,9 @@ import {
   createJob,
   getJobById,
   getMyJobs,
+  updateJobStatus,
   deleteJob,
+  getEmployerPublicProfile,
 } from "../controllers/jobController.js";
 import { verifyToken } from "../middlewares/auth.js";
 
@@ -13,16 +15,22 @@ const router = express.Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.get("/", getJobs);
+
+// Employer public profile — must come BEFORE /:id to avoid conflict
+router.get("/employer/:employerId/profile", getEmployerPublicProfile);
+
 router.get("/:id", getJobById);
 
-// ── Employer / superadmin ─────────────────────────────────────────────────────
-// POST /api/jobs — create a job (employer posts their own; superadmin specifies company)
+// ── Employer / superadmin (authenticated) ─────────────────────────────────────
 router.post("/", verifyToken, createJob);
 
-// GET  /api/jobs/me/posted — employer sees their own posted jobs
+// Employer sees their own posted jobs (all statuses)
 router.get("/me/posted", verifyToken, getMyJobs);
 
-// DELETE /api/jobs/:id — employer deletes their own job
+// Update status: open → filled / closed / paused
+router.patch("/:id/status", verifyToken, updateJobStatus);
+
+// Delete a job
 router.delete("/:id", verifyToken, deleteJob);
 
 export default router;
