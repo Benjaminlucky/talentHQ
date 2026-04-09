@@ -2,7 +2,15 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, User, X, Shield, AlertTriangle } from "lucide-react";
+import {
+  LogOut,
+  User,
+  X,
+  Shield,
+  AlertTriangle,
+  MessageSquare,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar({ open, setOpen }) {
@@ -15,11 +23,13 @@ export default function Sidebar({ open, setOpen }) {
       { href: "/dashboard/jobseeker", label: "Overview" },
       { href: "/dashboard/jobseeker/applications", label: "Applications" },
       { href: "/dashboard/jobseeker/profile", label: "My Profile" },
+      { href: "/dashboard/jobseeker/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     handyman: [
       { href: "/dashboard/handyman", label: "Overview" },
-      { href: "/dashboard/handyman/jobs", label: "Jobs" },
+      { href: "/dashboard/handyman/jobs", label: "Browse Jobs" },
+      { href: "/dashboard/handyman/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     employer: [
@@ -29,6 +39,7 @@ export default function Sidebar({ open, setOpen }) {
         label: "Applications Pipeline",
       },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
+      { href: "/dashboard/employer/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     admin: [
