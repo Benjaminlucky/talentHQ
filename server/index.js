@@ -55,19 +55,29 @@ const resumePath = "./uploads/resumes";
 if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+// Normalize: strip trailing slash so "https://talenthq.buzz/" and
+// "https://talenthq.buzz" both match correctly.
+const normalizeOrigin = (o) => (o ? o.replace(/\/$/, "") : o);
+
+const PRODUCTION_ORIGINS = [
+  process.env.FRONTEND_URL, // primary — set this in Render env vars
+  "https://talenthq.buzz", // no trailing slash
+  "https://www.talenthq.buzz", // www variant
+]
+  .filter(Boolean)
+  .map(normalizeOrigin);
+
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? [
-        process.env.FRONTEND_URL || "https://talenthq.buzz/",
-        "https://talenthq-vl3n.onrender.com",
-      ]
+    ? PRODUCTION_ORIGINS
     : ["http://localhost:3000", "http://localhost:5000"];
 
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (allowedOrigins.includes(normalizeOrigin(origin)))
+        return callback(null, true);
       return callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
