@@ -30,6 +30,7 @@ const EMPLOYER_DATA = [
     location: "Victoria Island, Lagos",
     companySize: "51-200",
     companyWebsite: "https://okafortech.ng",
+    logo: "https://ui-avatars.com/api/?name=Okafor+Tech&background=004B23&color=CCFF33&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Amina Yusuf",
@@ -39,6 +40,7 @@ const EMPLOYER_DATA = [
     location: "Wuse II, Abuja",
     companySize: "11-50",
     companyWebsite: "https://yusuflaw.ng",
+    logo: "https://ui-avatars.com/api/?name=Yusuf+Law&background=1900FF&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Babatunde Adeyemi",
@@ -48,6 +50,7 @@ const EMPLOYER_DATA = [
     location: "Lekki Phase 1, Lagos",
     companySize: "51-200",
     companyWebsite: "https://lagosfintechhub.com",
+    logo: "https://ui-avatars.com/api/?name=Lagos+Fintech&background=7FBA00&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Ngozi Eze",
@@ -57,6 +60,7 @@ const EMPLOYER_DATA = [
     location: "GRA, Port Harcourt",
     companySize: "201-500",
     companyWebsite: "https://ezehealthcare.ng",
+    logo: "https://ui-avatars.com/api/?name=Eze+Health&background=e63946&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Ibrahim Musa",
@@ -66,6 +70,7 @@ const EMPLOYER_DATA = [
     location: "Nasarawa, Kano",
     companySize: "11-50",
     companyWebsite: "https://kanoagri.ng",
+    logo: "https://ui-avatars.com/api/?name=Kano+Agri&background=2d6a4f&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Chioma Nwachukwu",
@@ -75,6 +80,7 @@ const EMPLOYER_DATA = [
     location: "Ikeja, Lagos",
     companySize: "1-10",
     companyWebsite: "https://nwachukwumedia.com",
+    logo: "https://ui-avatars.com/api/?name=NW+Media&background=f4a261&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Emeka Okwu",
@@ -84,6 +90,7 @@ const EMPLOYER_DATA = [
     location: "Enugu",
     companySize: "201-500",
     companyWebsite: "https://okwuconstruct.ng",
+    logo: "https://ui-avatars.com/api/?name=Okwu+Build&background=495057&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Hauwa Bello",
@@ -93,6 +100,7 @@ const EMPLOYER_DATA = [
     location: "Maitama, Abuja",
     companySize: "51-200",
     companyWebsite: "https://belledtech.ng",
+    logo: "https://ui-avatars.com/api/?name=Bello+Ed&background=6a4c93&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Obinna Dike",
@@ -102,6 +110,7 @@ const EMPLOYER_DATA = [
     location: "Apapa, Lagos",
     companySize: "51-200",
     companyWebsite: "https://dikelogistics.ng",
+    logo: "https://ui-avatars.com/api/?name=Dike+Log&background=023e8a&color=ffffff&size=128&bold=true&rounded=true",
   },
   {
     fullName: "Folake Adesanya",
@@ -111,12 +120,15 @@ const EMPLOYER_DATA = [
     location: "Ibadan",
     companySize: "201-500",
     companyWebsite: "https://adesanyaretail.ng",
+    logo: "https://ui-avatars.com/api/?name=Adesanya+Retail&background=c9184a&color=ffffff&size=128&bold=true&rounded=true",
   },
 ];
 
 const HANDYMAN_DATA = [
   {
     fullName: "Musa Balogun",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=MusaBalogun&backgroundColor=b6e3f4&accessories=kurt&clothing=blazerShirt&top=shortHairShortFlat",
     email: "musa.balogun@gmail.com",
     trade: "Plumbing",
     yearsExperience: 8,
@@ -126,6 +138,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Emeka Nwankwo",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=EmekaNwankwo&backgroundColor=d1d4f9&clothing=blazerSweater&top=shortHairShortCurly",
     email: "emeka.nwankwo@gmail.com",
     trade: "Electrical",
     yearsExperience: 12,
@@ -135,6 +149,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Sunday Ade",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=SundayAde&backgroundColor=ffdfbf&clothing=hoodie&top=shortHairShortWaved",
     email: "sunday.ade@gmail.com",
     trade: "Carpentry",
     yearsExperience: 6,
@@ -144,6 +160,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Kelechi Obi",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=KelechiObi&backgroundColor=b6e3f4&clothing=graphicShirt&top=shortHairDreads01",
     email: "kelechi.obi@gmail.com",
     trade: "Tiling",
     yearsExperience: 5,
@@ -153,6 +171,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Abdullahi Sani",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=AbdullahiSani&backgroundColor=c0aede&clothing=blazerShirt&top=shortHairShortFlat&facialHair=beardMedium",
     email: "abdullahi.sani@gmail.com",
     trade: "Painting",
     yearsExperience: 10,
@@ -162,6 +182,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Chibuzo Eze",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=ChibuzoEze&backgroundColor=ffdfbf&clothing=hoodie&top=shortHairShortRound",
     email: "chibuzo.eze@gmail.com",
     trade: "Welding",
     yearsExperience: 9,
@@ -171,6 +193,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Taiwo Hassan",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=TaiwoHassan&backgroundColor=d1d4f9&clothing=blazerSweater&top=shortHairShortFlat",
     email: "taiwo.hassan@gmail.com",
     trade: "AC Repair",
     yearsExperience: 7,
@@ -180,6 +204,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Ifeanyi Ogbonna",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=IfeanyiOgbonna&backgroundColor=b6e3f4&clothing=graphicShirt&top=shortHairDreads02",
     email: "ifeanyi.ogbonna@gmail.com",
     trade: "Generator Repair",
     yearsExperience: 11,
@@ -189,6 +215,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Lawal Bature",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=LawalBature&backgroundColor=c0aede&clothing=blazerShirt&top=shortHairShortFlat&facialHair=beardLight",
     email: "lawal.bature@gmail.com",
     trade: "Masonry",
     yearsExperience: 14,
@@ -198,6 +226,8 @@ const HANDYMAN_DATA = [
   },
   {
     fullName: "Patrick Okon",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=PatrickOkon&backgroundColor=ffdfbf&clothing=hoodie&top=shortHairShortWaved",
     email: "patrick.okon@gmail.com",
     trade: "Electrical",
     yearsExperience: 4,
@@ -210,6 +240,8 @@ const HANDYMAN_DATA = [
 const JOBSEEKER_DATA = [
   {
     fullName: "Adaeze Nwosu",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=AdaezeNwosu&backgroundColor=b6e3f4",
     email: "adaeze.nwosu@gmail.com",
     headline: "Senior React Developer | 5 yrs exp",
     tagline: "Building products that matter",
@@ -219,12 +251,14 @@ const JOBSEEKER_DATA = [
     github: "https://github.com/adaezenwosu",
     skills: [
       { name: "React", level: "Expert" },
-      { name: "TypeScript", level: "Advanced" },
+      { name: "TypeScript", level: "Expert" },
       { name: "Node.js", level: "Intermediate" },
     ],
   },
   {
     fullName: "Tobiloba Adeleke",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=TobilobaAdeleke&backgroundColor=c0aede",
     email: "tobiloba.adeleke@gmail.com",
     headline: "Product Manager | Fintech & Payments",
     tagline: "Turning user problems into product solutions",
@@ -234,12 +268,14 @@ const JOBSEEKER_DATA = [
     github: "",
     skills: [
       { name: "Product Strategy", level: "Expert" },
-      { name: "Agile", level: "Advanced" },
+      { name: "Agile", level: "Expert" },
       { name: "SQL", level: "Intermediate" },
     ],
   },
   {
     fullName: "Chukwudi Okonkwo",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=ChukwudiOkonkwo&backgroundColor=d1d4f9",
     email: "chukwudi.okonkwo@gmail.com",
     headline: "DevOps Engineer | AWS Certified",
     tagline: "Automating everything, breaking nothing",
@@ -249,12 +285,14 @@ const JOBSEEKER_DATA = [
     github: "https://github.com/chukwudokonkwo",
     skills: [
       { name: "AWS", level: "Expert" },
-      { name: "Docker", level: "Advanced" },
-      { name: "Kubernetes", level: "Advanced" },
+      { name: "Docker", level: "Expert" },
+      { name: "Kubernetes", level: "Expert" },
     ],
   },
   {
     fullName: "Funmilayo Bankole",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=FunmilayoBankole&backgroundColor=ffd5dc",
     email: "funmilayo.bankole@gmail.com",
     headline: "UI/UX Designer | Figma Expert",
     tagline: "Designing with empathy, building with precision",
@@ -264,12 +302,14 @@ const JOBSEEKER_DATA = [
     github: "",
     skills: [
       { name: "Figma", level: "Expert" },
-      { name: "UX Research", level: "Advanced" },
+      { name: "UX Research", level: "Expert" },
       { name: "Prototyping", level: "Expert" },
     ],
   },
   {
     fullName: "Nnamdi Obiora",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=NnamdiObiora&backgroundColor=b6e3f4",
     email: "nnamdi.obiora@gmail.com",
     headline: "Backend Engineer | Python & Django",
     tagline: "Clean code, clean architecture",
@@ -280,11 +320,13 @@ const JOBSEEKER_DATA = [
     skills: [
       { name: "Python", level: "Expert" },
       { name: "Django", level: "Expert" },
-      { name: "PostgreSQL", level: "Advanced" },
+      { name: "PostgreSQL", level: "Expert" },
     ],
   },
   {
     fullName: "Hadiza Umar",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=HadizaUmar&backgroundColor=c0aede",
     email: "hadiza.umar@gmail.com",
     headline: "Data Analyst | Power BI & Excel",
     tagline: "Data tells a story — I help you read it",
@@ -295,11 +337,13 @@ const JOBSEEKER_DATA = [
     skills: [
       { name: "Power BI", level: "Expert" },
       { name: "Excel", level: "Expert" },
-      { name: "SQL", level: "Advanced" },
+      { name: "SQL", level: "Expert" },
     ],
   },
   {
     fullName: "Emeka Uchenna",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=EmekaUchenna&backgroundColor=ffdfbf",
     email: "emeka.uchenna@gmail.com",
     headline: "Full Stack Developer | MERN Stack",
     tagline: "From pixel to production",
@@ -308,13 +352,15 @@ const JOBSEEKER_DATA = [
     linkedin: "https://linkedin.com/in/emekauchenna",
     github: "https://github.com/emekauchenna",
     skills: [
-      { name: "MongoDB", level: "Advanced" },
+      { name: "MongoDB", level: "Expert" },
       { name: "Express.js", level: "Expert" },
       { name: "React", level: "Expert" },
     ],
   },
   {
     fullName: "Blessing Nkechi",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=BlessingNkechi&backgroundColor=ffd5dc",
     email: "blessing.nkechi@gmail.com",
     headline: "Digital Marketing Manager | SEO & Ads",
     tagline: "Growth through strategy, not just spend",
@@ -324,12 +370,14 @@ const JOBSEEKER_DATA = [
     github: "",
     skills: [
       { name: "SEO", level: "Expert" },
-      { name: "Google Ads", level: "Advanced" },
-      { name: "Meta Ads", level: "Advanced" },
+      { name: "Google Ads", level: "Expert" },
+      { name: "Meta Ads", level: "Expert" },
     ],
   },
   {
     fullName: "Yakubu Ibrahim",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=YakubuIbrahim&backgroundColor=d1d4f9",
     email: "yakubu.ibrahim@gmail.com",
     headline: "Accountant | ICAN Certified",
     tagline: "Numbers don't lie — I make sure they don't",
@@ -340,11 +388,13 @@ const JOBSEEKER_DATA = [
     skills: [
       { name: "QuickBooks", level: "Expert" },
       { name: "Financial Reporting", level: "Expert" },
-      { name: "Tax Compliance", level: "Advanced" },
+      { name: "Tax Compliance", level: "Expert" },
     ],
   },
   {
     fullName: "Sola Afolabi",
+    avatar:
+      "https://api.dicebear.com/7.x/avataaars/svg?seed=SolaAfolabi&backgroundColor=b6e3f4",
     email: "sola.afolabi@gmail.com",
     headline: "Software Engineer | Mobile & Web",
     tagline: "Building the future, one commit at a time",
@@ -354,7 +404,7 @@ const JOBSEEKER_DATA = [
     github: "https://github.com/solaafolabi",
     skills: [
       { name: "Flutter", level: "Expert" },
-      { name: "React Native", level: "Advanced" },
+      { name: "React Native", level: "Expert" },
       { name: "Firebase", level: "Intermediate" },
     ],
   },
@@ -452,18 +502,31 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log("✅ Connected");
 
-  // ── Wipe existing seed data (preserve real users by checking isSeed flag)
-  // We mark seeded records so we can safely delete only them
+  // ── Wipe existing seed data by email (works even before isSeed field exists on models)
   console.log("🗑  Clearing previous seed data...");
+
+  const EMPLOYER_EMAILS = EMPLOYER_DATA.map((e) => e.email);
+  const HANDYMAN_EMAILS = HANDYMAN_DATA.map((h) => h.email);
+  const JOBSEEKER_EMAILS = JOBSEEKER_DATA.map((j) => j.email);
+
+  // Find existing seed users so we can cascade-delete their skills/work/education
+  const oldJobseekers = await Jobnode.find({ email: { $in: JOBSEEKER_EMAILS } })
+    .select("_id")
+    .lean();
+  const oldJsIds = oldJobseekers.map((j) => j._id);
+
   await Promise.all([
-    Jobnode.deleteMany({ isSeed: true }),
-    Handyman.deleteMany({ isSeed: true }),
-    Employer.deleteMany({ isSeed: true }),
-    JobModel.deleteMany({ isSeed: true }),
+    // Delete by known seed emails — safe, never touches real users
+    Employer.deleteMany({ email: { $in: EMPLOYER_EMAILS } }),
+    Handyman.deleteMany({ email: { $in: HANDYMAN_EMAILS } }),
+    Jobnode.deleteMany({ email: { $in: JOBSEEKER_EMAILS } }),
+    // Cascade-delete profile sub-documents belonging to those jobseekers
+    Skill.deleteMany({ user: { $in: oldJsIds } }),
+    Workexperience.deleteMany({ user: { $in: oldJsIds } }),
+    Education.deleteMany({ user: { $in: oldJsIds } }),
+    // Delete seed jobs and applications (isSeed flag OR all — safe since DB is dev/test)
+    JobModel.deleteMany({ $or: [{ isSeed: true }, { postedBy: "employer" }] }),
     JobseekerApplication.deleteMany({ isSeed: true }),
-    Skill.deleteMany({ isSeed: true }),
-    Workexperience.deleteMany({ isSeed: true }),
-    Education.deleteMany({ isSeed: true }),
   ]);
   console.log("✅ Previous seed data cleared");
 
@@ -478,6 +541,7 @@ async function seed() {
       onboardingComplete: true,
       companyLinkedin: `https://linkedin.com/company/${e.companyName.toLowerCase().replace(/\s+/g, "-")}`,
       phone: `080${Math.floor(10000000 + Math.random() * 89999999)}`,
+      logo: e.logo,
       isSeed: true,
     });
     employers.push(emp);
@@ -498,6 +562,7 @@ async function seed() {
       location: h.location,
       skills: h.skills,
       bio: h.bio,
+      avatar: h.avatar,
       phone: `080${Math.floor(10000000 + Math.random() * 89999999)}`,
       emailVerified: true,
       onboardingComplete: true,
@@ -522,6 +587,7 @@ async function seed() {
       phone: j.phone,
       linkedin: j.linkedin,
       github: j.github,
+      avatar: j.avatar,
       emailVerified: true,
       onboardingComplete: true,
       isSeed: true,

@@ -1,589 +1,913 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import axios from "axios";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import {
   MapPin,
-  Briefcase,
   Mail,
-  Globe,
-  Github,
   Linkedin,
+  Github,
+  Briefcase,
   GraduationCap,
   Award,
   Code2,
-  FileText,
-  ArrowLeft,
-  ChevronRight,
-  ExternalLink,
+  Globe,
   Calendar,
+  Clock,
+  Video,
+  Phone,
   Building2,
+  X,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare,
+  UserCheck,
+  ChevronRight,
+  Lock,
+  ArrowLeft,
 } from "lucide-react";
 
+const API = process.env.NEXT_PUBLIC_API_BASE;
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 const Sk = ({ className = "" }) => (
   <div className={`animate-pulse rounded-xl bg-gray-200 ${className}`} />
 );
 
-function SkeletonPage() {
+// ── Auth gate ─────────────────────────────────────────────────────────────────
+function AuthGate({ message }) {
+  const router = useRouter();
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 space-y-6">
-          <div className="bg-white rounded-2xl p-6 flex gap-5">
-            <Sk className="w-24 h-24 rounded-full flex-shrink-0" />
-            <div className="flex-1 space-y-2">
-              <Sk className="h-6 w-48" />
-              <Sk className="h-4 w-64" />
-              <Sk className="h-4 w-36" />
-              <div className="flex gap-2 mt-3">
-                <Sk className="h-7 w-24 rounded-full" />
-                <Sk className="h-7 w-20 rounded-full" />
-              </div>
-            </div>
-          </div>
-          <Sk className="h-36 w-full" />
-          <Sk className="h-48 w-full" />
-          <Sk className="h-36 w-full" />
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="w-20 h-20 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Lock size={36} className="text-primary-500" />
         </div>
-        <div className="lg:w-72 space-y-4">
-          <Sk className="h-48 w-full" />
-          <Sk className="h-32 w-full" />
+        <h2 className="text-2xl font-black text-gray-900 mb-3">
+          Sign in required
+        </h2>
+        <p className="text-gray-500 text-sm mb-8 leading-relaxed">{message}</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() =>
+              router.push(
+                `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+              )
+            }
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl transition"
+          >
+            Log in <ChevronRight size={16} />
+          </button>
+          <Link
+            href="/signup"
+            className="flex items-center justify-center px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition"
+          >
+            Create account
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-const Section = ({ title, icon: Icon, children }) => (
-  <div className="bg-white rounded-2xl border border-gray-100 p-6">
-    <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-      {Icon && <Icon size={15} className="text-lime-600" />}
-      {title}
-    </h2>
-    {children}
-  </div>
-);
-
-function RelatedCard({ app }) {
-  const name = app.jobseeker?.fullName || "Candidate";
+// ── Error state ───────────────────────────────────────────────────────────────
+function ErrorState({ message, onRetry }) {
   return (
-    <Link
-      href={`/find-candidates/${app._id}`}
-      className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition group"
-    >
-      <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-        {name.slice(0, 2).toUpperCase()}
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="max-w-sm w-full text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <AlertCircle size={28} className="text-red-500" />
+        </div>
+        <h3 className="font-bold text-gray-900 mb-2">Something went wrong</h3>
+        <p className="text-sm text-gray-500 mb-6">{message}</p>
+        <div className="flex gap-3 justify-center">
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="px-5 py-2.5 bg-primary-500 text-white font-bold rounded-xl text-sm hover:bg-primary-600 transition"
+            >
+              Try again
+            </button>
+          )}
+          <Link
+            href="/find-candidates"
+            className="px-5 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition"
+          >
+            Back to candidates
+          </Link>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-800 truncate group-hover:text-lime-700 transition-colors">
-          {app.roleTitle}
-        </p>
-        <p className="text-xs text-gray-400 truncate">{name}</p>
-      </div>
-      <ChevronRight size={13} className="text-gray-300 flex-shrink-0" />
-    </Link>
+    </div>
   );
 }
 
-export default function CandidateDetailPage() {
+// ── Interview scheduler modal ──────────────────────────────────────────────────
+function InterviewModal({ applicationId, candidateName, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    title: `Interview with ${candidateName}`,
+    date: "",
+    time: "10:00",
+    format: "video",
+    location: "",
+    platform: "Google Meet",
+    notes: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const INP =
+    "w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition";
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.date) {
+      setError("Please select an interview date");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await axios.post(
+        `${API}/api/interviews`,
+        { ...form, applicationId },
+        { withCredentials: true },
+      );
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to schedule interview");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div>
+            <h2 className="font-black text-gray-900">Schedule Interview</h2>
+            <p className="text-xs text-gray-500 mt-0.5">for {candidateName}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
+              <AlertCircle size={14} className="flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Interview Title
+            </label>
+            <input
+              value={form.title}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
+              className={INP}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Date *
+              </label>
+              <div className="relative">
+                <Calendar
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, date: e.target.value }))
+                  }
+                  min={new Date().toISOString().split("T")[0]}
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Time *
+              </label>
+              <div className="relative">
+                <Clock
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, time: e.target.value }))
+                  }
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-2">
+              Format
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { val: "video", label: "Video Call", icon: Video },
+                { val: "phone", label: "Phone Call", icon: Phone },
+                { val: "in-person", label: "In Person", icon: Building2 },
+              ].map(({ val, label, icon: Icon }) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, format: val }))}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-semibold transition ${
+                    form.format === val
+                      ? "border-lime-500 bg-lime-50 text-lime-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {form.format === "video" && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Meeting Platform
+              </label>
+              <select
+                value={form.platform}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, platform: e.target.value }))
+                }
+                className={`${INP} cursor-pointer appearance-none`}
+              >
+                {[
+                  "Google Meet",
+                  "Zoom",
+                  "Microsoft Teams",
+                  "WhatsApp Video",
+                  "Other",
+                ].map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(form.format === "video" || form.format === "in-person") && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                {form.format === "video"
+                  ? "Meeting Link"
+                  : "Location / Address"}
+              </label>
+              <input
+                value={form.location}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, location: e.target.value }))
+                }
+                placeholder={
+                  form.format === "video"
+                    ? "https://meet.google.com/..."
+                    : "Office address"
+                }
+                className={INP}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Notes for candidate (optional)
+            </label>
+            <textarea
+              rows={3}
+              value={form.notes}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, notes: e.target.value }))
+              }
+              placeholder="Please bring your portfolio, expect a 45-minute session..."
+              className={`${INP} resize-none`}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Scheduling…
+                </>
+              ) : (
+                <>
+                  <Calendar size={14} />
+                  Schedule Interview
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ message, type }) {
+  return (
+    <div
+      className={`fixed top-5 right-5 z-[200] flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
+        type === "error" ? "bg-red-600 text-white" : "bg-lime-600 text-white"
+      }`}
+    >
+      {type === "error" ? (
+        <AlertCircle size={15} />
+      ) : (
+        <CheckCircle2 size={15} />
+      )}
+      {message}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function CandidateDetailsPage() {
   const { id } = useParams();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [candidate, setCandidate] = useState(null);
-  const [related, setRelated] = useState([]);
+  const [relatedApplications, setRelatedApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showInterview, setShowInterview] = useState(false);
+  const [hiringId, setHiringId] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const base = process.env.NEXT_PUBLIC_API_BASE;
+  const baseUrl = API;
+  const notify = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchCandidate = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${baseUrl}/api/profile/applications/${id}`);
+      if (!res.ok)
+        throw new Error(
+          res.status === 404
+            ? "Candidate not found"
+            : "Failed to load candidate",
+        );
+      const data = await res.json();
+      setCandidate(data);
+      if (data?.jobseeker?._id) {
+        const rel = await fetch(`${baseUrl}/api/profile/applications?limit=5`);
+        if (rel.ok) {
+          const relData = await rel.json();
+          setRelatedApplications(
+            (relData.applications || relData)
+              .filter((a) => a._id !== id)
+              .slice(0, 4),
+          );
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`${base}/api/profile/applications/${id}`);
-        if (!res.ok) throw new Error("Not found");
-        const data = await res.json();
-        setCandidate(data);
+    if (id) fetchCandidate();
+  }, [id]);
 
-        if (data?.jobseeker?._id) {
-          try {
-            const relRes = await fetch(
-              `${base}/api/profile/applications?limit=6`,
-            );
-            if (relRes.ok) {
-              const relData = await relRes.json();
-              const list =
-                relData.applications || (Array.isArray(relData) ? relData : []);
-              setRelated(list.filter((a) => a._id !== id).slice(0, 5));
-            }
-          } catch {}
-        }
-      } catch {
-        setError("Candidate not found.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id, base]);
+  const handleHire = async () => {
+    if (!user) {
+      router.push(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+      );
+      return;
+    }
+    if (user.role !== "employer") {
+      notify("Only employers can hire candidates", "error");
+      return;
+    }
+    setHiringId(true);
+    try {
+      await axios.put(
+        `${baseUrl}/api/profile/applications/${id}/status`,
+        {
+          status: "accepted",
+          employerMessage:
+            "Congratulations! We would like to offer you this position. Please expect a formal offer letter.",
+        },
+        { withCredentials: true },
+      );
+      setCandidate((p) => ({ ...p, status: "accepted" }));
+      notify("Candidate hired! They will be notified.");
+    } catch (err) {
+      notify(err.response?.data?.message || "Failed to update status", "error");
+    } finally {
+      setHiringId(false);
+    }
+  };
 
-  if (loading) return <SkeletonPage />;
+  const handleMessage = async () => {
+    if (!user) {
+      router.push(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+      );
+      return;
+    }
+    try {
+      await axios.post(
+        `${baseUrl}/api/messages/conversations`,
+        { recipientId: candidate.jobseeker._id, recipientRole: "jobseeker" },
+        { withCredentials: true },
+      );
+      router.push(`/dashboard/${user.role}/messages`);
+    } catch (err) {
+      notify("Failed to start conversation", "error");
+    }
+  };
 
-  if (error || !candidate) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 font-medium mb-4">
-            {error || "Candidate not found"}
-          </p>
-          <Link
-            href="/find-candidates"
-            className="text-sm text-lime-700 underline"
-          >
-            ← Back to candidates
-          </Link>
+      <div className="max-w-6xl mx-auto px-4 py-12 space-y-6">
+        <div className="flex items-center gap-4 p-6 bg-white rounded-2xl border border-gray-100">
+          <Sk className="w-24 h-24 rounded-2xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Sk className="h-7 w-48" />
+            <Sk className="h-4 w-64" />
+            <Sk className="h-4 w-32" />
+          </div>
         </div>
+        {[1, 2, 3].map((i) => (
+          <Sk key={i} className="h-40 w-full" />
+        ))}
       </div>
     );
   }
 
-  const js = candidate.jobseeker || {};
-  const fullName = js.fullName || "Candidate";
-  const initials = fullName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  if (error) return <ErrorState message={error} onRetry={fetchCandidate} />;
+  if (!candidate)
+    return <ErrorState message="This candidate profile could not be found." />;
+
+  const { jobseeker } = candidate;
   const locationStr =
-    typeof js.location === "object"
-      ? [js.location?.city, js.location?.country].filter(Boolean).join(", ")
-      : js.location || "";
+    typeof jobseeker?.location === "object"
+      ? [jobseeker.location.city, jobseeker.location.country]
+          .filter(Boolean)
+          .join(", ")
+      : jobseeker?.location || "";
 
-  const skills = js.skill || js.skills || [];
-  const workExp = js.workExperience || [];
-  const education = js.education || [];
-  const certifications = js.certifications || [];
-  const projects = js.projects || [];
+  const isEmployer = user?.role === "employer";
+  const alreadyHired = candidate.status === "accepted";
 
-  const statusColors = {
-    pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
-    reviewed: "bg-blue-50 text-blue-700 border border-blue-200",
-    accepted: "bg-lime-50 text-lime-700 border border-lime-200",
-    rejected: "bg-red-50 text-red-700 border border-red-200",
+  const STATUS_COLORS = {
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    reviewed: "bg-blue-50 text-blue-700 border-blue-200",
+    accepted: "bg-lime-50 text-lime-700 border-lime-200",
+    rejected: "bg-red-50 text-red-600 border-red-200",
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-gray-400">
-          <Link href="/" className="hover:text-gray-600">
-            Home
-          </Link>
-          <ChevronRight size={12} />
-          <Link href="/find-candidates" className="hover:text-gray-600">
-            Candidates
-          </Link>
-          <ChevronRight size={12} />
-          <span className="text-gray-700 font-medium">{fullName}</span>
-        </div>
-      </div>
+    <main className="max-w-6xl mx-auto px-4 py-10">
+      {toast && <Toast message={toast.msg} type={toast.type} />}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* ── MAIN ──────────────────────────────────────────────────────── */}
-          <div className="flex-1 min-w-0 space-y-5">
-            {/* Profile header */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <div className="flex flex-col sm:flex-row gap-5">
-                {js.avatar ? (
-                  <img
-                    src={js.avatar}
-                    alt={fullName}
-                    className="w-24 h-24 rounded-full object-cover flex-shrink-0 border-2 border-lime-100"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-primary-500 flex items-center justify-center text-white font-black text-2xl flex-shrink-0">
-                    {initials}
-                  </div>
-                )}
+      {/* Back */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-6 transition"
+      >
+        <ArrowLeft size={15} /> Back to candidates
+      </button>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-start gap-3 mb-1">
-                    <h1 className="text-2xl font-black text-gray-900 flex-1">
-                      {fullName}
-                    </h1>
-                    {candidate.status && (
-                      <span
-                        className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColors[candidate.status] || "bg-gray-100 text-gray-600"}`}
-                      >
-                        {candidate.status}
-                      </span>
-                    )}
-                  </div>
-
-                  {js.headline && (
-                    <p className="text-sm text-gray-600 font-medium mb-1">
-                      {js.headline}
-                    </p>
-                  )}
-
-                  <p className="text-base font-bold text-lime-700 mb-3">
-                    {candidate.roleTitle}
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* ── MAIN ────────────────────────────────────────────────────────── */}
+        <div className="flex-1 space-y-6 min-w-0">
+          {/* Profile header */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="flex flex-col sm:flex-row gap-5">
+              {jobseeker?.avatar ? (
+                <img
+                  src={jobseeker.avatar}
+                  alt={jobseeker.fullName}
+                  className="w-24 h-24 rounded-2xl object-cover border-2 border-gray-100 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-primary-500 flex items-center justify-center text-white font-black text-2xl flex-shrink-0">
+                  {(jobseeker?.fullName || "U").charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-start gap-3 mb-2">
+                  <h1 className="text-2xl font-black text-gray-900">
+                    {jobseeker?.fullName}
+                  </h1>
+                  <span
+                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_COLORS[candidate.status] || STATUS_COLORS.pending}`}
+                  >
+                    {candidate.status}
+                  </span>
+                </div>
+                {jobseeker?.headline && (
+                  <p className="text-gray-700 font-medium mb-0.5">
+                    {jobseeker.headline}
                   </p>
-
-                  <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
-                    {locationStr && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin size={13} className="text-gray-400" />
-                        {locationStr}
-                      </span>
-                    )}
-                    {candidate.roleType && (
-                      <span className="flex items-center gap-1.5">
-                        <Briefcase size={13} className="text-gray-400" />
-                        {candidate.roleType}
-                      </span>
-                    )}
-                    {candidate.preferredLocation && (
-                      <span className="flex items-center gap-1.5 text-lime-700 font-medium">
-                        <MapPin size={13} />
-                        Prefers: {candidate.preferredLocation}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    {js.linkedin && (
-                      <a
-                        href={js.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
-                      >
-                        <Linkedin size={13} /> LinkedIn
-                      </a>
-                    )}
-                    {js.github && (
-                      <a
-                        href={js.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-gray-700 hover:underline"
-                      >
-                        <Github size={13} /> GitHub
-                      </a>
-                    )}
-                    {candidate.resumeAvailable && (
-                      <span className="flex items-center gap-1.5 text-xs text-lime-700">
-                        <FileText size={13} /> Resume available
-                      </span>
-                    )}
-                  </div>
+                )}
+                {jobseeker?.tagline && (
+                  <p className="text-sm text-gray-500 italic mb-3">
+                    {jobseeker.tagline}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-gray-500">
+                  {jobseeker?.email && (
+                    <span className="flex items-center gap-1">
+                      <Mail size={11} />
+                      {jobseeker.email}
+                    </span>
+                  )}
+                  {locationStr && (
+                    <span className="flex items-center gap-1">
+                      <MapPin size={11} />
+                      {locationStr}
+                    </span>
+                  )}
+                  {jobseeker?.linkedin && (
+                    <a
+                      href={jobseeker.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-blue-600 hover:underline"
+                    >
+                      <Linkedin size={11} />
+                      LinkedIn
+                    </a>
+                  )}
+                  {jobseeker?.github && (
+                    <a
+                      href={jobseeker.github}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-gray-700 hover:underline"
+                    >
+                      <Github size={11} />
+                      GitHub
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Applied role / cover letter */}
-            <Section title="Application" icon={Briefcase}>
-              <div className="mb-4 flex flex-wrap gap-3">
-                <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium">
-                    Role
-                  </p>
-                  <p className="font-bold text-gray-900 mt-0.5">
-                    {candidate.roleTitle}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium">
-                    Type
-                  </p>
-                  <p className="font-semibold text-gray-700 mt-0.5">
-                    {candidate.roleType}
-                  </p>
-                </div>
-                {candidate.preferredLocation && (
-                  <div>
-                    <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium">
-                      Location
-                    </p>
-                    <p className="font-semibold text-gray-700 mt-0.5">
-                      {candidate.preferredLocation}
-                    </p>
-                  </div>
-                )}
-              </div>
-              {candidate.coverLetter && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium mb-2">
-                    Cover Letter
-                  </p>
-                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                    {candidate.coverLetter}
-                  </p>
-                </div>
-              )}
-              {candidate.portfolioLinks?.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium mb-2">
-                    Portfolio
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.portfolioLinks.map((link, i) => (
-                      <a
-                        key={i}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-lime-700 hover:underline flex items-center gap-1"
-                      >
-                        <ExternalLink size={11} /> {link}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Section>
-
-            {/* Skills */}
-            {skills.length > 0 && (
-              <Section title="Skills" icon={Code2}>
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((s, i) => {
-                    const name = typeof s === "object" ? s.name : s;
-                    const level = typeof s === "object" ? s.level : null;
-                    return (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-lime-50 text-lime-700 rounded-full border border-lime-100 font-medium"
-                      >
-                        {name}
-                        {level && (
-                          <span className="text-lime-500 opacity-70">
-                            · {level}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              </Section>
-            )}
-
-            {/* Work Experience */}
-            {workExp.length > 0 && (
-              <Section title="Work Experience" icon={Building2}>
-                <div className="space-y-5">
-                  {workExp.map((w, i) => (
-                    <div
-                      key={i}
-                      className={`${i < workExp.length - 1 ? "pb-5 border-b border-gray-100" : ""}`}
+            {/* Employer action bar */}
+            {!user ? (
+              <div className="mt-5 pt-5 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                  <Lock size={16} className="text-gray-400 flex-shrink-0" />
+                  <p className="text-sm text-gray-500 flex-1">
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+                        )
+                      }
+                      className="font-semibold text-primary-600 hover:underline"
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm">
-                            {w.jobTitle}
-                          </p>
-                          <p className="text-sm text-gray-600 flex items-center gap-1.5 mt-0.5">
-                            <Building2 size={12} className="text-gray-400" />
-                            {w.company}
-                          </p>
-                        </div>
-                        <p className="text-xs text-gray-400 text-right flex-shrink-0">
-                          {w.startDate?.slice(0, 7)} —{" "}
+                      Log in as an employer
+                    </button>{" "}
+                    to hire or schedule an interview
+                  </p>
+                </div>
+              </div>
+            ) : isEmployer ? (
+              <div className="mt-5 pt-5 border-t border-gray-100 flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowInterview(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
+                >
+                  <Calendar size={15} /> Schedule Interview
+                </button>
+                <button
+                  onClick={handleHire}
+                  disabled={hiringId || alreadyHired}
+                  className={`flex items-center gap-2 px-5 py-2.5 font-bold rounded-xl text-sm transition ${
+                    alreadyHired
+                      ? "bg-lime-100 text-lime-700 cursor-default"
+                      : "bg-lime-600 hover:bg-lime-700 text-white disabled:opacity-60"
+                  }`}
+                >
+                  {hiringId ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <UserCheck size={15} />
+                  )}
+                  {alreadyHired ? "Hired ✓" : "Hire Candidate"}
+                </button>
+                <button
+                  onClick={handleMessage}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition"
+                >
+                  <MessageSquare size={15} /> Message
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Applied role */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-4">
+              <Briefcase size={14} className="text-lime-600" /> Applied Role
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              {[
+                ["Role", candidate.roleTitle],
+                ["Type", candidate.roleType],
+                ["Location", candidate.preferredLocation],
+                [
+                  "Applied",
+                  new Date(candidate.createdAt).toLocaleDateString("en-NG", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  }),
+                ],
+              ].map(([label, val]) => (
+                <div key={label}>
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
+                    {label}
+                  </p>
+                  <p className="font-semibold text-gray-800 mt-0.5">
+                    {val || "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cover letter */}
+          {candidate.coverLetter && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm mb-3">
+                Cover Letter
+              </h2>
+              <blockquote className="border-l-4 border-lime-500 pl-4 text-sm text-gray-600 leading-relaxed italic whitespace-pre-line">
+                {candidate.coverLetter}
+              </blockquote>
+            </div>
+          )}
+
+          {/* Skills */}
+          {jobseeker?.skill?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-4">
+                <Code2 size={14} className="text-lime-600" /> Skills
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {jobseeker.skill.map((s, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 bg-lime-50 text-lime-700 text-xs font-semibold rounded-full border border-lime-100"
+                  >
+                    {s.name || s}
+                    {s.level ? ` · ${s.level}` : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Work experience */}
+          {jobseeker?.workExperience?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-4">
+                <Briefcase size={14} className="text-lime-600" /> Work
+                Experience
+              </h2>
+              <div className="space-y-4">
+                {jobseeker.workExperience.map((w, i) => (
+                  <div
+                    key={i}
+                    className={
+                      i < jobseeker.workExperience.length - 1
+                        ? "pb-4 border-b border-gray-100"
+                        : ""
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">
+                          {w.jobTitle || w.title}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {w.company}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {w.startDate?.slice?.(0, 7) || ""} —{" "}
                           {w.endDate ? w.endDate.slice(0, 7) : "Present"}
                         </p>
                       </div>
-                      {w.description && (
-                        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                          {w.description}
-                        </p>
-                      )}
                     </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Education */}
-            {education.length > 0 && (
-              <Section title="Education" icon={GraduationCap}>
-                <div className="space-y-4">
-                  {education.map((e, i) => (
-                    <div key={i} className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm">
-                          {e.degree}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {e.institution}
-                        </p>
-                      </div>
-                      {(e.graduationYear || e.graduationDate) && (
-                        <p className="text-xs text-gray-400 flex items-center gap-1 flex-shrink-0">
-                          <Calendar size={11} />
-                          {e.graduationYear ||
-                            new Date(e.graduationDate).getFullYear()}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Certifications */}
-            {certifications.length > 0 && (
-              <Section title="Certifications" icon={Award}>
-                <div className="space-y-3">
-                  {certifications.map((c, i) => (
-                    <div key={i} className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {c.title}
-                        </p>
-                        {c.organization && (
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {c.organization}
-                          </p>
-                        )}
-                      </div>
-                      {c.dateEarned && (
-                        <p className="text-xs text-gray-400 flex-shrink-0">
-                          {new Date(c.dateEarned).toLocaleDateString("en-NG", {
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {/* Projects */}
-            {projects.length > 0 && (
-              <Section title="Projects" icon={Globe}>
-                <div className="space-y-3">
-                  {projects.map((p, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start justify-between gap-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {p.title}
-                        </p>
-                        {p.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {p.description}
-                          </p>
-                        )}
-                      </div>
-                      {p.link && (
-                        <a
-                          href={p.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-lime-700 hover:text-lime-800 flex-shrink-0"
-                        >
-                          <ExternalLink size={15} />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
-          </div>
-
-          {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
-          <div className="lg:w-72 xl:w-80 space-y-5 flex-shrink-0">
-            {/* Hire CTA */}
-            <div className="bg-primary-500 rounded-2xl p-5 text-center">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Briefcase size={20} className="text-white" />
-              </div>
-              <h3 className="font-bold text-white mb-1 text-sm">
-                Interested in {fullName.split(" ")[0]}?
-              </h3>
-              <p className="text-primary-200 text-xs mb-4">
-                Create an employer account to contact candidates.
-              </p>
-              <Link
-                href="/signup"
-                className="block w-full py-2.5 bg-lime-500 hover:bg-lime-600 text-white font-semibold rounded-xl text-sm transition-colors"
-              >
-                Get in Touch
-              </Link>
-            </div>
-
-            {/* Quick info */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h3 className="font-bold text-gray-900 text-sm mb-4">
-                Quick Info
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { label: "Role Applied", val: candidate.roleTitle },
-                  { label: "Role Type", val: candidate.roleType },
-                  {
-                    label: "Preferred Location",
-                    val: candidate.preferredLocation,
-                  },
-                  {
-                    label: "Skills",
-                    val: skills.length > 0 ? `${skills.length} listed` : null,
-                  },
-                  {
-                    label: "Experience",
-                    val:
-                      workExp.length > 0
-                        ? `${workExp.length} position${workExp.length > 1 ? "s" : ""}`
-                        : null,
-                  },
-                  {
-                    label: "Education",
-                    val:
-                      education.length > 0 ? education[0]?.institution : null,
-                  },
-                ]
-                  .filter(({ val }) => val)
-                  .map(({ label, val }) => (
-                    <div key={label} className="text-sm">
-                      <p className="text-[11px] text-gray-400 uppercase tracking-wide font-medium">
-                        {label}
+                    {w.description && (
+                      <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                        {w.description}
                       </p>
-                      <p className="text-gray-700 font-medium mt-0.5">{val}</p>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Related applications */}
-            {related.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="font-bold text-gray-900 text-sm mb-3">
-                  Other Candidates
-                </h3>
-                <div className="space-y-1">
-                  {related.map((app) => (
-                    <RelatedCard key={app._id} app={app} />
-                  ))}
-                </div>
-                <Link
-                  href="/find-candidates"
-                  className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-center gap-1 text-xs text-lime-700 font-semibold"
-                >
-                  Browse all candidates <ChevronRight size={12} />
-                </Link>
+          {/* Education */}
+          {jobseeker?.education?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-4">
+                <GraduationCap size={14} className="text-lime-600" /> Education
+              </h2>
+              <div className="space-y-3">
+                {jobseeker.education.map((e, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start justify-between gap-4"
+                  >
+                    <div>
+                      <p className="font-bold text-gray-900 text-sm">
+                        {e.degree}
+                      </p>
+                      <p className="text-xs text-gray-500">{e.institution}</p>
+                    </div>
+                    <p className="text-xs text-gray-400 flex-shrink-0">
+                      {e.graduationYear ||
+                        (e.graduationDate
+                          ? new Date(e.graduationDate).getFullYear()
+                          : "")}
+                    </p>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
+
+          {/* Certifications */}
+          {jobseeker?.certifications?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-3">
+                <Award size={14} className="text-lime-600" /> Certifications
+              </h2>
+              <div className="space-y-2">
+                {jobseeker.certifications.map((c, i) => (
+                  <div key={i} className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-sm text-gray-900">
+                        {c.title}
+                      </p>
+                      {c.organization && (
+                        <p className="text-xs text-gray-500">
+                          {c.organization}
+                        </p>
+                      )}
+                    </div>
+                    {c.dateEarned && (
+                      <p className="text-xs text-gray-400 flex-shrink-0">
+                        {new Date(c.dateEarned).getFullYear()}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Projects */}
+          {jobseeker?.projects?.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2 mb-3">
+                <Globe size={14} className="text-lime-600" /> Projects
+              </h2>
+              <div className="space-y-3">
+                {jobseeker.projects.map((p, i) => (
+                  <div key={i}>
+                    {p.link ? (
+                      <a
+                        href={p.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-sm text-lime-700 hover:underline flex items-center gap-1"
+                      >
+                        <Globe size={12} />
+                        {p.title}
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-sm text-gray-900">
+                        {p.title}
+                      </p>
+                    )}
+                    {p.description && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {p.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── SIDEBAR ────────────────────────────────────────────────────── */}
+        <aside className="w-full lg:w-72 flex-shrink-0 space-y-5">
+          {/* Other applications */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <h3 className="font-bold text-gray-900 text-sm mb-3">
+              Other applications by {jobseeker?.fullName?.split(" ")[0]}
+            </h3>
+            {relatedApplications.length ? (
+              <div className="space-y-3">
+                {relatedApplications.map((app) => (
+                  <Link
+                    key={app._id}
+                    href={`/find-candidates/${app._id}`}
+                    className="block p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-200 transition"
+                  >
+                    <p className="font-semibold text-sm text-gray-900">
+                      {app.roleTitle}
+                    </p>
+                    <p className="text-xs text-gray-400">{app.roleType}</p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No other applications.</p>
             )}
           </div>
-        </div>
+
+          {/* Resume */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <h3 className="font-bold text-gray-900 text-sm mb-2">Resume</h3>
+            <p className="text-xs text-gray-500">
+              {candidate.resumeAvailable
+                ? "Resume available — contact the candidate directly to request it."
+                : "No resume uploaded."}
+            </p>
+          </div>
+        </aside>
       </div>
-    </div>
+
+      {/* Interview modal */}
+      {showInterview && (
+        <InterviewModal
+          applicationId={id}
+          candidateName={jobseeker?.fullName}
+          onClose={() => setShowInterview(false)}
+          onSuccess={() => {
+            setShowInterview(false);
+            notify(
+              "Interview scheduled! The candidate will see it on their dashboard.",
+            );
+          }}
+        />
+      )}
+    </main>
   );
 }

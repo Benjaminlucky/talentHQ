@@ -21,7 +21,9 @@ export default function Sidebar({ open, setOpen }) {
   const navItems = {
     jobseeker: [
       { href: "/dashboard/jobseeker", label: "Overview" },
-      { href: "/dashboard/jobseeker/applications", label: "Applications" },
+      { href: "/dashboard/jobseeker/browse-jobs", label: "Browse Jobs" },
+      { href: "/dashboard/jobseeker/applications", label: "My Applications" },
+      { href: "/dashboard/jobseeker/interviews", label: "Interview Invites" },
       { href: "/dashboard/jobseeker/profile", label: "My Profile" },
       { href: "/dashboard/jobseeker/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
@@ -29,15 +31,18 @@ export default function Sidebar({ open, setOpen }) {
     handyman: [
       { href: "/dashboard/handyman", label: "Overview" },
       { href: "/dashboard/handyman/jobs", label: "Browse Jobs" },
+      { href: "/dashboard/handyman/interviews", label: "Interview Invites" },
       { href: "/dashboard/handyman/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
     employer: [
       { href: "/dashboard/employer", label: "Overview" },
+      { href: "/dashboard/employer/candidates", label: "Browse Candidates" },
       {
         href: "/dashboard/employer/applications",
         label: "Applications Pipeline",
       },
+      { href: "/dashboard/employer/interviews", label: "Interviews" },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
       { href: "/dashboard/employer/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },

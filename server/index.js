@@ -27,6 +27,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
 
 const app = express();
 
@@ -136,6 +137,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/profile", jobseekerApplicationRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/interviews", interviewRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
