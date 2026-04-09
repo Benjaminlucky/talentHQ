@@ -177,8 +177,9 @@ export const getJobs = async (req, res) => {
       company = "",
     } = req.query;
 
-    // Public listing only shows open jobs by default
-    const query = { status: "open" };
+    // Public listing shows open jobs + legacy jobs that have no status field yet
+    // (status field was added later — existing jobs default to "open" behaviour)
+    const query = { $or: [{ status: "open" }, { status: { $exists: false } }] };
     if (search) query.title = { $regex: search, $options: "i" };
     if (location) query.location = { $regex: location, $options: "i" };
     if (category) query.category = { $regex: category, $options: "i" };
@@ -244,10 +245,10 @@ export const getEmployerPublicProfile = async (req, res) => {
     if (!employer)
       return res.status(404).json({ message: "Employer not found" });
 
-    // All open jobs by this employer
+    // All open jobs by this employer (+ legacy jobs with no status field)
     const jobs = await JobModel.find({
       company: req.params.employerId,
-      status: "open",
+      $or: [{ status: "open" }, { status: { $exists: false } }],
     })
       .select(
         "title type location salary experienceLevel category jobFor deadline createdAt status",
