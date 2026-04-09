@@ -59,7 +59,7 @@ const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? [
         process.env.FRONTEND_URL || "https://talenthq.netlify.app",
-        "https://talenthq-1.onrender.com",
+        "https://talenthq-vl3n.onrender.com",
       ]
     : ["http://localhost:3000", "http://localhost:5000"];
 
