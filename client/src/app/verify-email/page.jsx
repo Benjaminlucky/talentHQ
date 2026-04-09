@@ -1,26 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
-import { CheckCircle2, XCircle, Loader2, Mail } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
-export default function VerifyEmailPage() {
+// ── Inner component — uses useSearchParams so must live inside <Suspense> ────
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState("loading"); // loading | success | error
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!token) {
       setStatus("error");
       setMessage(
-        "No verification token found in the link. Please use the link sent to your email.",
+        "No verification token found. Please use the link sent to your email.",
       );
       return;
     }
-
     axios
       .get(`${process.env.NEXT_PUBLIC_API_BASE}/api/auth/verify-email`, {
         params: { token },
@@ -39,65 +39,78 @@ export default function VerifyEmailPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full text-center">
-        {status === "loading" && (
-          <>
-            <Loader2
-              size={40}
-              className="animate-spin text-lime-600 mx-auto mb-4"
-            />
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Verifying your email…
-            </h1>
-            <p className="text-sm text-gray-500">Please wait a moment.</p>
-          </>
-        )}
-
-        {status === "success" && (
-          <>
-            <div className="w-16 h-16 bg-lime-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={32} className="text-lime-600" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Email Verified!
-            </h1>
-            <p className="text-sm text-gray-500 mb-6">{message}</p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full text-center">
+      {status === "loading" && (
+        <>
+          <Loader2
+            size={40}
+            className="animate-spin text-lime-600 mx-auto mb-4"
+          />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            Verifying your email…
+          </h1>
+          <p className="text-sm text-gray-500">Please wait a moment.</p>
+        </>
+      )}
+      {status === "success" && (
+        <>
+          <div className="w-16 h-16 bg-lime-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 size={32} className="text-lime-600" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            Email Verified!
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">{message}</p>
+          <Link
+            href="/login"
+            className="inline-block px-6 py-3 bg-primary-500 text-white font-bold rounded-xl text-sm hover:bg-primary-600 transition"
+          >
+            Continue to Login
+          </Link>
+        </>
+      )}
+      {status === "error" && (
+        <>
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <XCircle size={32} className="text-red-500" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            Verification Failed
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">{message}</p>
+          <div className="flex flex-col gap-3">
             <Link
               href="/login"
               className="inline-block px-6 py-3 bg-primary-500 text-white font-bold rounded-xl text-sm hover:bg-primary-600 transition"
             >
-              Continue to Login
+              Go to Login
             </Link>
-          </>
-        )}
-
-        {status === "error" && (
-          <>
-            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <XCircle size={32} className="text-red-500" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Verification Failed
-            </h1>
-            <p className="text-sm text-gray-500 mb-6">{message}</p>
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/login"
-                className="inline-block px-6 py-3 bg-primary-500 text-white font-bold rounded-xl text-sm hover:bg-primary-600 transition"
-              >
-                Go to Login
+            <p className="text-xs text-gray-400">
+              Already logged in?{" "}
+              <Link href="/dashboard" className="text-lime-700 underline">
+                Resend from your dashboard
               </Link>
-              <p className="text-xs text-gray-400">
-                Already logged in?{" "}
-                <Link href="/dashboard" className="text-lime-700 underline">
-                  Resend from your dashboard
-                </Link>
-              </p>
-            </div>
-          </>
-        )}
-      </div>
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Page export — Suspense required by Next.js 15 for useSearchParams ─────────
+export default function VerifyEmailPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <Suspense
+        fallback={
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full flex items-center justify-center min-h-[200px]">
+            <Loader2 size={28} className="animate-spin text-lime-600" />
+          </div>
+        }
+      >
+        <VerifyEmailContent />
+      </Suspense>
     </div>
   );
 }

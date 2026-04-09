@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
@@ -9,7 +9,6 @@ import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
-// Google SVG icon
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48">
@@ -33,7 +32,6 @@ function GoogleIcon() {
   );
 }
 
-// LinkedIn SVG icon
 function LinkedInIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2">
@@ -42,19 +40,17 @@ function LinkedInIcon() {
   );
 }
 
-function OAuthButton({ provider, label, icon: Icon, onClick }) {
+function OAuthButton({ label, icon: Icon, onClick }) {
   const [loading, setLoading] = useState(false);
-  const handleClick = () => {
-    setLoading(true);
-    onClick();
-    // Reset after 8s in case the popup is closed without completing
-    setTimeout(() => setLoading(false), 8000);
-  };
   return (
     <button
       type="button"
-      onClick={handleClick}
       disabled={loading}
+      onClick={() => {
+        setLoading(true);
+        onClick();
+        setTimeout(() => setLoading(false), 8000);
+      }}
       className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-60 transition-all"
     >
       {loading ? (
@@ -67,7 +63,8 @@ function OAuthButton({ provider, label, icon: Icon, onClick }) {
   );
 }
 
-export default function LoginPage() {
+// ── Inner component — uses useSearchParams so must live inside <Suspense> ────
+function LoginForm() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,7 +74,6 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { setUser } = useAuth();
 
-  // Handle error redirected back from OAuth callback
   useEffect(() => {
     const error = searchParams.get("error");
     if (error) {
@@ -127,156 +123,159 @@ export default function LoginPage() {
     }
   };
 
-  // OAuth: redirect the full page to the backend — the backend handles the
-  // OAuth dance and redirects back to the dashboard on success.
   const handleOAuth = (provider) => {
     window.location.href = `${API}/api/auth/${provider}`;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/">
-            <span className="text-2xl font-black text-gray-900">
-              Talent<span className="text-lime-600">HQ</span>
-            </span>
-          </Link>
-          <h1 className="text-2xl font-black text-gray-900 mt-4 mb-1">
-            Welcome back
-          </h1>
-          <p className="text-sm text-gray-500">Log in to your account</p>
+    <div className="w-full max-w-md">
+      <div className="text-center mb-8">
+        <Link href="/">
+          <span className="text-2xl font-black text-gray-900">
+            Talent<span className="text-lime-600">HQ</span>
+          </span>
+        </Link>
+        <h1 className="text-2xl font-black text-gray-900 mt-4 mb-1">
+          Welcome back
+        </h1>
+        <p className="text-sm text-gray-500">Log in to your account</p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+        {message && (
+          <div
+            className={`mb-5 px-4 py-3 text-sm rounded-xl border ${messageType === "error" ? "bg-red-50 text-red-700 border-red-200" : "bg-lime-50 text-lime-700 border-lime-200"}`}
+          >
+            {message}
+          </div>
+        )}
+
+        <div className="space-y-3 mb-6">
+          <OAuthButton
+            label="Continue with Google"
+            icon={GoogleIcon}
+            onClick={() => handleOAuth("google")}
+          />
+          <OAuthButton
+            label="Continue with LinkedIn"
+            icon={LinkedInIcon}
+            onClick={() => handleOAuth("linkedin")}
+          />
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-          {message && (
-            <div
-              className={`mb-5 px-4 py-3 text-sm rounded-xl border ${
-                messageType === "error"
-                  ? "bg-red-50 text-red-700 border-red-200"
-                  : "bg-lime-50 text-lime-700 border-lime-200"
-              }`}
-            >
-              {message}
-            </div>
-          )}
-
-          {/* Social login buttons */}
-          <div className="space-y-3 mb-6">
-            <OAuthButton
-              provider="google"
-              label="Continue with Google"
-              icon={GoogleIcon}
-              onClick={() => handleOAuth("google")}
-            />
-            <OAuthButton
-              provider="linkedin"
-              label="Continue with LinkedIn"
-              icon={LinkedInIcon}
-              onClick={() => handleOAuth("linkedin")}
-            />
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
           </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-3 text-xs text-gray-400 font-medium">
+              or continue with email
+            </span>
+          </div>
+        </div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-3 text-xs text-gray-400 font-medium">
-                or continue with email
-              </span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Email address
+            </label>
+            <div className="relative">
+              <Mail
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+                className="w-full pl-9 pr-3 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
+              />
             </div>
           </div>
-
-          {/* Email/password form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Email address
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-gray-700">
+                Password
               </label>
-              <div className="relative">
-                <Mail
-                  size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  autoComplete="email"
-                  className="w-full pl-9 pr-3 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-gray-700">
-                  Password
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-lime-700 font-semibold hover:text-lime-800"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock
-                  size={15}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type={showPw ? "text" : "password"}
-                  name="password"
-                  placeholder="Your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  autoComplete="current-password"
-                  className="w-full pl-9 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-colors"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Logging in…
-                </>
-              ) : (
-                "Log in"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <p className="text-sm text-gray-500">
-              Don't have an account?{" "}
               <Link
-                href="/signup"
-                className="text-lime-700 font-semibold hover:text-lime-800"
+                href="/forgot-password"
+                className="text-xs text-lime-700 font-semibold hover:text-lime-800"
               >
-                Sign up free
+                Forgot password?
               </Link>
-            </p>
+            </div>
+            <div className="relative">
+              <Lock
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showPw ? "text" : "password"}
+                name="password"
+                placeholder="Your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="current-password"
+                className="w-full pl-9 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
           </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-colors"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Logging in…
+              </>
+            ) : (
+              "Log in"
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+          <p className="text-sm text-gray-500">
+            Don't have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-lime-700 font-semibold hover:text-lime-800"
+            >
+              Sign up free
+            </Link>
+          </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Page export — Suspense required by Next.js 15 for useSearchParams ─────────
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <Suspense
+        fallback={
+          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex items-center justify-center min-h-[400px]">
+            <Loader2 size={28} className="animate-spin text-lime-600" />
+          </div>
+        }
+      >
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

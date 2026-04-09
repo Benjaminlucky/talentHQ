@@ -50,8 +50,12 @@ app.use(passportMiddleware.initialize());
 app.use(passportMiddleware.session());
 
 // Ensure upload folders exist
-const resumePath = "./uploads/resumes";
-if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
+const __dirname = path.resolve();
+const resumePath = path.join(__dirname, "uploads/resumes");
+
+if (!fs.existsSync(resumePath)) {
+  fs.mkdirSync(resumePath, { recursive: true });
+}
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins =
@@ -187,12 +191,8 @@ mongoose
       await db
         .collection("jobs")
         .createIndex({ createdAt: -1 }, { background: true });
-      await db
-        .collection("jobs")
-        .createIndex(
-          { title: "text", description: "text" },
-          { background: true },
-        );
+      // Text index omitted — MongoDB already has title+description+skills text index.
+      // Only one text index allowed per collection; existing one is better.
       await db
         .collection("applications")
         .createIndex({ jobseeker: 1 }, { background: true });

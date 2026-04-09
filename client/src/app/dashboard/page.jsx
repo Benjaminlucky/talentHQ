@@ -1,4 +1,3 @@
-// src/app/dashboard/page.js
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -10,29 +9,27 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (loading) return;
-
     if (!user) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
-
-    switch (user.role) {
-      case "jobseeker":
-        router.push("/dashboard/jobseeker");
-        break;
-      case "handyman":
-        router.push("/dashboard/handyman");
-        break;
-      case "employer":
-        router.push("/dashboard/employer");
-        break;
-      case "admin":
-        router.push("/dashboard/admin");
-        break;
-      default:
-        router.push("/login");
-    }
+    const routes = {
+      jobseeker: "/dashboard/jobseeker",
+      handyman: "/dashboard/handyman",
+      employer: "/dashboard/employer",
+      admin: "/dashboard/admin",
+    };
+    router.replace(routes[user.role] || "/login");
   }, [user, loading, router]);
 
-  return <p>Redirecting to your dashboard...</p>;
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-gray-500 font-medium">
+          Loading your dashboard…
+        </p>
+      </div>
+    </div>
+  );
 }
