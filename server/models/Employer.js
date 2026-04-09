@@ -38,6 +38,10 @@ const employerSchema = new mongoose.Schema(
     contactPersonName: String,
     contactPersonDesignation: String,
     logo: String,
+
+    // ── Reviews (cached aggregates — updated by reviewController.syncRatingCache) ──
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

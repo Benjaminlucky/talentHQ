@@ -25,6 +25,7 @@ import profileRoutes from "./routes/profileRoutes.js";
 import jobseekerApplicationRoutes from "./routes/JobseekerApplicationsRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 
 const app = express();
 
@@ -50,12 +51,8 @@ app.use(passportMiddleware.initialize());
 app.use(passportMiddleware.session());
 
 // Ensure upload folders exist
-const __dirname = path.resolve();
-const resumePath = path.join(__dirname, "uploads/resumes");
-
-if (!fs.existsSync(resumePath)) {
-  fs.mkdirSync(resumePath, { recursive: true });
-}
+const resumePath = "./uploads/resumes";
+if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins =
@@ -126,6 +123,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/profile", jobseekerApplicationRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

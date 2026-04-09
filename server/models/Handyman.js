@@ -35,6 +35,10 @@ const handymanSchema = new mongoose.Schema(
     yearsExperience: { type: Number, default: 0 },
     certifications: String,
     bio: String,
+
+    // ── Reviews (cached aggregates) ────────────────────────────────────────────
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
