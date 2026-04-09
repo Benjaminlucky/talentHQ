@@ -35,7 +35,7 @@ if (missingLinkedIn.length > 0) {
 const BACKEND =
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://talenthq-1.onrender.com"
+    ? "https://talenthq-vl3n.onrender.com"
     : "http://localhost:5000");
 
 // ── Helper: find or create a user from an OAuth profile ───────────────────────
