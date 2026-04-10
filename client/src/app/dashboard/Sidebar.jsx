@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 import {
   LogOut,
   User,
@@ -155,12 +156,15 @@ export default function Sidebar({ open, setOpen }) {
                 <span className="text-lg font-black">
                   Talent<span className="text-lime-600">HQ</span>
                 </span>
-                <button
-                  className="p-2 rounded hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="h-5 w-5 text-gray-600" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <NotificationBell />
+                  <button
+                    className="p-2 rounded hover:bg-gray-100"
+                    onClick={() => setOpen(false)}
+                  >
+                    <X className="h-5 w-5 text-gray-600" />
+                  </button>
+                </div>
               </div>
               <nav className="space-y-1">
                 {user?.role &&
@@ -181,11 +185,14 @@ export default function Sidebar({ open, setOpen }) {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r shadow-sm p-4 justify-between min-h-screen">
         <div>
-          <Link href="/" className="block mb-6">
-            <span className="text-lg font-black">
-              Talent<span className="text-lime-600">HQ</span>
-            </span>
-          </Link>
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/">
+              <span className="text-lg font-black">
+                Talent<span className="text-lime-600">HQ</span>
+              </span>
+            </Link>
+            <NotificationBell />
+          </div>
           <nav className="space-y-1">
             {user?.role &&
               navItems[user.role]?.map((item) => (

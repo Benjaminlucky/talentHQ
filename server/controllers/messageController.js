@@ -3,6 +3,10 @@ import { Conversation, Message } from "../models/Message.js";
 import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
+import {
+  createNotification,
+  roleToModel,
+} from "../utils/notificationHelper.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MODEL_MAP = {
@@ -26,7 +30,6 @@ async function getParticipantInfo(userId, role) {
 }
 
 // ── GET /api/messages/conversations ──────────────────────────────────────────
-// Returns all conversations for the authenticated user, sorted by latest message
 export const getConversations = async (req, res) => {
   try {
     const convos = await Conversation.find({
@@ -35,8 +38,6 @@ export const getConversations = async (req, res) => {
       .sort({ lastMessageAt: -1 })
       .lean();
 
-    // Annotate each conversation with the OTHER participant's info
-    // and the unread count for the current user
     const annotated = convos.map((c) => {
       const myIndex = c.participants.findIndex(
         (p) => p.userId.toString() === req.user.id.toString(),
@@ -61,45 +62,34 @@ export const getConversations = async (req, res) => {
 };
 
 // ── POST /api/messages/conversations ─────────────────────────────────────────
-// Start or retrieve a conversation with another user
 export const startConversation = async (req, res) => {
   try {
     const { recipientId, recipientRole } = req.body;
-
     if (!recipientId || !recipientRole) {
       return res
         .status(400)
         .json({ message: "recipientId and recipientRole are required" });
     }
-
     if (req.user.id.toString() === recipientId.toString()) {
       return res.status(400).json({ message: "You cannot message yourself" });
     }
 
-    // Check if conversation already exists
     const existing = await Conversation.findOne({
       "participants.userId": { $all: [req.user.id, recipientId] },
     });
+    if (existing) return res.json({ conversation: existing, isNew: false });
 
-    if (existing) {
-      return res.json({ conversation: existing, isNew: false });
-    }
-
-    // Build participant objects
     const [me, them] = await Promise.all([
       getParticipantInfo(req.user.id, req.user.role),
       getParticipantInfo(recipientId, recipientRole),
     ]);
-
-    if (!me || !them) {
+    if (!me || !them)
       return res.status(404).json({ message: "One or both users not found" });
-    }
 
     const convo = await Conversation.create({
       participants: [me, them],
       unreadCount: [0, 0],
     });
-
     res.status(201).json({ conversation: convo, isNew: true });
   } catch (err) {
     console.error("❌ startConversation:", err);
@@ -108,33 +98,28 @@ export const startConversation = async (req, res) => {
 };
 
 // ── GET /api/messages/:conversationId ─────────────────────────────────────────
-// Get messages for a conversation (paginated, oldest first)
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { page = 1, limit = 50 } = req.query;
 
-    // Verify user is a participant
     const convo = await Conversation.findOne({
       _id: conversationId,
       "participants.userId": req.user.id,
     });
-
-    if (!convo) {
+    if (!convo)
       return res
         .status(403)
         .json({ message: "Conversation not found or access denied" });
-    }
 
     const messages = await Message.find({ conversationId })
-      .sort({ createdAt: 1 }) // oldest first for chat display
+      .sort({ createdAt: 1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .lean();
 
     const total = await Message.countDocuments({ conversationId });
 
-    // Mark messages as read for this user
     const myIndex = convo.participants.findIndex(
       (p) => p.userId.toString() === req.user.id.toString(),
     );
@@ -143,7 +128,6 @@ export const getMessages = async (req, res) => {
       unread[myIndex] = 0;
       await convo.updateOne({ unreadCount: unread });
     }
-
     await Message.updateMany(
       { conversationId, senderId: { $ne: req.user.id }, read: false },
       { read: true },
@@ -157,39 +141,32 @@ export const getMessages = async (req, res) => {
 };
 
 // ── POST /api/messages/:conversationId ────────────────────────────────────────
-// Send a message in a conversation
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
     const { text } = req.body;
 
-    if (!text?.trim()) {
+    if (!text?.trim())
       return res.status(400).json({ message: "Message text is required" });
-    }
-    if (text.trim().length > 2000) {
+    if (text.trim().length > 2000)
       return res
         .status(400)
         .json({ message: "Message too long (max 2000 chars)" });
-    }
 
-    // Verify participant
     const convo = await Conversation.findOne({
       _id: conversationId,
       "participants.userId": req.user.id,
     });
-
-    if (!convo) {
+    if (!convo)
       return res
         .status(403)
         .json({ message: "Conversation not found or access denied" });
-    }
 
     const { modelName } = MODEL_MAP[req.user.role] || {};
-    if (!modelName) {
+    if (!modelName)
       return res
         .status(400)
         .json({ message: "Invalid user role for messaging" });
-    }
 
     const message = await Message.create({
       conversationId,
@@ -198,7 +175,6 @@ export const sendMessage = async (req, res) => {
       text: text.trim(),
     });
 
-    // Update conversation preview + increment other participant's unread count
     const myIndex = convo.participants.findIndex(
       (p) => p.userId.toString() === req.user.id.toString(),
     );
@@ -212,6 +188,29 @@ export const sendMessage = async (req, res) => {
       unreadCount: unread,
     });
 
+    // ── Notify the OTHER participant ─────────────────────────────────────────
+    const otherParticipant = convo.participants[otherIndex];
+    const senderParticipant = convo.participants[myIndex];
+    if (otherParticipant?.userId) {
+      const otherModel = roleToModel(otherParticipant.role);
+      const dashRoute =
+        otherParticipant.role === "employer"
+          ? "/dashboard/employer/messages"
+          : otherParticipant.role === "handyman"
+            ? "/dashboard/handyman/messages"
+            : "/dashboard/jobseeker/messages";
+
+      createNotification({
+        recipientId: otherParticipant.userId,
+        recipientModel: otherModel,
+        type: "new_message",
+        title: `New message from ${senderParticipant?.fullName || "someone"}`,
+        message:
+          text.trim().slice(0, 100) + (text.trim().length > 100 ? "…" : ""),
+        link: dashRoute,
+      });
+    }
+
     res.status(201).json({ message });
   } catch (err) {
     console.error("❌ sendMessage:", err);
@@ -220,13 +219,11 @@ export const sendMessage = async (req, res) => {
 };
 
 // ── GET /api/messages/unread-count ───────────────────────────────────────────
-// Total unread messages across all conversations (for badge in navbar/sidebar)
 export const getUnreadCount = async (req, res) => {
   try {
     const convos = await Conversation.find({
       "participants.userId": req.user.id,
     }).lean();
-
     let total = 0;
     for (const c of convos) {
       const myIndex = c.participants.findIndex(
@@ -234,7 +231,6 @@ export const getUnreadCount = async (req, res) => {
       );
       total += c.unreadCount?.[myIndex] || 0;
     }
-
     res.json({ unread: total });
   } catch (err) {
     console.error("❌ getUnreadCount:", err);
@@ -243,7 +239,6 @@ export const getUnreadCount = async (req, res) => {
 };
 
 // ── DELETE /api/messages/conversations/:conversationId ────────────────────────
-// Delete a conversation and all its messages (for the current user only — soft delete via hiding)
 export const deleteConversation = async (req, res) => {
   try {
     const convo = await Conversation.findOne({
@@ -252,10 +247,8 @@ export const deleteConversation = async (req, res) => {
     });
     if (!convo)
       return res.status(404).json({ message: "Conversation not found" });
-
     await Message.deleteMany({ conversationId: convo._id });
     await convo.deleteOne();
-
     res.json({ message: "Conversation deleted" });
   } catch (err) {
     console.error("❌ deleteConversation:", err);

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/findjob", label: "Find Jobs" },
   { href: "/find-candidates", label: "Find Talent" },
+  { href: "/companies", label: "Companies" },
   { href: "/postjob", label: "Post Job" },
   { href: "/reach-us", label: "Contact" },
 ];

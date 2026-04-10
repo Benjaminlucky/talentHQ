@@ -1,9 +1,16 @@
 // controllers/interviewController.js
 import Interview from "../models/Interview.js";
 import JobseekerApplication from "../models/JobseekerApplication.js";
+import Employer from "../models/Employer.js";
+import { createNotification } from "../utils/notificationHelper.js";
+
+const FORMAT_LABEL = {
+  video: "Video Call",
+  phone: "Phone Call",
+  "in-person": "In Person",
+};
 
 // ── POST /api/interviews ───────────────────────────────────────────────────────
-// Employer schedules an interview for an application
 export const scheduleInterview = async (req, res) => {
   try {
     if (req.user.role !== "employer" && req.user.role !== "superadmin") {
@@ -30,16 +37,12 @@ export const scheduleInterview = async (req, res) => {
       });
     }
 
-    // Verify the application exists and belongs to this employer's context
     const application = await JobseekerApplication.findById(applicationId);
-    if (!application) {
+    if (!application)
       return res.status(404).json({ message: "Application not found" });
-    }
-
-    // Prevent scheduling if application is rejected
     if (application.status === "rejected") {
       return res.status(400).json({
-        message: "Cannot schedule an interview for a rejected application",
+        message: "Cannot schedule interview for a rejected application",
       });
     }
 
@@ -57,12 +60,32 @@ export const scheduleInterview = async (req, res) => {
       notes: notes || "",
     });
 
-    // Auto-advance application to "reviewed" if still pending
     if (application.status === "pending") {
       await JobseekerApplication.findByIdAndUpdate(applicationId, {
         status: "reviewed",
       });
     }
+
+    // Notify the jobseeker about the interview invite
+    const employer = await Employer.findById(req.user.id)
+      .select("companyName fullName")
+      .lean();
+    const companyName =
+      employer?.companyName || employer?.fullName || "An employer";
+    const interviewDate = new Date(date).toLocaleDateString("en-NG", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+
+    createNotification({
+      recipientId: application.jobseeker,
+      recipientModel: "Jobnode",
+      type: "interview_scheduled",
+      title: "📅 Interview invitation",
+      message: `${companyName} has scheduled a ${FORMAT_LABEL[format] || format} interview with you on ${interviewDate} at ${time}. Please respond.`,
+      link: "/dashboard/jobseeker/interviews",
+    });
 
     res.status(201).json({ message: "Interview scheduled", interview });
   } catch (err) {
@@ -72,7 +95,6 @@ export const scheduleInterview = async (req, res) => {
 };
 
 // ── GET /api/interviews/employer ───────────────────────────────────────────────
-// Employer views all their scheduled interviews
 export const getEmployerInterviews = async (req, res) => {
   try {
     if (req.user.role !== "employer" && req.user.role !== "superadmin") {
@@ -102,10 +124,10 @@ export const getEmployerInterviews = async (req, res) => {
 };
 
 // ── GET /api/interviews/jobseeker ──────────────────────────────────────────────
-// Jobseeker views their interview invitations
 export const getJobseekerInterviews = async (req, res) => {
   try {
-    if (req.user.role !== "jobseeker") {
+    // Allow both jobseeker and handyman
+    if (req.user.role !== "jobseeker" && req.user.role !== "handyman") {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -123,7 +145,6 @@ export const getJobseekerInterviews = async (req, res) => {
 };
 
 // ── GET /api/interviews/application/:applicationId ─────────────────────────────
-// Get interviews for a specific application
 export const getInterviewsByApplication = async (req, res) => {
   try {
     const interviews = await Interview.find({
@@ -141,7 +162,6 @@ export const getInterviewsByApplication = async (req, res) => {
 };
 
 // ── PUT /api/interviews/:id ────────────────────────────────────────────────────
-// Employer updates interview details
 export const updateInterview = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id);
@@ -173,7 +193,7 @@ export const updateInterview = async (req, res) => {
     });
 
     if (req.body.status === "rescheduled" || req.body.date || req.body.time) {
-      interview.candidateResponse = "pending"; // reset acceptance on any reschedule
+      interview.candidateResponse = "pending";
     }
 
     await interview.save();
@@ -185,10 +205,12 @@ export const updateInterview = async (req, res) => {
 };
 
 // ── PATCH /api/interviews/:id/respond ─────────────────────────────────────────
-// Jobseeker accepts or declines an interview
 export const respondToInterview = async (req, res) => {
   try {
-    const interview = await Interview.findById(req.params.id);
+    const interview = await Interview.findById(req.params.id).populate(
+      "employerId",
+      "_id companyName fullName",
+    );
     if (!interview)
       return res.status(404).json({ message: "Interview not found" });
 
@@ -210,6 +232,18 @@ export const respondToInterview = async (req, res) => {
     if (response === "accepted") interview.status = "confirmed";
 
     await interview.save();
+
+    // Notify the employer about the candidate's response
+    const verb = response === "accepted" ? "accepted ✓" : "declined";
+    createNotification({
+      recipientId: interview.employerId._id,
+      recipientModel: "Employer",
+      type: "interview_responded",
+      title: `Interview ${response === "accepted" ? "accepted" : "declined"}`,
+      message: `A candidate has ${verb} the interview "${interview.title}".${note ? ` Their note: "${note}"` : ""}`,
+      link: "/dashboard/employer/interviews",
+    });
+
     res.json({ message: `Interview ${response}`, interview });
   } catch (err) {
     console.error("❌ respondToInterview:", err);

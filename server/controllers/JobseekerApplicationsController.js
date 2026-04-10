@@ -1,11 +1,13 @@
 // controllers/JobseekerApplicationsController.js
 import JobseekerApplication from "../models/JobseekerApplication.js";
 import Jobnode from "../models/Jobnode.js";
+import Employer from "../models/Employer.js";
 import Certification from "../models/Certification.js";
 import Education from "../models/Education.js";
 import Project from "../models/Project.js";
 import Skill from "../models/Skill.js";
 import Workexperience from "../models/Workexperience.js";
+import { createNotification } from "../utils/notificationHelper.js";
 
 // ── Jobseeker creates a new application ───────────────────────────────────────
 export const createApplication = async (req, res) => {
@@ -17,6 +19,7 @@ export const createApplication = async (req, res) => {
       coverLetter,
       portfolioLinks,
     } = req.body;
+
     const newApplication = await JobseekerApplication.create({
       jobseeker: req.user.id,
       roleTitle,
@@ -26,6 +29,20 @@ export const createApplication = async (req, res) => {
       portfolioLinks,
       resume: req.body.resume || "",
     });
+
+    // Notify jobseeker: application submitted confirmation
+    const jobseeker = await Jobnode.findById(req.user.id)
+      .select("fullName")
+      .lean();
+    createNotification({
+      recipientId: req.user.id,
+      recipientModel: "Jobnode",
+      type: "application_received",
+      title: "Application submitted ✓",
+      message: `Your application for "${roleTitle}" has been submitted. We'll notify you when there's an update.`,
+      link: "/dashboard/jobseeker/applications",
+    });
+
     res.status(201).json(newApplication);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -57,7 +74,6 @@ export const getAllApplications = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Client-side search filter (keeps it simple, avoids text index dependency)
     if (search) {
       const s = search.toLowerCase();
       apps = apps.filter(
@@ -163,8 +179,6 @@ export const getApplicationById = async (req, res) => {
 };
 
 // ── Employer updates application status + optional message ────────────────────
-// Route: PUT /api/profile/applications/:id/status
-// Protected: employer or superadmin only
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { status, employerMessage } = req.body;
@@ -188,10 +202,39 @@ export const updateApplicationStatus = async (req, res) => {
 
     if (!app) return res.status(404).json({ error: "Application not found" });
 
-    res.json({
-      message: `Application marked as ${status}`,
-      application: app,
-    });
+    // Notify the jobseeker about the status change
+    const statusMessages = {
+      accepted: {
+        title: "🎉 Application accepted!",
+        message: `Congratulations! Your application for "${app.roleTitle}" has been accepted.${employerMessage ? ` Message: "${employerMessage}"` : ""}`,
+      },
+      rejected: {
+        title: "Application update",
+        message: `Your application for "${app.roleTitle}" was not selected this time.${employerMessage ? ` Note: "${employerMessage}"` : " Keep applying!"}`,
+      },
+      reviewed: {
+        title: "Application under review",
+        message: `Your application for "${app.roleTitle}" is being reviewed by the employer.`,
+      },
+      pending: {
+        title: "Application status updated",
+        message: `Your application for "${app.roleTitle}" has been updated.`,
+      },
+    };
+
+    const notifContent = statusMessages[status];
+    if (notifContent && app.jobseeker?._id) {
+      createNotification({
+        recipientId: app.jobseeker._id,
+        recipientModel: "Jobnode",
+        type: "application_status",
+        title: notifContent.title,
+        message: notifContent.message,
+        link: "/dashboard/jobseeker/applications",
+      });
+    }
+
+    res.json({ message: `Application marked as ${status}`, application: app });
   } catch (err) {
     console.error("❌ updateApplicationStatus:", err);
     res.status(500).json({ error: err.message });
@@ -213,7 +256,7 @@ export const deleteApplication = async (req, res) => {
   }
 };
 
-// ── Resume download endpoint ───────────────────────────────────────────────────
+// ── Resume download ────────────────────────────────────────────────────────────
 export const getResume = async (req, res) => {
   try {
     const app = await JobseekerApplication.findById(req.params.id).populate(

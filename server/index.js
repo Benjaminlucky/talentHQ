@@ -26,6 +26,10 @@ import jobseekerApplicationRoutes from "./routes/JobseekerApplicationsRoutes.js"
 import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
+import handymanRoutes from "./routes/handymanRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
@@ -135,6 +139,10 @@ app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/profile", jobseekerApplicationRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/interviews", interviewRoutes);
+app.use("/api/handymen", handymanRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
