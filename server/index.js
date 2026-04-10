@@ -28,7 +28,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import interviewRoutes from "./routes/interviewroutes.js";
-import handymanRoutes from "./routes/handymanRoutes.js";
+import handymanRoutes from "./routes/Handymanroutes.js";
 import notificationRoutes from "./routes/notificationoutes.js";
 
 const app = express();
