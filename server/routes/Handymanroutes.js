@@ -1,9 +1,9 @@
 // routes/handymanRoutes.js
 import express from "express";
 import {
-  getHandymen,
   getHandymanProfile,
-} from "../controllers/handymancontroller.js";
+  getHandymen,
+} from "../controllers/Handymancontroller.js";
 
 const router = express.Router();
 
