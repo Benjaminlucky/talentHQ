@@ -1,6 +1,12 @@
-// src/context/AuthContext.js
+// src/context/AuthContext.jsx
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import axios from "axios";
 
 const AuthContext = createContext();
@@ -9,43 +15,48 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch current user on mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/me`,
-          { withCredentials: true }
-        );
-        console.log("✅ /me response:", res.data);
-        setUser(res.data.user || null);
-      } catch (err) {
-        console.error("❌ /me error:", err.response?.data || err.message);
-        setUser(null);
-      } finally {
-        setLoading(false);
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/me`,
+        { withCredentials: true },
+      );
+      setUser(res.data.user || null);
+    } catch (err) {
+      // 401 = not logged in (normal). 403 = forbidden. Neither is an error.
+      // Only warn on genuinely unexpected failures (network down, 500, etc.)
+      const status = err.response?.status;
+      if (status !== 401 && status !== 403) {
+        console.warn("Auth check failed:", err.message);
       }
-    };
-    fetchUser();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Logout and clear user
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
   const logout = async () => {
     try {
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/logout`,
         {},
-        { withCredentials: true }
+        { withCredentials: true },
       );
-    } catch (err) {
-      console.error("❌ Logout error:", err.response?.data || err.message);
+    } catch {
+      // Logout errors are non-fatal — user state is cleared regardless
     } finally {
       setUser(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout, loading }}>
+    <AuthContext.Provider
+      value={{ user, setUser, logout, loading, refetchUser: fetchUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

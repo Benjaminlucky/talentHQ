@@ -27,7 +27,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <p className="text-xs text-gray-600">© 2025 TalentHQ Nigeria</p>
+        <p className="text-xs text-gray-600">© 2026 TalentHQ Nigeria</p>
       </div>
     </footer>
   );

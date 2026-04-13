@@ -1,523 +1,542 @@
 "use client";
 
-import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
 import { useState } from "react";
-import { ImSpinner8 } from "react-icons/im";
-import { ToastContainer, toast } from "react-toastify";
+import { useRouter } from "next/navigation";
+import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Briefcase,
+  Lock,
+  Eye,
+  EyeOff,
+  Github,
+  Linkedin,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Plus,
+  X,
+} from "lucide-react";
 
-const nigeriaStatesWithLGAs = {
-  Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],
-  Adamawa: ["Demsa", "Fufore", "Ganye", "Girei", "Gombi"],
-  Lagos: [
-    "Agege",
-    "Ajeromi-Ifelodun",
-    "Alimosho",
-    "Amuwo-Odofin",
-    "Apapa",
-    "Badagry",
-    "Epe",
-    "Eti-Osa",
-    "Ibeju-Lekki",
-    "Ifako-Ijaiye",
-    "Ikeja",
-    "Ikorodu",
-    "Kosofe",
-    "Lagos Island",
-    "Lagos Mainland",
-    "Mushin",
-    "Ojo",
-    "Oshodi-Isolo",
-    "Somolu",
-    "Surulere",
-    "Bariga",
-  ],
-  FCT: ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal"],
-};
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function Page() {
-  const authStatus = useSuperAdminAuthRedirect();
+const JOB_CATEGORIES = [
+  "Technology",
+  "Finance",
+  "Marketing",
+  "Design",
+  "Sales",
+  "Healthcare",
+  "Engineering",
+  "Education",
+  "Administration",
+  "Accounting",
+  "Legal",
+  "Operations",
+  "Human Resources",
+  "Other",
+];
+const EXP_LEVELS = [
+  "Entry Level",
+  "Junior",
+  "Mid Level",
+  "Senior",
+  "Expert / Lead",
+];
+const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
 
-  const [formData, setFormData] = useState({
+const INP =
+  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
+const LBL =
+  "block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide";
+
+function Section({ title, icon: Icon, children, accent = "primary" }) {
+  const colors = {
+    primary: "bg-primary-50 text-primary-600",
+    blue: "bg-blue-50 text-blue-600",
+  };
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+      <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+        <div
+          className={`w-8 h-8 rounded-xl flex items-center justify-center ${colors[accent]}`}
+        >
+          <Icon size={15} />
+        </div>
+        <h3 className="font-black text-gray-900 text-sm">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PasswordStrength({ password }) {
+  const c = {
+    l: password.length >= 8,
+    u: /[A-Z]/.test(password),
+    lo: /[a-z]/.test(password),
+    n: /[0-9]/.test(password),
+    s: /[!@#$%^&*]/.test(password),
+  };
+  const score = Object.values(c).filter(Boolean).length;
+  const clrs = [
+    "",
+    "bg-red-500",
+    "bg-red-400",
+    "bg-amber-400",
+    "bg-lime-500",
+    "bg-green-500",
+  ];
+  return (
+    <div className="mt-2">
+      <div className="flex gap-1 mb-1">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className={`flex-1 h-1.5 rounded-full ${i <= score ? clrs[score] : "bg-gray-200"} transition-all`}
+          />
+        ))}
+        <span className="text-[10px] font-bold ml-1 text-gray-400">
+          {["", "Weak", "Weak", "Fair", "Good", "Strong"][score]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function AddJobseekerPage() {
+  const isAuthorized = useSuperAdminAuthRedirect();
+  const router = useRouter();
+
+  const [form, setForm] = useState({
     fullName: "",
     email: "",
     phone: "",
     whatsapp: "",
     password: "",
     confirmPassword: "",
+    headline: "",
+    tagline: "",
     state: "",
-    lga: "",
-    location: "",
+    city: "",
     jobCategory: "",
     experienceLevel: "",
-    currentStatus: "",
     linkedin: "",
-    portfolio: "",
-    jobType: [],
+    github: "",
     expectedSalary: "",
-    skills: "",
-    education: "",
     workSummary: "",
-    resume: null,
-    agreeToTerms: false,
   });
-
-  const { password } = formData;
-
-  // Password Requirements
-  const requirements = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-  };
-
-  const allPassed = Object.values(requirements).every(Boolean);
-
-  // Password Strength
-  const strengthLevel = Object.values(requirements).filter(Boolean).length;
-  const strengthLabel =
-    strengthLevel <= 2
-      ? "Weak"
-      : strengthLevel === 3 || strengthLevel === 4
-      ? "Fair"
-      : "Strong";
-
-  const strengthColor =
-    strengthLevel <= 2
-      ? "bg-red-500"
-      : strengthLevel === 3 || strengthLevel === 4
-      ? "bg-yellow-500"
-      : "bg-green-500";
-
-  const [resumeFileName, setResumeFileName] = useState("");
+  const [preferredTypes, setPreferredTypes] = useState([]);
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    if (type === "file") {
-      setFormData({ ...formData, [name]: files[0] });
-    } else if (type === "checkbox") {
-      setFormData({ ...formData, [name]: checked });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+  const [toast, setToast] = useState(null);
 
-    if (name === "state") {
-      setFormData((prev) => ({ ...prev, lga: "" }));
-    }
+  const notify = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
   };
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const handleJobTypeChange = (e) => {
-    const { value, checked } = e.target;
-    let newJobType = [...formData.jobType];
-    if (checked) {
-      newJobType.push(value);
-    } else {
-      newJobType = newJobType.filter((item) => item !== value);
-    }
-    setFormData({ ...formData, jobType: newJobType });
-  };
+  const toggleType = (t) =>
+    setPreferredTypes((p) =>
+      p.includes(t) ? p.filter((x) => x !== t) : [...p, t],
+    );
+
+  const passValid = [
+    form.password.length >= 8,
+    /[A-Z]/.test(form.password),
+    /[a-z]/.test(form.password),
+    /[0-9]/.test(form.password),
+  ].every(Boolean);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    const formPayload = new FormData();
-    for (const key in formData) {
-      if (key === "jobType") {
-        formData[key].forEach((type) => formPayload.append("jobType[]", type));
-      } else {
-        formPayload.append(key, formData[key]);
-      }
+    if (!passValid) {
+      notify("Password is too weak", "error");
+      return;
     }
-
+    if (form.password !== form.confirmPassword) {
+      notify("Passwords do not match", "error");
+      return;
+    }
+    setLoading(true);
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/jobseekers/signup",
-        {
-          method: "POST",
-          body: formPayload,
-        }
-      );
-
-      const result = await response.json();
-      setLoading(false);
-
-      if (response.ok) {
-        toast.success("Signup successful! Redirecting to dashboard...");
-        setTimeout(() => {
-          window.location.href = "/dashboard-admin"; // redirect to login page
-        }, 3000);
-      } else {
-        toast.error(result.message || "Signup failed.");
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      toast.error("An error occurred. Please try again later.");
+      const payload = {
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        whatsapp: form.whatsapp,
+        role: "jobseeker",
+        headline: form.headline,
+        tagline: form.tagline,
+        location: { city: form.city, country: "Nigeria", area: form.state },
+        linkedin: form.linkedin,
+        github: form.github,
+      };
+      const res = await fetch(`${API}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      notify("Jobseeker created successfully!");
+      setTimeout(() => router.push("/dashboard-admin"), 1500);
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
       setLoading(false);
     }
   };
 
-  const states = Object.keys(nigeriaStatesWithLGAs);
-  const lgas = formData.state ? nigeriaStatesWithLGAs[formData.state] : [];
-
-  const jobCategories = [
-    "Tech",
-    "Marketing",
-    "Finance",
-    "Healthcare",
-    "Legal",
-    "Accounting",
-    "Education",
-    "Engineering",
-    "Creative/Design",
-    "Sales",
-    "Administrative",
-    "Others",
-  ];
-
-  if (authStatus !== "authorized") {
+  if (!isAuthorized)
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500 text-lg">Checking authorization...</p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen flex justify-center items-start py-12 px-4">
-      <div className="max-w-3xl w-full rounded-lg p-2">
-        <h2 className="text-3xl font-bold text-center text-lime-600 mb-12">
-          Add Jobseeker
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name & Contact */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email Address"
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="tel"
-              name="phone"
-              placeholder="Phone Number"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="tel"
-              name="whatsapp"
-              placeholder="WhatsApp Number"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-          </div>
+    <div className="max-w-3xl space-y-6">
+      {toast && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold ${toast.type === "error" ? "bg-red-600 text-white" : "bg-lime-600 text-white"}`}
+        >
+          {toast.type === "error" ? (
+            <AlertCircle size={16} />
+          ) : (
+            <CheckCircle2 size={16} />
+          )}
+          {toast.msg}
+        </div>
+      )}
 
-          {/* Passwords */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="password"
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-          </div>
+      <div>
+        <h1 className="text-2xl font-black text-gray-900">Add Jobseeker</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Create a new jobseeker / talent profile on the platform
+        </p>
+      </div>
 
-          {/* Password */}
-          <div>
-            {/* Strength Meter */}
-            {password && (
-              <div className="mt-2">
-                <div className="h-2 rounded bg-gray-200">
-                  <div
-                    className={`h-2 rounded transition-all duration-300 ${strengthColor}`}
-                    style={{ width: `${(strengthLevel / 5) * 100}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm mt-1 text-gray-600">
-                  Strength: {strengthLabel}
-                </p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Section title="Personal Information" icon={User}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Full Name *</label>
+              <input
+                value={form.fullName}
+                onChange={(e) => set("fullName", e.target.value)}
+                placeholder="e.g. Adaeze Nwosu"
+                className={INP}
+                required
+              />
+            </div>
+            <div>
+              <label className={LBL}>Email *</label>
+              <div className="relative">
+                <Mail
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="email@example.com"
+                  className={`${INP} pl-9`}
+                  required
+                />
               </div>
-            )}
-
-            {/* Password Checklist */}
-            <ul className="mt-3 flex gap-2 text-[12px] space-y-1">
-              <li
-                className={
-                  requirements.length ? "text-green-600" : "text-red-500"
-                }
-              >
-                {requirements.length ? "✔" : "✖"} At least 8 characters
-              </li>
-              <li
-                className={
-                  requirements.uppercase ? "text-green-600" : "text-red-500"
-                }
-              >
-                {requirements.uppercase ? "✔" : "✖"} One uppercase letter
-              </li>
-              <li
-                className={
-                  requirements.lowercase ? "text-green-600" : "text-red-500"
-                }
-              >
-                {requirements.lowercase ? "✔" : "✖"} One lowercase letter
-              </li>
-              <li
-                className={
-                  requirements.number ? "text-green-600" : "text-red-500"
-                }
-              >
-                {requirements.number ? "✔" : "✖"} One number
-              </li>
-              <li
-                className={
-                  requirements.specialChar ? "text-green-600" : "text-red-500"
-                }
-              >
-                {requirements.specialChar ? "✔" : "✖"} One special character
-              </li>
-            </ul>
+            </div>
+            <div>
+              <label className={LBL}>Phone</label>
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="080xxxxxxxx"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>WhatsApp</label>
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.whatsapp}
+                  onChange={(e) => set("whatsapp", e.target.value)}
+                  placeholder="080xxxxxxxx"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
           </div>
+        </Section>
 
-          {/* Location Selects */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-            >
-              <option value="">Select State</option>
-              {states.map((state) => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </select>
-
-            <select
-              name="lga"
-              value={formData.lga}
-              onChange={handleChange}
-              disabled={!formData.state}
-              required
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600 disabled:bg-gray-200"
-            >
-              <option value="">Select LGA</option>
-              {lgas.map((lga) => (
-                <option key={lga} value={lga}>
-                  {lga}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Career Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Section title="Professional Profile" icon={Briefcase} accent="blue">
+          <div>
+            <label className={LBL}>Professional Headline</label>
             <input
-              type="text"
-              name="location"
-              placeholder="City, Country"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-
-            <select
-              name="jobCategory"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Job Category</option>
-              {jobCategories.map((category) => (
-                <option key={category} value={category.toLowerCase()}>
-                  {category}
-                </option>
-              ))}
-            </select>
-
-            <select
-              name="experienceLevel"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-              required
-            >
-              <option value="">Experience Level</option>
-              <option value="entry">Entry</option>
-              <option value="mid">Mid</option>
-              <option value="senior">Senior</option>
-            </select>
-
-            <select
-              name="currentStatus"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-              required
-            >
-              <option value="">Current Status</option>
-              <option value="employed">Employed</option>
-              <option value="unemployed">Unemployed</option>
-              <option value="student">Student</option>
-            </select>
-          </div>
-
-          {/* Optional Links */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="url"
-              name="linkedin"
-              placeholder="LinkedIn Profile (optional)"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="url"
-              name="portfolio"
-              placeholder="Portfolio (optional)"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
+              value={form.headline}
+              onChange={(e) => set("headline", e.target.value)}
+              placeholder="e.g. Senior React Developer | 5 Years Experience"
+              className={INP}
             />
           </div>
-
-          {/* Job Type Multiple Checkbox */}
-          <fieldset className="space-y-2">
-            <legend className="font-semibold text-gray-700">
-              Preferred Job Type(s)
-            </legend>
-            <div className="flex flex-wrap gap-4">
+          <div>
+            <label className={LBL}>Tagline</label>
+            <input
+              value={form.tagline}
+              onChange={(e) => set("tagline", e.target.value)}
+              placeholder="e.g. Building products that matter"
+              className={INP}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Job Category *</label>
+              <select
+                value={form.jobCategory}
+                onChange={(e) => set("jobCategory", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select Category</option>
+                {JOB_CATEGORIES.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>Experience Level</label>
+              <select
+                value={form.experienceLevel}
+                onChange={(e) => set("experienceLevel", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+              >
+                <option value="">Select Level</option>
+                {EXP_LEVELS.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={LBL}>Preferred Job Types</label>
+            <div className="flex flex-wrap gap-2">
               {[
                 "Full-time",
                 "Part-time",
                 "Contract",
-                "Internship",
                 "Remote",
-              ].map((type) => (
-                <label
-                  key={type}
-                  className="inline-flex items-center space-x-2 cursor-pointer"
+                "Internship",
+              ].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleType(t)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${preferredTypes.includes(t) ? "bg-primary-500 text-white border-primary-500" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"}`}
                 >
-                  <input
-                    type="checkbox"
-                    name="jobType"
-                    value={type.toLowerCase()}
-                    checked={formData.jobType.includes(type.toLowerCase())}
-                    onChange={handleJobTypeChange}
-                    className="form-checkbox h-5 w-5 text-lime-600"
-                  />
-                  <span>{type}</span>
-                </label>
+                  {t}
+                </button>
               ))}
             </div>
-          </fieldset>
-
-          {/* More Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="expectedSalary"
-              placeholder="Expected Salary (₦ or $)"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="text"
-              name="skills"
-              placeholder="Key Skills (comma separated)"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <input
-              type="text"
-              name="education"
-              placeholder="Highest Education Level"
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            />
-            <textarea
-              name="workSummary"
-              placeholder="Brief Work Summary"
-              rows={4}
-              className="input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-              onChange={handleChange}
-            ></textarea>
           </div>
-          {/* Resume Upload */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>LinkedIn</label>
+              <div className="relative">
+                <Linkedin
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.linkedin}
+                  onChange={(e) => set("linkedin", e.target.value)}
+                  placeholder="https://linkedin.com/in/…"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>GitHub</label>
+              <div className="relative">
+                <Github
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.github}
+                  onChange={(e) => set("github", e.target.value)}
+                  placeholder="https://github.com/…"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Location" icon={MapPin}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>State</label>
+              <select
+                value={form.state}
+                onChange={(e) => set("state", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+              >
+                <option value="">Select State</option>
+                {NIGERIA_STATES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>City / Area</label>
+              <div className="relative">
+                <MapPin
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.city}
+                  onChange={(e) => set("city", e.target.value)}
+                  placeholder="e.g. Lekki"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Account Password" icon={Lock}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload Resume{" "}
-              <span className="text-gray-400 text-xs">(PDF, DOC)</span>
-            </label>
-            <input
-              name="resume"
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleChange}
-              className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-lime-50 file:text-lime-700
-                hover:file:bg-lime-100"
-            />
-            {resumeFileName && (
-              <p className="text-sm mt-1 text-lime-700 font-semibold">
-                Selected File: {resumeFileName}
+            <label className={LBL}>Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                placeholder="Create a strong password"
+                className={`${INP} pl-9 pr-10`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >
+                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            {form.password && <PasswordStrength password={form.password} />}
+          </div>
+          <div>
+            <label className={LBL}>Confirm Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="password"
+                value={form.confirmPassword}
+                onChange={(e) => set("confirmPassword", e.target.value)}
+                placeholder="Re-enter password"
+                className={`${INP} pl-9`}
+                required
+              />
+            </div>
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle size={10} />
+                Passwords do not match
               </p>
             )}
           </div>
+        </Section>
 
-          <label className="flex items-center">
-            <input
-              name="agreeToTerms"
-              type="checkbox"
-              checked={formData.agreeToTerms}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            I agree to the terms and conditions
-          </label>
-
+        <div className="flex items-center gap-4">
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white p-3 rounded font-semibold hover:bg-lime-700 flex items-center justify-center gap-2"
             disabled={loading}
+            className="flex items-center gap-2.5 px-8 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-black rounded-2xl text-sm transition shadow-lg shadow-primary-500/20"
           >
             {loading ? (
               <>
-                <ImSpinner8 className="animate-spin text-white text-xl" />
-                Registering Jobseeker...
+                <Loader2 size={16} className="animate-spin" />
+                Creating…
               </>
             ) : (
-              "Register Jobseeker"
+              <>
+                <User size={16} />
+                Create Jobseeker
+              </>
             )}
           </button>
-        </form>
-      </div>
-      <ToastContainer position="top-center" autoClose={3000} hideProgressBar />
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard-admin")}
+            className="px-6 py-3.5 border border-gray-200 text-gray-600 font-semibold rounded-2xl text-sm hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

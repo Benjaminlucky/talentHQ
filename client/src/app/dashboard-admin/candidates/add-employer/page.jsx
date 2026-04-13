@@ -1,31 +1,185 @@
 "use client";
 
-import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
 import { useState } from "react";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useRouter } from "next/navigation";
+import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
+import {
+  Building2,
+  Globe,
+  Phone,
+  Mail,
+  MapPin,
+  Users,
+  Lock,
+  Eye,
+  EyeOff,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  FileText,
+  User,
+  Hash,
+} from "lucide-react";
 
-const nigeriaStatesWithLGAs = {
-  Lagos: ["Ikeja", "Surulere", "Epe", "Ikorodu"],
-  FCT: ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal"],
-  Rivers: ["Port Harcourt", "Obio-Akpor", "Bonny"],
-};
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function EmployerSignup() {
-  const authStatus = useSuperAdminAuthRedirect();
-  const [isLoading, setIsLoading] = useState(false);
+const INDUSTRIES = [
+  "Technology",
+  "Finance",
+  "Healthcare",
+  "Legal",
+  "Education",
+  "Marketing",
+  "Engineering",
+  "Agriculture",
+  "Operations",
+  "Sales",
+  "Logistics",
+  "Media",
+  "Construction",
+  "Real Estate",
+  "Other",
+];
+const COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"];
+const DESIGNATIONS = [
+  "CEO",
+  "COO",
+  "HR Manager",
+  "Recruiter",
+  "Supervisor",
+  "Director",
+  "Manager",
+  "Other",
+];
+const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
 
-  const [formData, setFormData] = useState({
+const INP =
+  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
+const LBL =
+  "block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide";
+
+function Section({ title, icon: Icon, children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+      <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+        <div className="w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center">
+          <Icon size={15} className="text-primary-600" />
+        </div>
+        <h3 className="font-black text-gray-900 text-sm">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PasswordStrength({ password }) {
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+  const score = Object.values(checks).filter(Boolean).length;
+  const label = score <= 2 ? "Weak" : score <= 4 ? "Fair" : "Strong";
+  const colors = [
+    "bg-red-500",
+    "bg-red-500",
+    "bg-orange-400",
+    "bg-amber-400",
+    "bg-lime-500",
+    "bg-green-500",
+  ];
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-1">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${i < score ? colors[score] : "bg-gray-200"}`}
+          />
+        ))}
+        <span
+          className={`text-[10px] font-bold ml-2 ${score <= 2 ? "text-red-500" : score <= 4 ? "text-amber-500" : "text-green-600"}`}
+        >
+          {label}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {Object.entries({
+          "8+ chars": checks.length,
+          Uppercase: checks.uppercase,
+          Lowercase: checks.lowercase,
+          Number: checks.number,
+          "Special char": checks.special,
+        }).map(([k, v]) => (
+          <p
+            key={k}
+            className={`text-[11px] flex items-center gap-1 ${v ? "text-green-600" : "text-gray-400"}`}
+          >
+            {v ? "✓" : "○"} {k}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function AddEmployerPage() {
+  const isAuthorized = useSuperAdminAuthRedirect();
+  const router = useRouter();
+
+  const [form, setForm] = useState({
     companyName: "",
     industry: "",
     companySize: "",
     state: "",
     lga: "",
     address: "",
-    companyEmail: "",
-    phoneNumber: "",
-    website: "",
-    linkedin: "",
+    email: "",
+    phone: "",
+    companyWebsite: "",
+    companyLinkedin: "",
     cacNumber: "",
     password: "",
     confirmPassword: "",
@@ -35,470 +189,493 @@ export default function EmployerSignup() {
     contactPersonDesignation: "",
     contactPersonEmail: "",
     contactPersonPhone: "",
+    fullName: "",
   });
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const [logoFileName, setLogoFileName] = useState("");
-
-  const password = formData.password;
-  const requirements = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  const notify = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
   };
 
-  const strengthLevel = Object.values(requirements).filter(Boolean).length;
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-
-    if (type === "file") {
-      setFormData({ ...formData, [name]: files[0] });
-      setLogoFileName(files[0]?.name || "");
-    } else if (type === "checkbox") {
-      setFormData({ ...formData, [name]: checked });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-
-    if (name === "state") {
-      setFormData((prev) => ({ ...prev, lga: "" }));
-    }
+  const handleLogo = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    set("logo", file);
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result);
+    reader.readAsDataURL(file);
   };
+
+  const checkPass = {
+    length: form.password.length >= 8,
+    uppercase: /[A-Z]/.test(form.password),
+    lowercase: /[a-z]/.test(form.password),
+    number: /[0-9]/.test(form.password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(form.password),
+  };
+  const passValid = Object.values(checkPass).every(Boolean);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    const passwordValid = Object.values(requirements).every(Boolean);
-    if (!passwordValid) {
-      toast.error("Password must meet all strength requirements.");
-      setIsLoading(false);
+    if (!passValid) {
+      notify("Password doesn't meet all requirements", "error");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      notify("Passwords do not match", "error");
+      return;
+    }
+    if (!form.agreeToTerms) {
+      notify("Please agree to the terms", "error");
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!formData.agreeToTerms) {
-      toast.error("You must agree to the terms and conditions.");
-      setIsLoading(false);
-      return;
-    }
-
-    const convertLogoToBase64 = () => {
-      return new Promise((resolve, reject) => {
-        if (!formData.logo) return resolve(null);
-        const reader = new FileReader();
-        reader.readAsDataURL(formData.logo);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (err) => reject(err);
-      });
-    };
-
+    setLoading(true);
     try {
-      const base64Logo = await convertLogoToBase64();
-
-      const finalPayload = {
-        ...formData,
-        logo: base64Logo,
-      };
-
-      delete finalPayload.confirmPassword;
-
-      const baseUrl =
-        process.env.NODE_ENV === "production"
-          ? "https://talenthq-vl3n.onrender.com"
-          : "http://localhost:5000";
-
-      const response = await fetch(`${baseUrl}/api/employers/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(finalPayload),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success("Signup successful! Redirecting to login...");
-        setFormData({
-          companyName: "",
-          industry: "",
-          companySize: "",
-          state: "",
-          lga: "",
-          address: "",
-          companyEmail: "",
-          phoneNumber: "",
-          website: "",
-          linkedin: "",
-          cacNumber: "",
-          password: "",
-          confirmPassword: "",
-          logo: null,
-          agreeToTerms: false,
-          contactPersonName: "",
-          contactPersonDesignation: "",
-          contactPersonEmail: "",
-          contactPersonPhone: "",
+      let logoBase64 = null;
+      if (form.logo) {
+        logoBase64 = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.onerror = rej;
+          r.readAsDataURL(form.logo);
         });
-        setLogoFileName("");
-
-        setTimeout(() => {
-          window.location.href = "/dashboard-admin";
-        }, 3000);
-      } else {
-        toast.error(result.message || "Signup failed.");
       }
-    } catch (error) {
-      console.error("Signup error:", error);
-      toast.error("An unexpected error occurred.");
+
+      const payload = { ...form, logo: logoBase64 };
+      delete payload.confirmPassword;
+      delete payload.agreeToTerms;
+
+      const res = await fetch(`${API}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, role: "employer" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create employer");
+
+      notify("Employer created successfully!");
+      setTimeout(() => router.push("/dashboard-admin"), 1500);
+    } catch (err) {
+      notify(err.message || "An error occurred", "error");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const states = Object.keys(nigeriaStatesWithLGAs);
-  const lgas = formData.state ? nigeriaStatesWithLGAs[formData.state] : [];
-
-  if (authStatus !== "authorized") {
+  if (!isAuthorized) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500 text-lg">Checking authorization...</p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-lime-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex justify-center items-start py-12 px-4">
-      <div className="max-w-3xl w-full rounded-lg p-2">
-        <h2 className="text-3xl font-bold text-center text-lime-600 mb-10">
-          Add Employer
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            name="companyName"
-            value={formData.companyName}
-            onChange={handleChange}
-            placeholder="Company Name"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
-
-          <select
-            name="industry"
-            value={formData.industry}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 focus:border-lime-600"
-            required
-          >
-            <option value="">Select Industry</option>
-            <option value="tech">Technology</option>
-            <option value="construction">Construction</option>
-            <option value="finance">Finance</option>
-            <option value="logistics">Logistics</option>
-            <option value="others">Others</option>
-          </select>
-
-          <select
-            name="companySize"
-            value={formData.companySize}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          >
-            <option value="">Company Size</option>
-            <option value="1-10">1–10</option>
-            <option value="11-50">11–50</option>
-            <option value="51-200">51–200</option>
-            <option value="201+">201 and above</option>
-          </select>
-
-          <select
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          >
-            <option value="">Select State</option>
-            {states.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </select>
-
-          {formData.state && (
-            <select
-              name="lga"
-              value={formData.lga}
-              onChange={handleChange}
-              className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            >
-              <option value="">Select LGA</option>
-              {lgas.map((lga) => (
-                <option key={lga} value={lga}>
-                  {lga}
-                </option>
-              ))}
-            </select>
+    <div className="max-w-3xl space-y-6">
+      {toast && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold ${
+            toast.type === "error"
+              ? "bg-red-600 text-white"
+              : "bg-lime-600 text-white"
+          }`}
+        >
+          {toast.type === "error" ? (
+            <AlertCircle size={16} />
+          ) : (
+            <CheckCircle2 size={16} />
           )}
+          {toast.msg}
+        </div>
+      )}
 
-          <input
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            placeholder="Company Address"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
+      <div>
+        <h1 className="text-2xl font-black text-gray-900">Add Employer</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Create a new employer / company account on the platform
+        </p>
+      </div>
 
-          <input
-            name="companyEmail"
-            type="email"
-            value={formData.companyEmail}
-            onChange={handleChange}
-            placeholder="Company Email"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
-
-          <input
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
-
-          <input
-            name="website"
-            value={formData.website}
-            onChange={handleChange}
-            placeholder="Company Website"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="linkedin"
-            value={formData.linkedin}
-            onChange={handleChange}
-            placeholder="LinkedIn Page"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="cacNumber"
-            value={formData.cacNumber}
-            onChange={handleChange}
-            placeholder="CAC Registration Number"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
-
-          {/* Password Strength Indicator */}
-          {formData.password && (
-            <div className="space-y-1 mt-2">
-              <div className="flex items-center space-x-2">
-                <div
-                  className={`h-2 rounded transition-all duration-300`}
-                  style={{
-                    width: `${(strengthLevel / 5) * 100}%`,
-                    backgroundColor:
-                      strengthLevel <= 2
-                        ? "#ef4444" // red-500
-                        : strengthLevel <= 4
-                        ? "#facc15" // yellow-400
-                        : "#22c55e", // green-500
-                  }}
-                />
-                <span className="text-sm font-semibold text-gray-600"></span>
-              </div>
-              <ul className="text-sm text-gray-600 list-disc list-inside">
-                <li
-                  className={
-                    requirements.length ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  At least 8 characters
-                </li>
-                <li
-                  className={
-                    requirements.uppercase ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Uppercase letter
-                </li>
-                <li
-                  className={
-                    requirements.lowercase ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Lowercase letter
-                </li>
-                <li
-                  className={
-                    requirements.number ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Number
-                </li>
-                <li
-                  className={
-                    requirements.special ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Special character
-                </li>
-              </ul>
-            </div>
-          )}
-
-          <input
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            placeholder="Confirm Password"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          />
-
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Company Info */}
+        <Section title="Company Information" icon={Building2}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload Company Logo
-            </label>
+            <label className={LBL}>Company Name *</label>
             <input
-              name="logo"
-              type="file"
-              accept="image/*"
-              onChange={handleChange}
-              className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-lime-50 file:text-lime-700
-                hover:file:bg-lime-100"
+              value={form.companyName}
+              onChange={(e) => set("companyName", e.target.value)}
+              placeholder="e.g. Okafor Tech Solutions"
+              className={INP}
+              required
             />
-            {logoFileName && (
-              <p className="text-sm mt-1 text-lime-700 font-semibold">
-                Selected File: {logoFileName}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Industry *</label>
+              <select
+                value={form.industry}
+                onChange={(e) => set("industry", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select Industry</option>
+                {INDUSTRIES.map((i) => (
+                  <option key={i}>{i}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>Company Size *</label>
+              <select
+                value={form.companySize}
+                onChange={(e) => set("companySize", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select Size</option>
+                {COMPANY_SIZES.map((s) => (
+                  <option key={s} value={s}>
+                    {s} employees
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={LBL}>CAC Registration Number</label>
+            <div className="relative">
+              <Hash
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                value={form.cacNumber}
+                onChange={(e) => set("cacNumber", e.target.value)}
+                placeholder="e.g. RC1234567"
+                className={`${INP} pl-9`}
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* Logo */}
+        <Section title="Company Logo" icon={Upload}>
+          <div className="flex items-center gap-5">
+            <div
+              className={`w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 ${logoPreview ? "" : "bg-gray-50"}`}
+            >
+              {logoPreview ? (
+                <img
+                  src={logoPreview}
+                  alt="logo"
+                  className="w-full h-full object-contain p-1"
+                />
+              ) : (
+                <Building2 size={24} className="text-gray-300" />
+              )}
+            </div>
+            <div>
+              <label className="flex items-center gap-2 px-4 py-2.5 bg-primary-50 border border-primary-200 text-primary-700 font-semibold text-sm rounded-xl cursor-pointer hover:bg-primary-100 transition">
+                <Upload size={14} /> Upload Logo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogo}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-400 mt-2">
+                PNG, JPG or SVG • Max 2MB • Square recommended
+              </p>
+            </div>
+          </div>
+        </Section>
+
+        {/* Location */}
+        <Section title="Location" icon={MapPin}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>State *</label>
+              <select
+                value={form.state}
+                onChange={(e) => {
+                  set("state", e.target.value);
+                  set("lga", "");
+                }}
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select State</option>
+                {NIGERIA_STATES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>LGA</label>
+              <input
+                value={form.lga}
+                onChange={(e) => set("lga", e.target.value)}
+                placeholder="Local Government Area"
+                className={INP}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={LBL}>Full Address *</label>
+              <input
+                value={form.address}
+                onChange={(e) => set("address", e.target.value)}
+                placeholder="Street address, building, area"
+                className={INP}
+                required
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* Contact */}
+        <Section title="Contact Details" icon={Phone}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Email *</label>
+              <div className="relative">
+                <Mail
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="company@email.com"
+                  className={`${INP} pl-9`}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>Phone *</label>
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="080xxxxxxxx"
+                  className={`${INP} pl-9`}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>Website</label>
+              <div className="relative">
+                <Globe
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.companyWebsite}
+                  onChange={(e) => set("companyWebsite", e.target.value)}
+                  placeholder="https://company.com"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>LinkedIn</label>
+              <div className="relative">
+                <Globe
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.companyLinkedin}
+                  onChange={(e) => set("companyLinkedin", e.target.value)}
+                  placeholder="https://linkedin.com/company/…"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* Contact person */}
+        <Section title="Contact Person" icon={User}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Full Name *</label>
+              <input
+                value={form.contactPersonName}
+                onChange={(e) => set("contactPersonName", e.target.value)}
+                placeholder="Contact person's name"
+                className={INP}
+                required
+              />
+            </div>
+            <div>
+              <label className={LBL}>Designation *</label>
+              <select
+                value={form.contactPersonDesignation}
+                onChange={(e) =>
+                  set("contactPersonDesignation", e.target.value)
+                }
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select Role</option>
+                {DESIGNATIONS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>Email *</label>
+              <input
+                type="email"
+                value={form.contactPersonEmail}
+                onChange={(e) => set("contactPersonEmail", e.target.value)}
+                placeholder="contact@email.com"
+                className={INP}
+                required
+              />
+            </div>
+            <div>
+              <label className={LBL}>Phone *</label>
+              <input
+                value={form.contactPersonPhone}
+                onChange={(e) => set("contactPersonPhone", e.target.value)}
+                placeholder="080xxxxxxxx"
+                className={INP}
+                required
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* Account */}
+        <Section title="Account Credentials" icon={Lock}>
+          <div>
+            <label className={LBL}>Full Name (Account) *</label>
+            <input
+              value={form.fullName}
+              onChange={(e) => set("fullName", e.target.value)}
+              placeholder="Account holder name"
+              className={INP}
+              required
+            />
+          </div>
+          <div>
+            <label className={LBL}>Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                placeholder="Create a strong password"
+                className={`${INP} pl-9 pr-10`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            {form.password && <PasswordStrength password={form.password} />}
+          </div>
+          <div>
+            <label className={LBL}>Confirm Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={form.confirmPassword}
+                onChange={(e) => set("confirmPassword", e.target.value)}
+                placeholder="Re-enter password"
+                className={`${INP} pl-9 pr-10`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle size={10} /> Passwords do not match
               </p>
             )}
           </div>
-
-          {/* Contact Person Section */}
-          <div className="border-t pt-6">
-            <h3 className="font-bold text-lg text-gray-700 mb-3">
-              Contact Person
-            </h3>
-
-            <input
-              name="contactPersonName"
-              value={formData.contactPersonName}
-              onChange={handleChange}
-              placeholder="Full Name"
-              className="w-full input font-bold text-gray-500 py-2 mb-4 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            />
-
-            <select
-              name="contactPersonDesignation"
-              value={formData.contactPersonDesignation}
-              onChange={handleChange}
-              className="w-full input font-bold text-gray-500 py-2 px-2 border-2 mb-4 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            >
-              <option value="">Designation</option>
-              <option value="ceo">CEO</option>
-              <option value="hr">HR Manager</option>
-              <option value="recruiter">Recruiter</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="others">Others</option>
-            </select>
-
-            <input
-              name="contactPersonEmail"
-              type="email"
-              value={formData.contactPersonEmail}
-              onChange={handleChange}
-              placeholder="Contact Email"
-              className="w-full input font-bold text-gray-500 py-2 px-2 border-2 mb-4 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            />
-
-            <input
-              name="contactPersonPhone"
-              value={formData.contactPersonPhone}
-              onChange={handleChange}
-              placeholder="Phone Number"
-              className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            />
-          </div>
-
-          <label className="flex items-center">
+          <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              name="agreeToTerms"
-              checked={formData.agreeToTerms}
-              onChange={handleChange}
-              className="mr-2"
+              checked={form.agreeToTerms}
+              onChange={(e) => set("agreeToTerms", e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary-600 accent-primary-500"
             />
-            I agree to the terms and conditions
+            <span className="text-sm text-gray-600">
+              This employer agrees to TalentHQ's{" "}
+              <span className="text-primary-600 font-semibold">
+                Terms of Service
+              </span>{" "}
+              and{" "}
+              <span className="text-primary-600 font-semibold">
+                Privacy Policy
+              </span>
+            </span>
           </label>
+        </Section>
 
+        <div className="flex items-center gap-4">
           <button
             type="submit"
-            className="w-full bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700 flex justify-center items-center"
-            disabled={isLoading}
+            disabled={loading}
+            className="flex items-center gap-2.5 px-8 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-black rounded-2xl text-sm transition shadow-lg shadow-primary-500/20"
           >
-            {isLoading ? (
-              <svg
-                className="animate-spin h-5 w-5 mr-2 text-white"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                ></path>
-              </svg>
-            ) : null}
-            {isLoading ? "Adding Employer..." : "Add a Employer"}
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Creating…
+              </>
+            ) : (
+              <>
+                <Building2 size={16} />
+                Create Employer
+              </>
+            )}
           </button>
-        </form>
-        <ToastContainer position="top-center" autoClose={3000} />
-      </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard-admin")}
+            className="px-6 py-3.5 border border-gray-200 text-gray-600 font-semibold rounded-2xl text-sm hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

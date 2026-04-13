@@ -2,43 +2,155 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ToastContainer, toast } from "react-toastify";
-import { ImSpinner2 } from "react-icons/im";
-import "react-toastify/dist/ReactToastify.css";
 import { useSuperAdminAuthRedirect } from "@/app/utils/superAdminAuthRedirect";
+import {
+  Wrench,
+  MapPin,
+  Phone,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Award,
+  User,
+  Plus,
+  X,
+} from "lucide-react";
 
-const nigeriaStatesWithLGAs = {
-  Abia: ["Aba North", "Aba South", "Arochukwu", "Bende", "Isiala-Ngwa North"],
-  Adamawa: ["Demsa", "Fufore", "Ganye", "Girei", "Gombi"],
-  Lagos: [
-    "Agege",
-    "Ajeromi-Ifelodun",
-    "Alimosho",
-    "Amuwo-Odofin",
-    "Apapa",
-    "Badagry",
-    "Epe",
-    "Eti-Osa",
-    "Ibeju-Lekki",
-    "Ifako-Ijaiye",
-    "Ikeja",
-    "Ikorodu",
-    "Kosofe",
-    "Lagos Island",
-    "Lagos Mainland",
-    "Mushin",
-    "Ojo",
-    "Oshodi-Isolo",
-    "Somolu",
-    "Surulere",
-    "Bariga",
-  ],
-  FCT: ["Abaji", "Bwari", "Gwagwalada", "Kuje", "Kwali", "Municipal"],
-};
+const API = process.env.NEXT_PUBLIC_API_BASE;
 
-export default function HandySignup() {
-  const authStatus = useSuperAdminAuthRedirect();
-  const [formData, setFormData] = useState({
+const TRADES = [
+  "Plumbing",
+  "Electrical",
+  "Carpentry",
+  "Tiling",
+  "Painting",
+  "Welding",
+  "Masonry",
+  "AC Repair",
+  "Generator Repair",
+  "Roofing",
+  "Glazing",
+  "Landscaping",
+  "Fumigation",
+  "Other",
+];
+const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
+const INP =
+  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
+const LBL =
+  "block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide";
+
+function Section({ title, icon: Icon, children }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+      <div className="flex items-center gap-2.5 pb-4 border-b border-gray-100">
+        <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+          <Icon size={15} className="text-amber-600" />
+        </div>
+        <h3 className="font-black text-gray-900 text-sm">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PasswordStrength({ password }) {
+  const c = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    num: /[0-9]/.test(password),
+    spec: /[!@#$%^&*]/.test(password),
+  };
+  const score = Object.values(c).filter(Boolean).length;
+  const colors = [
+    "",
+    "bg-red-500",
+    "bg-red-400",
+    "bg-amber-400",
+    "bg-lime-500",
+    "bg-green-500",
+  ];
+  return (
+    <div className="mt-2">
+      <div className="flex gap-1 mb-1.5">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className={`flex-1 h-1.5 rounded-full ${i <= score ? colors[score] : "bg-gray-200"} transition-all`}
+          />
+        ))}
+        <span className="text-[10px] font-bold ml-1 text-gray-500">
+          {["", "Weak", "Weak", "Fair", "Good", "Strong"][score]}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+        {[
+          ["8+ chars", c.length],
+          ["Uppercase", c.upper],
+          ["Lowercase", c.lower],
+          ["Number", c.num],
+          ["Special", c.spec],
+        ].map(([l, v]) => (
+          <span
+            key={l}
+            className={`text-[11px] ${v ? "text-green-600" : "text-gray-400"}`}
+          >
+            {v ? "✓" : "○"} {l}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function AddHandymanPage() {
+  const isAuthorized = useSuperAdminAuthRedirect();
+  const router = useRouter();
+  const [form, setForm] = useState({
     fullName: "",
     email: "",
     phone: "",
@@ -46,484 +158,378 @@ export default function HandySignup() {
     password: "",
     confirmPassword: "",
     state: "",
-    lga: "",
     location: "",
-    jobCategory: "",
-    experienceLevel: "",
-    currentStatus: "",
-    linkedin: "",
-    portfolio: "",
-    jobType: [],
-    expectedSalary: "",
-    skills: "",
-    education: "",
-    workSummary: "",
-    resume: null,
-    agreeToTerms: false,
+    trade: "",
+    yearsExperience: "",
+    bio: "",
+    certifications: "",
   });
-
+  const [skills, setSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [resumeFileName, setResumeFileName] = useState("");
-  const router = useRouter();
+  const [toast, setToast] = useState(null);
 
-  const password = formData.password;
-  const requirements = {
-    length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
-    specialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  const notify = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
   };
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const strengthLevel = Object.values(requirements).filter(Boolean).length;
-  const strengthLabel =
-    strengthLevel <= 2 ? "Weak" : strengthLevel <= 4 ? "Fair" : "Strong";
-  const strengthColor =
-    strengthLevel <= 2
-      ? "bg-red-500"
-      : strengthLevel <= 4
-      ? "bg-yellow-500"
-      : "bg-green-500";
-
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-
-    if (type === "file") {
-      setFormData({ ...formData, [name]: files[0] });
-      setResumeFileName(files[0]?.name || "");
-    } else if (type === "checkbox") {
-      setFormData({ ...formData, [name]: checked });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-
-    if (name === "state") {
-      setFormData((prev) => ({ ...prev, lga: "" }));
+  const addSkill = () => {
+    const s = skillInput.trim();
+    if (s && !skills.includes(s)) {
+      setSkills((p) => [...p, s]);
+      setSkillInput("");
     }
   };
+  const removeSkill = (s) => setSkills((p) => p.filter((x) => x !== s));
 
-  const handleJobTypeChange = (e) => {
-    const { value, checked } = e.target;
-    let updatedTypes = [...formData.jobType];
-    if (checked) {
-      updatedTypes.push(value);
-    } else {
-      updatedTypes = updatedTypes.filter((type) => type !== value);
-    }
-    setFormData({ ...formData, jobType: updatedTypes });
-  };
-
-  const trimFormData = (data) => {
-    const trimmed = {};
-    for (const key in data) {
-      if (typeof data[key] === "string") {
-        trimmed[key] = data[key].trim();
-      } else {
-        trimmed[key] = data[key];
-      }
-    }
-    return trimmed;
-  };
+  const passValid = [
+    form.password.length >= 8,
+    /[A-Z]/.test(form.password),
+    /[a-z]/.test(form.password),
+    /[0-9]/.test(form.password),
+  ].every(Boolean);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const trimmed = trimFormData(formData);
-
-    const passwordValid = Object.values(requirements).every(Boolean);
-    if (trimmed.password !== trimmed.confirmPassword) {
-      toast.error("Passwords do not match!");
+    if (!passValid) {
+      notify("Password is too weak", "error");
       return;
     }
-
-    if (!passwordValid) {
-      toast.error("Password must meet all strength requirements.");
+    if (form.password !== form.confirmPassword) {
+      notify("Passwords do not match", "error");
       return;
     }
-
-    if (!trimmed.agreeToTerms) {
-      toast.error("You must agree to the terms and conditions.");
-      return;
-    }
-
-    const formPayload = new FormData();
-    for (const key in trimmed) {
-      if (key === "jobType") {
-        trimmed.jobType.forEach((type) =>
-          formPayload.append("jobType[]", type)
-        );
-      } else if (key === "skills") {
-        trimmed.skills
-          .split(",")
-          .map((s) => s.trim())
-          .forEach((skill) => formPayload.append("skills[]", skill));
-      } else if (key === "expectedSalary") {
-        formPayload.append(key, Number(trimmed[key]));
-      } else if (key === "resume" && formData.resume) {
-        formPayload.append("resume", formData.resume);
-      } else {
-        formPayload.append(key, trimmed[key]);
-      }
-    }
-
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const baseUrl =
-        process.env.NODE_ENV === "production"
-          ? "https://talenthq-vl3n.onrender.com"
-          : "http://localhost:5000";
-
-      const response = await fetch(`${baseUrl}/api/handyman/signup`, {
+      const payload = {
+        ...form,
+        skills,
+        role: "handyman",
+        yearsExperience: Number(form.yearsExperience) || 0,
+      };
+      delete payload.confirmPassword;
+      const res = await fetch(`${API}/api/auth/signup`, {
         method: "POST",
-        body: formPayload,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
-      const result = await response.json();
-      setLoading(false);
-
-      if (response.ok) {
-        toast.success("Signup successful! Redirecting to login...", {
-          position: "top-center",
-          autoClose: 3000,
-          theme: "colored",
-        });
-
-        setTimeout(() => {
-          router.push("/dashboard-admin");
-        }, 3000);
-      } else {
-        toast.error(result.message || "Signup failed.", {
-          position: "top-center",
-          theme: "colored",
-        });
-      }
-    } catch (error) {
-      console.error("Signup error:", error);
-      toast.error("An unexpected error occurred. Please try again later.", {
-        position: "top-center",
-        theme: "colored",
-      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      notify("Handyman created successfully!");
+      setTimeout(() => router.push("/dashboard-admin"), 1500);
+    } catch (err) {
+      notify(err.message, "error");
+    } finally {
       setLoading(false);
     }
   };
 
-  const states = Object.keys(nigeriaStatesWithLGAs);
-  const lgas = formData.state ? nigeriaStatesWithLGAs[formData.state] : [];
-
-  if (authStatus !== "authorized") {
+  if (!isAuthorized)
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500 text-lg">Checking authorization...</p>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen flex justify-center items-start py-12 px-4">
-      <div className="max-w-3xl w-full rounded-lg p-2">
-        <h2 className="text-3xl font-bold text-center text-lime-600 mb-12">
-          Add Handyman
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            name="fullName"
-            value={formData.fullName}
-            onChange={handleChange}
-            placeholder="Full Name"
-            required
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
+    <div className="max-w-3xl space-y-6">
+      {toast && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold ${toast.type === "error" ? "bg-red-600 text-white" : "bg-lime-600 text-white"}`}
+        >
+          {toast.type === "error" ? (
+            <AlertCircle size={16} />
+          ) : (
+            <CheckCircle2 size={16} />
+          )}
+          {toast.msg}
+        </div>
+      )}
 
-          <input
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Email"
-            type="email"
-            required
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
+      <div>
+        <h1 className="text-2xl font-black text-gray-900">Add Handyman</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Register a skilled trade professional on TalentHQ
+        </p>
+      </div>
 
-          <input
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            required
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="whatsapp"
-            value={formData.whatsapp}
-            onChange={handleChange}
-            placeholder="WhatsApp Number"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            type="password"
-            required
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          {/* Password Strength Indicator */}
-          {formData.password && (
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <div className={`h-2 w-full rounded ${strengthColor}`} />
-                <span className="text-sm font-semibold text-gray-600">
-                  {strengthLabel}
-                </span>
-              </div>
-              <ul className="text-sm text-gray-600 list-disc list-inside">
-                <li
-                  className={
-                    requirements.length ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  At least 8 characters
-                </li>
-                <li
-                  className={
-                    requirements.uppercase ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Uppercase letter
-                </li>
-                <li
-                  className={
-                    requirements.lowercase ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Lowercase letter
-                </li>
-                <li
-                  className={
-                    requirements.number ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Number
-                </li>
-                <li
-                  className={
-                    requirements.specialChar ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  Special character
-                </li>
-              </ul>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Section title="Personal Information" icon={User}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Full Name *</label>
+              <input
+                value={form.fullName}
+                onChange={(e) => set("fullName", e.target.value)}
+                placeholder="e.g. Musa Balogun"
+                className={INP}
+                required
+              />
             </div>
-          )}
+            <div>
+              <label className={LBL}>Email *</label>
+              <div className="relative">
+                <Mail
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="email@example.com"
+                  className={`${INP} pl-9`}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>Phone *</label>
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="080xxxxxxxx"
+                  className={`${INP} pl-9`}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className={LBL}>WhatsApp</label>
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.whatsapp}
+                  onChange={(e) => set("whatsapp", e.target.value)}
+                  placeholder="080xxxxxxxx"
+                  className={`${INP} pl-9`}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
 
-          <input
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            placeholder="Confirm Password"
-            type="password"
-            required
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
+        <Section title="Trade & Experience" icon={Wrench}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>Trade / Specialty *</label>
+              <select
+                value={form.trade}
+                onChange={(e) => set("trade", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+                required
+              >
+                <option value="">Select Trade</option>
+                {TRADES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>Years of Experience</label>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                value={form.yearsExperience}
+                onChange={(e) => set("yearsExperience", e.target.value)}
+                placeholder="e.g. 5"
+                className={INP}
+              />
+            </div>
+          </div>
 
-          <select
-            name="state"
-            value={formData.state}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-            required
-          >
-            <option value="">Select State</option>
-            {states.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </select>
-
-          {formData.state && (
-            <select
-              name="lga"
-              value={formData.lga}
-              onChange={handleChange}
-              className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-              required
-            >
-              <option value="">Select LGA</option>
-              {lgas.map((lga) => (
-                <option key={lga} value={lga}>
-                  {lga}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <input
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder="Exact Address"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="jobCategory"
-            value={formData.jobCategory}
-            onChange={handleChange}
-            placeholder="Job Category (e.g. electrician)"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <select
-            name="experienceLevel"
-            value={formData.experienceLevel}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          >
-            <option value="">Experience Level</option>
-            <option value="entry">Entry Level</option>
-            <option value="mid">Mid Level</option>
-            <option value="senior">Senior Level</option>
-          </select>
-
-          <select
-            name="currentStatus"
-            value={formData.currentStatus}
-            onChange={handleChange}
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          >
-            <option value="">Current Status</option>
-            <option value="employed">Employed</option>
-            <option value="freelancer">Freelancer</option>
-            <option value="unemployed">Unemployed</option>
-          </select>
-
-          <input
-            name="linkedin"
-            value={formData.linkedin}
-            onChange={handleChange}
-            placeholder="LinkedIn Profile"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <input
-            name="portfolio"
-            value={formData.portfolio}
-            onChange={handleChange}
-            placeholder="Portfolio URL"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
+          {/* Skills tags */}
           <div>
-            <p className="font-semibold">Job Type</p>
-            {["full-time", "part-time", "contract", "internship"].map(
-              (type) => (
-                <label key={type} className="block">
-                  <input
-                    type="checkbox"
-                    value={type}
-                    checked={formData.jobType.includes(type)}
-                    onChange={handleJobTypeChange}
-                    className="mr-2"
-                  />
-                  {type}
-                </label>
-              )
+            <label className={LBL}>Skills</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSkill();
+                  }
+                }}
+                placeholder="Type a skill and press Enter"
+                className={`${INP} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={addSkill}
+                className="px-4 py-2 bg-primary-500 text-white text-sm font-bold rounded-xl hover:bg-primary-600 transition flex items-center gap-1"
+              >
+                <Plus size={14} />
+                Add
+              </button>
+            </div>
+            {skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {skills.map((s) => (
+                  <span
+                    key={s}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 text-xs font-semibold rounded-full border border-amber-100"
+                  >
+                    <Wrench size={10} />
+                    {s}
+                    <button type="button" onClick={() => removeSkill(s)}>
+                      <X
+                        size={10}
+                        className="text-amber-600 hover:text-red-500"
+                      />
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 
-          <input
-            name="expectedSalary"
-            value={formData.expectedSalary}
-            onChange={handleChange}
-            placeholder="Expected Salary"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <textarea
-            name="skills"
-            value={formData.skills}
-            onChange={handleChange}
-            placeholder="Skills"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <textarea
-            name="education"
-            value={formData.education}
-            onChange={handleChange}
-            placeholder="Education"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          <textarea
-            name="workSummary"
-            value={formData.workSummary}
-            onChange={handleChange}
-            placeholder="Summarize Work Experience"
-            className="w-full input font-bold text-gray-500 py-2 px-2 border-2 rounded-sm border-gray-300 outline-none focus:ring-lime-600 focus:border-lime-600"
-          />
-
-          {/* Resume Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Upload Resume{" "}
-              <span className="text-gray-400 text-xs">(PDF, DOC)</span>
-            </label>
+            <label className={LBL}>Certifications</label>
             <input
-              name="resume"
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleChange}
-              className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-lime-50 file:text-lime-700
-                hover:file:bg-lime-100"
+              value={form.certifications}
+              onChange={(e) => set("certifications", e.target.value)}
+              placeholder="e.g. COREN Certified, NABTEB, City & Guilds (comma separated)"
+              className={INP}
             />
-            {resumeFileName && (
-              <p className="text-sm mt-1 text-lime-700 font-semibold">
-                Selected File: {resumeFileName}
+          </div>
+
+          <div>
+            <label className={LBL}>Bio / About</label>
+            <textarea
+              value={form.bio}
+              onChange={(e) => set("bio", e.target.value)}
+              rows={3}
+              placeholder="Brief description of the handyman's expertise and background..."
+              className={`${INP} resize-none`}
+            />
+          </div>
+        </Section>
+
+        <Section title="Location" icon={MapPin}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={LBL}>State</label>
+              <select
+                value={form.state}
+                onChange={(e) => set("state", e.target.value)}
+                className={`${INP} cursor-pointer appearance-none`}
+              >
+                <option value="">Select State</option>
+                {NIGERIA_STATES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LBL}>City / Area *</label>
+              <div className="relative">
+                <MapPin
+                  size={14}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  value={form.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  placeholder="e.g. Surulere, Lagos"
+                  className={`${INP} pl-9`}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Account Password" icon={Lock}>
+          <div>
+            <label className={LBL}>Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                placeholder="Create a strong password"
+                className={`${INP} pl-9 pr-10`}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              >
+                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+            {form.password && <PasswordStrength password={form.password} />}
+          </div>
+          <div>
+            <label className={LBL}>Confirm Password *</label>
+            <div className="relative">
+              <Lock
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="password"
+                value={form.confirmPassword}
+                onChange={(e) => set("confirmPassword", e.target.value)}
+                placeholder="Re-enter password"
+                className={`${INP} pl-9`}
+                required
+              />
+            </div>
+            {form.confirmPassword && form.password !== form.confirmPassword && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle size={10} />
+                Passwords do not match
               </p>
             )}
           </div>
+        </Section>
 
-          <label className="flex items-center">
-            <input
-              name="agreeToTerms"
-              type="checkbox"
-              checked={formData.agreeToTerms}
-              onChange={handleChange}
-              className="mr-2"
-            />
-            I agree to the terms and conditions
-          </label>
-
+        <div className="flex items-center gap-4">
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center items-center gap-2 bg-lime-600 text-white p-3 rounded font-bold hover:bg-lime-700 ${
-              loading ? "opacity-70 cursor-not-allowed" : ""
-            }`}
+            className="flex items-center gap-2.5 px-8 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-black rounded-2xl text-sm transition shadow-lg shadow-primary-500/20"
           >
             {loading ? (
               <>
-                <ImSpinner2 className="animate-spin" />
-                Adding Handyman...
+                <Loader2 size={16} className="animate-spin" />
+                Creating…
               </>
             ) : (
-              "Add Handyman"
+              <>
+                <Wrench size={16} />
+                Add Handyman
+              </>
             )}
           </button>
-        </form>
-        <ToastContainer />
-      </div>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard-admin")}
+            className="px-6 py-3.5 border border-gray-200 text-gray-600 font-semibold rounded-2xl text-sm hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
