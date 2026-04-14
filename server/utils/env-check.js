@@ -1,7 +1,6 @@
 // server/utils/env-check.js
 // Call this at the very top of index.js, before any other imports.
-// A server that starts with missing config will silently fail at runtime
-// in the worst possible moment. Fail fast and loud at boot instead.
+// Fail fast and loud at boot — silent runtime failures are worse.
 
 const REQUIRED = [
   {
@@ -10,22 +9,30 @@ const REQUIRED = [
   },
   {
     key: "JWT_SECRET",
-    hint: "Random string, min 64 characters. Generate with: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"",
+    hint: "Random string, min 64 chars. Generate: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"",
   },
   {
     key: "RESEND_API_KEY",
-    hint: "Get a free API key at https://resend.com — required for email verification and password reset",
+    hint: "Get a free API key at https://resend.com — required for contact form, email verification, and password reset emails",
   },
 ];
 
 const WARNINGS = [
   {
     key: "FRONTEND_URL",
-    hint: "e.g. https://talenthq.netlify.app — used in email links. Defaults to localhost:3000 in dev.",
+    hint: "e.g. https://talenthq.buzz — used in email links. Defaults to localhost:3000 in dev.",
   },
   {
     key: "EMAIL_FROM",
-    hint: "e.g. TalentHQ <noreply@talenthq.ng> — the from address on all emails. Requires a verified Resend domain.",
+    hint: "e.g. TalentHQ <noreply@talenthq.buzz> — the from address on all emails. Requires a verified Resend domain.",
+  },
+  {
+    key: "ADMIN_EMAIL",
+    hint: "e.g. hello@talenthq.buzz — where contact form submissions are emailed. Defaults to EMAIL_FROM if not set.",
+  },
+  {
+    key: "PAYSTACK_SECRET_KEY",
+    hint: "Get from dashboard.paystack.com → Settings → API Keys. Required for payment features.",
   },
 ];
 
@@ -39,28 +46,24 @@ export function checkEnv() {
       console.error(`    → ${hint}\n`);
     });
     console.error(
-      "Server cannot start. Add the above variables to your .env file.\n",
+      "Server cannot start. Add the above variables to your .env file or Render dashboard.\n",
     );
     process.exit(1);
   }
 
   // Warn about weak JWT_SECRET
-  const secret = process.env.JWT_SECRET || "";
-  if (secret.length < 32) {
+  if ((process.env.JWT_SECRET || "").length < 32) {
     console.warn(
       "⚠️  JWT_SECRET is too short (< 32 chars). Use at least 64 random characters in production.",
     );
   }
 
-  // Soft warnings for optional-but-important vars
+  // Soft warnings for optional-but-important vars (only in production)
   const unset = WARNINGS.filter(({ key }) => !process.env[key]);
-  if (unset.length > 0 && process.env.NODE_ENV === "production") {
-    console.warn(
-      "\n⚠️  These variables are unset (non-fatal, but recommended for production):",
-    );
-    unset.forEach(({ key, hint }) => {
-      console.warn(`  ${key}: ${hint}`);
-    });
+  if (unset.length > 0) {
+    const env = process.env.NODE_ENV === "production" ? "production" : "dev";
+    console.warn(`\n⚠️  These variables are unset (recommended for ${env}):`);
+    unset.forEach(({ key, hint }) => console.warn(`  ${key}: ${hint}`));
     console.warn("");
   }
 

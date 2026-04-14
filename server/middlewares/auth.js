@@ -8,20 +8,19 @@ import SuperAdmin from "../models/superAdmin.model.js";
 const findUserById = async (id, role) => {
   switch (role) {
     case "jobseeker":
-      return await Jobnode.findById(id).lean();
+      return Jobnode.findById(id).lean();
     case "handyman":
-      return await Handyman.findById(id).lean();
+      return Handyman.findById(id).lean();
     case "employer":
-      return await Employer.findById(id).lean();
+      return Employer.findById(id).lean();
     case "superadmin":
-      return await SuperAdmin.findById(id).lean();
+      return SuperAdmin.findById(id).lean();
     default:
       return null;
   }
 };
 
 export const verifyToken = async (req, res, next) => {
-  // Accept token from cookie OR Authorization header (Bearer <token>)
   const token =
     req.cookies?.token || req.headers["authorization"]?.split(" ")[1];
 
@@ -39,7 +38,7 @@ export const verifyToken = async (req, res, next) => {
 
     req.user = { id: user._id, role: decoded.role || user.role };
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };

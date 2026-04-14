@@ -128,14 +128,14 @@ export default function ReachUsPage() {
                 {
                   Icon: Mail,
                   label: "Email",
-                  value: "hello@talenthq.buzz",
-                  href: "mailto:hello@talenthq.buzz",
+                  value: "hello@talenthq.ng",
+                  href: "mailto:hello@talenthq.ng",
                 },
                 {
                   Icon: Phone,
                   label: "Phone / WhatsApp",
-                  value: "+234 805 364 2425",
-                  href: "tel:+2348053642425",
+                  value: "+234 800 000 0000",
+                  href: "tel:+2348000000000",
                 },
                 {
                   Icon: MapPin,
@@ -250,7 +250,7 @@ export default function ReachUsPage() {
                 <input
                   name="phone"
                   type="tel"
-                  placeholder="0805 364 2425"
+                  placeholder="08012345678"
                   value={form.phone}
                   onChange={handleChange}
                   className={inputClass("phone")}
