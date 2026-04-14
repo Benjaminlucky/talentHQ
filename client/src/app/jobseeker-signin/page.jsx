@@ -1,152 +1,143 @@
 "use client";
+// src/app/jobseeker-signin/page.jsx
+// These legacy role-specific sign-in pages now proxy to the unified
+// /api/auth/login endpoint which handles all roles via httpOnly cookie.
+// The old /api/jobseekers/login endpoint no longer exists.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { ImSpinner2 } from "react-icons/im";
+import Link from "next/link";
+import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 
-export default function Page() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-  const [showPassword, setShowPassword] = useState(false);
+const API = process.env.NEXT_PUBLIC_API_BASE;
+const INP =
+  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
+
+export default function JobseekerSignin() {
+  const router = useRouter();
+  const { setUser } = useAuth();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const router = useRouter(); // use router for redirection
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    setError("");
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE;
-
-      const response = await fetch(`${baseUrl}/api/jobseekers/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const res = await axios.post(`${API}/api/auth/login`, form, {
+        withCredentials: true,
       });
-
-      const result = await response.json();
-      setLoading(false);
-
-      if (response.ok) {
-        localStorage.setItem("accessToken", result.accessToken);
-        localStorage.setItem("refreshToken", result.refreshToken);
-        localStorage.setItem("jobSeeker", JSON.stringify(result.jobSeeker)); // 👈 Save user role
-
-        toast.success("Login successful! Redirecting...", {
-          position: "top-center",
-          autoClose: 2500,
-          hideProgressBar: false,
-          pauseOnHover: false,
-          theme: "colored",
-        });
-
-        setTimeout(() => {
-          router.push("/dashboard-jobseeker");
-        }, 3000);
-      } else {
-        toast.error(
-          result.message || "Login failed. Please check your credentials.",
-          {
-            position: "top-center",
-            autoClose: 4000,
-            theme: "colored",
-          }
+      const user = res.data.user;
+      if (user.role !== "jobseeker") {
+        setError(
+          "This sign-in is for jobseekers. Please use the correct login page.",
         );
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("An unexpected error occurred. Please try again later.", {
-        position: "top-center",
-        autoClose: 4000,
-        theme: "colored",
-      });
+      setUser(user);
+      router.push("/dashboard/jobseeker");
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Login failed. Please try again.",
+      );
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center px-4">
-      <ToastContainer />
-      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl p-8 animate-fade-in">
-        <h2 className="text-4xl font-extrabold text-center text-lime-600 mb-10">
-          Job Seeker Login
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex flex-col">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-gray-700 mb-2"
-            >
-              Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              id="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="e.g. johndoe@example.com"
-              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500 transition-all duration-200"
-            />
-          </div>
-
-          <div className="flex flex-col relative">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-gray-700 mb-2"
-            >
-              Password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              id="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="••••••••"
-              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-lime-500 pr-12 transition-all duration-200"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link href="/" className="text-2xl font-black text-gray-900">
+            Talent<span className="text-lime-600">HQ</span>
+          </Link>
+          <p className="text-gray-500 text-sm mt-1">Jobseeker sign in</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl mb-5">
+              <AlertCircle size={14} className="flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                Email
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="you@email.com"
+                required
+                autoComplete="email"
+                className={INP}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary-600 font-semibold hover:underline"
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPass ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => set("password", e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className={`${INP} pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
             <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-11 text-gray-500 hover:text-lime-600"
-              tabIndex={-1}
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-black rounded-xl text-sm transition mt-2"
             >
-              {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                "Continue to Dashboard"
+              )}
             </button>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-lime-600 hover:bg-lime-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <ImSpinner2 className="animate-spin mr-2 text-lg" />
-                Logging in...
-              </>
-            ) : (
-              "Continue to Dashboard"
-            )}
-          </button>
-        </form>
+          </form>
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Not a jobseeker?{" "}
+            <Link
+              href="/login"
+              className="text-primary-600 font-semibold hover:underline"
+            >
+              Back to login
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

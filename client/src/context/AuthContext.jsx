@@ -23,8 +23,9 @@ export const AuthProvider = ({ children }) => {
       );
       setUser(res.data.user || null);
     } catch (err) {
-      // 401 = not logged in (normal). 403 = forbidden. Neither is an error.
-      // Only warn on genuinely unexpected failures (network down, 500, etc.)
+      // 401 = not logged in (expected, not an error)
+      // 403 = forbidden (also expected)
+      // Only warn on truly unexpected failures
       const status = err.response?.status;
       if (status !== 401 && status !== 403) {
         console.warn("Auth check failed:", err.message);
@@ -47,9 +48,11 @@ export const AuthProvider = ({ children }) => {
         { withCredentials: true },
       );
     } catch {
-      // Logout errors are non-fatal — user state is cleared regardless
+      // Non-fatal — clear state regardless
     } finally {
       setUser(null);
+      // Do NOT clear localStorage here — user object is set from /me response,
+      // not from localStorage, so there's nothing sensitive to clear.
     }
   };
 

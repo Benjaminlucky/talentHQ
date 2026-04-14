@@ -224,3 +224,24 @@ export const resetPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error." });
   }
 };
+
+// ── GET /api/superadmin/verify ────────────────────────────────────────────────
+// Lightweight token validation used by the client-side superAdminAuthRedirect hook.
+// Returns 200 if token is valid superadmin, 401 otherwise.
+export const verifySuperAdminToken = async (req, res) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "No token" });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== "superadmin") {
+      return res.status(403).json({ message: "Not superadmin" });
+    }
+    // Optionally verify admin still exists in DB
+    const admin = await SuperAdmin.findById(decoded.id).lean();
+    if (!admin) return res.status(401).json({ message: "Admin not found" });
+    return res.status(200).json({ ok: true });
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};

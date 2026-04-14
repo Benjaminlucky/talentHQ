@@ -7,6 +7,7 @@ import {
   logoutSuperAdmin,
   forgotPassword,
   resetPassword,
+  verifySuperAdminToken,
 } from "../controllers/superAdminController.js";
 
 const router = express.Router();
@@ -17,5 +18,8 @@ router.post("/refresh-token", refreshSuperAdminToken);
 router.post("/logout", logoutSuperAdmin);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+
+// Lightweight token check used by the client-side auth redirect hook
+router.get("/verify", verifySuperAdminToken);
 
 export default router;
