@@ -27,7 +27,6 @@ const jobSchema = new mongoose.Schema(
       default: "Full-time",
     },
 
-    // ── Job status — employer can manage this ─────────────────────────────────
     status: {
       type: String,
       enum: ["open", "filled", "closed", "paused"],
@@ -47,6 +46,31 @@ const jobSchema = new mongoose.Schema(
       enum: ["employer", "superadmin"],
       default: "employer",
     },
+
+    // ── Boost / Featured listing ──────────────────────────────────────────────
+    boosted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    boostExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    boostPaystackRef: {
+      type: String,
+      default: "",
+    },
+    // "featured" = pinned to very top of listings (higher tier than boost)
+    featured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    featuredExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
@@ -54,7 +78,8 @@ const jobSchema = new mongoose.Schema(
 jobSchema.index({ company: 1, status: 1 });
 jobSchema.index({ createdAt: -1 });
 jobSchema.index({ jobFor: 1, status: 1 });
+// Boosted jobs surfaced first — sort by featured desc, boosted desc, createdAt desc
+jobSchema.index({ featured: -1, boosted: -1, createdAt: -1 });
 
 const JobModel = mongoose.models.Job || mongoose.model("Job", jobSchema);
-
 export default JobModel;

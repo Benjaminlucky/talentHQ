@@ -73,6 +73,12 @@ const NAV = [
     ],
   },
   {
+    id: "moderation",
+    label: "Moderation",
+    icon: Flag,
+    href: "/dashboard-admin/moderation",
+  },
+  {
     id: "verification",
     label: "Verification",
     icon: ShieldCheck,

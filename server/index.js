@@ -27,14 +27,30 @@ import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
-import interviewRoutes from "./routes/interviewroutes.js";
-import handymanRoutes from "./routes/Handymanroutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
+import handymanRoutes from "./routes/handymanRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import flagRoutes from "./routes/Flagroutes.js";
+import flagRoutes from "./routes/flagRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
 app.set("trust proxy", 1);
+// Raw body needed by Paystack webhook signature verification
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/payments/webhook") {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+    });
+    req.on("end", () => {
+      req.rawBody = raw;
+      next();
+    });
+  } else {
+    next();
+  }
+});
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
@@ -145,6 +161,7 @@ app.use("/api/interviews", interviewRoutes);
 app.use("/api/handymen", handymanRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flags", flagRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

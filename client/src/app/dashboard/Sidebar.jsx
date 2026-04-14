@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
-import NotificationBell from "@/components/NotificationBell";
 import {
   LogOut,
   User,
@@ -10,6 +9,8 @@ import {
   Shield,
   AlertTriangle,
   MessageSquare,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +27,11 @@ export default function Sidebar({ open, setOpen }) {
       { href: "/dashboard/jobseeker/applications", label: "My Applications" },
       { href: "/dashboard/jobseeker/interviews", label: "Interview Invites" },
       { href: "/dashboard/jobseeker/profile", label: "My Profile" },
+      {
+        href: "/dashboard/jobseeker/upgrade",
+        label: "Upgrade to Premium",
+        icon: Crown,
+      },
       { href: "/dashboard/jobseeker/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
@@ -46,6 +52,11 @@ export default function Sidebar({ open, setOpen }) {
       { href: "/dashboard/employer/interviews", label: "Interviews" },
       { href: "/dashboard/employer/my-jobs", label: "My Jobs" },
       { href: "/dashboard/employer/post-job", label: "Post a Job" },
+      {
+        href: "/dashboard/employer/billing",
+        label: "Billing & Plans",
+        icon: Zap,
+      },
       { href: "/dashboard/employer/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },
     ],
@@ -156,15 +167,12 @@ export default function Sidebar({ open, setOpen }) {
                 <span className="text-lg font-black">
                   Talent<span className="text-lime-600">HQ</span>
                 </span>
-                <div className="flex items-center gap-1">
-                  <NotificationBell />
-                  <button
-                    className="p-2 rounded hover:bg-gray-100"
-                    onClick={() => setOpen(false)}
-                  >
-                    <X className="h-5 w-5 text-gray-600" />
-                  </button>
-                </div>
+                <button
+                  className="p-2 rounded hover:bg-gray-100"
+                  onClick={() => setOpen(false)}
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </button>
               </div>
               <nav className="space-y-1">
                 {user?.role &&
@@ -185,14 +193,11 @@ export default function Sidebar({ open, setOpen }) {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r shadow-sm p-4 justify-between min-h-screen">
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <Link href="/">
-              <span className="text-lg font-black">
-                Talent<span className="text-lime-600">HQ</span>
-              </span>
-            </Link>
-            <NotificationBell />
-          </div>
+          <Link href="/" className="block mb-6">
+            <span className="text-lg font-black">
+              Talent<span className="text-lime-600">HQ</span>
+            </span>
+          </Link>
           <nav className="space-y-1">
             {user?.role &&
               navItems[user.role]?.map((item) => (
