@@ -1,204 +1,69 @@
 "use client";
-
+// src/app/signup/page.jsx
 import { useState } from "react";
-import axios from "axios";
 import Link from "next/link";
+import axios from "axios";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
   Eye,
   EyeOff,
-  ChevronRight,
-  ArrowLeft,
-  Shield,
-  X,
-  ExternalLink,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Briefcase,
+  Wrench,
+  Building2,
+  ArrowRight,
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
-
 const INP =
-  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
+  "w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-lime-400 bg-gray-50 focus:bg-white transition placeholder:text-gray-400";
 
-// ── Inline Terms of Service modal ─────────────────────────────────────────────
-function TosModal({ onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-black text-gray-900">Terms of Service</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-gray-100 text-gray-400"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="overflow-y-auto px-6 py-5 text-sm text-gray-600 leading-relaxed space-y-4">
-          <p className="text-xs text-gray-400 italic">
-            Last updated: {new Date().getFullYear()}. By creating an account you
-            agree to these terms.
-          </p>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              1. Platform Role & Liability
-            </h3>
-            <p>
-              TalentHQ is an employment marketplace that connects employers,
-              jobseekers, and skilled tradespeople. We are not a recruitment
-              agency, staffing firm, or party to any employment contract.
-              TalentHQ is not responsible for the accuracy of job listings,
-              employer claims, or candidate information posted on the platform.
-              All users interact at their own risk.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              2. User-Generated Content
-            </h3>
-            <p>
-              Content posted on TalentHQ — including job listings, profiles,
-              reviews, and messages — is the sole responsibility of the user who
-              posted it. TalentHQ does not endorse, verify, or guarantee the
-              accuracy of any user-generated content. Reviews reflect the
-              opinions of individual users and not TalentHQ's views.
-            </p>
-            <p className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
-              <strong>Review disclaimer:</strong> Reviews and ratings on
-              TalentHQ are user-generated opinions. TalentHQ does not verify the
-              accuracy of reviews and accepts no liability for loss arising from
-              reliance on review content. If you believe a review is false or
-              defamatory, you may report it to our moderation team.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              3. Employer Verification
-            </h3>
-            <p>
-              Employers may optionally provide a CAC (Corporate Affairs
-              Commission) registration number during onboarding. TalentHQ does
-              not independently verify CAC numbers against any government
-              registry. The presence of a CAC number does not constitute
-              verification of a company's legal status or legitimacy. Users
-              should perform their own due diligence before accepting any job
-              offer.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              4. Prohibited Content
-            </h3>
-            <p>
-              Users must not post fraudulent job listings, impersonate
-              individuals or companies, submit false reviews, harass other
-              users, or use the platform for any unlawful purpose. Violations
-              may result in immediate account suspension and removal of content.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              5. Reporting & Moderation
-            </h3>
-            <p>
-              TalentHQ provides content flagging tools that allow users to
-              report fraudulent listings, abusive profiles, and inappropriate
-              reviews. Reported content is reviewed by our moderation team. We
-              reserve the right to remove content, suspend accounts, or take
-              other action at our sole discretion. We do not guarantee a
-              specific response time or outcome for any report.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">
-              6. Limitation of Liability
-            </h3>
-            <p>
-              To the fullest extent permitted by Nigerian law, TalentHQ and its
-              affiliates shall not be liable for any direct, indirect,
-              incidental, or consequential damages arising from your use of the
-              platform, including but not limited to employment decisions,
-              financial losses, or disputes between users. TalentHQ's total
-              aggregate liability shall not exceed ₦10,000.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">7. Privacy & Data</h3>
-            <p>
-              By creating an account you consent to TalentHQ processing your
-              personal data in accordance with our{" "}
-              <Link
-                href="/privacy"
-                className="text-primary-600 font-semibold hover:underline"
-              >
-                Privacy Policy
-              </Link>
-              . We do not sell your personal data to third parties.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-gray-900 mb-1">8. Governing Law</h3>
-            <p>
-              These Terms are governed by the laws of the Federal Republic of
-              Nigeria. Any disputes shall be subject to the exclusive
-              jurisdiction of Nigerian courts.
-            </p>
-          </section>
-        </div>
-        <div className="px-6 py-4 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Role selector ─────────────────────────────────────────────────────────────
 const ROLES = [
   {
     id: "jobseeker",
+    icon: Briefcase,
     label: "Jobseeker",
-    desc: "Find professional opportunities",
-    emoji: "👔",
+    desc: "I'm looking for work",
+    color: "border-blue-200 hover:border-blue-400",
+    active: "border-blue-500 bg-blue-50",
+    icon_bg: "bg-blue-100 text-blue-600",
   },
   {
     id: "handyman",
+    icon: Wrench,
     label: "Handyman",
-    desc: "Offer skilled trade services",
-    emoji: "🔧",
+    desc: "I offer trade services",
+    color: "border-amber-200 hover:border-amber-400",
+    active: "border-amber-500 bg-amber-50",
+    icon_bg: "bg-amber-100 text-amber-600",
   },
   {
     id: "employer",
+    icon: Building2,
     label: "Employer",
-    desc: "Post jobs and hire talent",
-    emoji: "🏢",
+    desc: "I want to hire talent",
+    color: "border-lime-200 hover:border-lime-400",
+    active: "border-lime-500 bg-lime-50",
+    icon_bg: "bg-lime-100 text-lime-700",
   },
 ];
 
+const GOOGLE_AUTH_URL = `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/google`;
+const LINKEDIN_AUTH_URL = `${process.env.NEXT_PUBLIC_API_BASE}/api/auth/linkedin`;
+
 export default function SignupPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const { setUser } = useAuth();
+
+  const [step, setStep] = useState(1); // 1=role, 2=form
   const [role, setRole] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [tosOpen, setTosOpen] = useState(false);
-  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -208,46 +73,52 @@ export default function SignupPage() {
     skills: "",
     location: "",
   });
-
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  const handleRoleSelect = (r) => {
+  const selectRole = (r) => {
     setRole(r);
     setStep(2);
+    setError("");
+  };
+
+  // ── OAuth: redirect to backend — role will be asked on /oauth/select-role ──
+  const handleOAuth = (provider) => {
+    // For OAuth we DON'T pre-select a role here because the callback page
+    // (/oauth/select-role) handles role selection after Google/LinkedIn authenticates.
+    // This is intentional — OAuth users see the same role picker after auth.
+    const url = provider === "google" ? GOOGLE_AUTH_URL : LINKEDIN_AUTH_URL;
+    window.location.href = url;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!agreed) {
-      setError("You must accept the Terms of Service to create an account.");
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
     setLoading(true);
-    setError(null);
+    setError("");
+
     try {
       const payload = {
+        role,
         fullName: form.fullName,
         email: form.email,
         password: form.password,
-        role,
-        agreedToTerms: true,
-        agreedAt: new Date().toISOString(),
+        ...(role === "handyman" && {
+          skills: form.skills,
+          location: form.location,
+        }),
+        ...(role === "employer" && {
+          companyName: form.companyName,
+          companyWebsite: form.companyWebsite,
+        }),
       };
-      if (role === "handyman") {
-        payload.skills = form.skills
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-        payload.location = form.location;
-      }
-      if (role === "employer") {
-        payload.companyName = form.companyName;
-        payload.companyWebsite = form.companyWebsite;
-      }
 
-      await axios.post(`${API}/api/auth/signup2`, payload, {
+      const res = await axios.post(`${API}/api/auth/signup2`, payload, {
         withCredentials: true,
       });
+      setUser(res.data.user);
       router.push(`/onboarding/${role}`);
     } catch (err) {
       setError(
@@ -259,9 +130,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      {tosOpen && <TosModal onClose={() => setTosOpen(false)} />}
-
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -269,69 +138,111 @@ export default function SignupPage() {
             Talent<span className="text-lime-600">HQ</span>
           </Link>
           <p className="text-gray-500 text-sm mt-1">
-            Nigeria's talent marketplace
+            {step === 1 ? "Create your free account" : `Signing up as ${role}`}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-7">
+          {/* ── STEP 1: Role selection ── */}
           {step === 1 && (
             <>
-              <h2 className="text-xl font-black text-gray-900 mb-1">
-                Create your account
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Choose how you'll use TalentHQ
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
+                I am a…
               </p>
-              <div className="space-y-3">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => handleRoleSelect(r.id)}
-                    className="w-full flex items-center gap-4 p-4 border-2 border-gray-100 hover:border-primary-300 hover:bg-primary-50 rounded-2xl transition-all group text-left"
-                  >
-                    <span className="text-2xl">{r.emoji}</span>
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm group-hover:text-primary-700">
-                        {r.label}
-                      </p>
-                      <p className="text-xs text-gray-400">{r.desc}</p>
-                    </div>
-                    <ChevronRight
-                      size={16}
-                      className="ml-auto text-gray-300 group-hover:text-primary-500 transition-colors"
-                    />
-                  </button>
-                ))}
+              <div className="space-y-3 mb-6">
+                {ROLES.map(
+                  ({ id, icon: Icon, label, desc, color, active, icon_bg }) => (
+                    <button
+                      key={id}
+                      onClick={() => selectRole(id)}
+                      className={`w-full flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all bg-white ${role === id ? active : color}`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${icon_bg}`}
+                      >
+                        <Icon size={18} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">
+                          {label}
+                        </p>
+                        <p className="text-xs text-gray-500">{desc}</p>
+                      </div>
+                      <ArrowRight
+                        size={14}
+                        className="ml-auto text-gray-300 flex-shrink-0"
+                      />
+                    </button>
+                  ),
+                )}
               </div>
-              <p className="text-center text-sm text-gray-500 mt-6">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="text-primary-600 font-semibold hover:underline"
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-gray-100" />
+                <span className="text-xs text-gray-400 font-medium">
+                  or continue with
+                </span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              {/* OAuth buttons — role will be selected AFTER auth on /oauth/select-role */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleOAuth("google")}
+                  className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm font-semibold text-gray-700"
                 >
-                  Log in
-                </Link>
+                  <svg width="18" height="18" viewBox="0 0 48 48">
+                    <path
+                      fill="#4285F4"
+                      d="M44.5 20H24v8.5h11.8C34.7 33.9 29.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M6.3 14.7l7 5.1C15.1 16 19.3 13 24 13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2c-7.8 0-14.5 4.4-17.7 10.7z"
+                      opacity=".8"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M24 46c5.4 0 10.3-1.8 14.1-4.8l-6.5-5.5C29.5 37.5 26.9 38 24 38c-5.1 0-9.5-3-11.7-7.4l-7 5.4C8.8 42.2 15.9 46 24 46z"
+                      opacity=".8"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M44.5 20H24v8.5h11.8c-.8 2.4-2.5 4.5-4.8 5.8l6.5 5.5C41.7 36.3 45 30.6 45 24c0-1.3-.2-2.7-.5-4z"
+                      opacity=".8"
+                    />
+                  </svg>
+                  Continue with Google
+                </button>
+
+                <button
+                  onClick={() => handleOAuth("linkedin")}
+                  className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm font-semibold text-gray-700"
+                >
+                  <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                    <rect width="48" height="48" rx="6" fill="#0077B5" />
+                    <path
+                      d="M12 18h6v18h-6zM15 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM22 18h5.5v2.5h.1c.8-1.5 2.7-3 5.5-3C39 17.5 40 21 40 25v11h-6v-10c0-2.5-.1-5.5-3.5-5.5-3.5 0-4 2.7-4 5.5V36h-6V18z"
+                      fill="white"
+                    />
+                  </svg>
+                  Continue with LinkedIn
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-400 text-center mt-5">
+                When you continue with Google or LinkedIn, you'll be asked to
+                choose your role after signing in.
               </p>
             </>
           )}
 
+          {/* ── STEP 2: Registration form ── */}
           {step === 2 && (
             <>
-              <button
-                onClick={() => setStep(1)}
-                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-5 transition"
-              >
-                <ArrowLeft size={14} /> Back
-              </button>
-              <h2 className="text-xl font-black text-gray-900 mb-1">
-                Sign up as {ROLES.find((r) => r.id === role)?.label}
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Fill in your details to get started
-              </p>
-
               {error && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl mb-5">
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl mb-4">
                   <AlertCircle size={14} className="flex-shrink-0" />
                   {error}
                 </div>
@@ -340,32 +251,32 @@ export default function SignupPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Full Name *
+                    Full Name
                   </label>
                   <input
                     value={form.fullName}
                     onChange={(e) => set("fullName", e.target.value)}
-                    placeholder="Your full name"
-                    className={INP}
+                    placeholder="Ada Okonkwo"
                     required
+                    className={INP}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Email *
+                    Email
                   </label>
                   <input
                     type="email"
                     value={form.email}
                     onChange={(e) => set("email", e.target.value)}
                     placeholder="you@email.com"
-                    className={INP}
                     required
+                    className={INP}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                    Password *
+                    Password
                   </label>
                   <div className="relative">
                     <input
@@ -373,9 +284,8 @@ export default function SignupPage() {
                       value={form.password}
                       onChange={(e) => set("password", e.target.value)}
                       placeholder="Min. 8 characters"
-                      className={`${INP} pr-10`}
                       required
-                      minLength={8}
+                      className={`${INP} pr-10`}
                     />
                     <button
                       type="button"
@@ -391,12 +301,12 @@ export default function SignupPage() {
                   <>
                     <div>
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                        Skills
+                        Trade / Skills
                       </label>
                       <input
                         value={form.skills}
                         onChange={(e) => set("skills", e.target.value)}
-                        placeholder="Plumbing, Electrical, Tiling (comma separated)"
+                        placeholder="e.g. Plumbing, Electrical, Carpentry"
                         className={INP}
                       />
                     </div>
@@ -407,7 +317,7 @@ export default function SignupPage() {
                       <input
                         value={form.location}
                         onChange={(e) => set("location", e.target.value)}
-                        placeholder="e.g. Surulere, Lagos"
+                        placeholder="e.g. Lagos"
                         className={INP}
                       />
                     </div>
@@ -418,14 +328,13 @@ export default function SignupPage() {
                   <>
                     <div>
                       <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                        Company Name *
+                        Company Name
                       </label>
                       <input
                         value={form.companyName}
                         onChange={(e) => set("companyName", e.target.value)}
-                        placeholder="Your company name"
+                        placeholder="Acme Nigeria Ltd"
                         className={INP}
-                        required
                       />
                     </div>
                     <div>
@@ -433,6 +342,7 @@ export default function SignupPage() {
                         Company Website
                       </label>
                       <input
+                        type="url"
                         value={form.companyWebsite}
                         onChange={(e) => set("companyWebsite", e.target.value)}
                         placeholder="https://yourcompany.com"
@@ -442,68 +352,10 @@ export default function SignupPage() {
                   </>
                 )}
 
-                {/* ── ToS gate — required before submit ──────────────────────────── */}
-                <div className="pt-2">
-                  <div
-                    className={`p-4 rounded-xl border-2 transition-colors ${agreed ? "border-lime-300 bg-lime-50" : "border-gray-200 bg-gray-50"}`}
-                  >
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <div className="relative mt-0.5 flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={agreed}
-                          onChange={(e) => setAgreed(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div
-                          className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${
-                            agreed
-                              ? "border-lime-500 bg-lime-500"
-                              : "border-gray-300 bg-white"
-                          }`}
-                        >
-                          {agreed && (
-                            <CheckCircle2
-                              size={13}
-                              className="text-white"
-                              strokeWidth={3}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-700 leading-relaxed">
-                        I have read and agree to TalentHQ's{" "}
-                        <button
-                          type="button"
-                          onClick={() => setTosOpen(true)}
-                          className="text-primary-600 font-bold hover:underline inline-flex items-center gap-0.5"
-                        >
-                          Terms of Service <ExternalLink size={11} />
-                        </button>{" "}
-                        and acknowledge the{" "}
-                        <button
-                          type="button"
-                          onClick={() => setTosOpen(true)}
-                          className="text-primary-600 font-bold hover:underline"
-                        >
-                          platform liability disclaimer
-                        </button>
-                        .
-                      </span>
-                    </label>
-                    {!agreed && (
-                      <p className="text-xs text-amber-600 mt-2 flex items-center gap-1.5 ml-8">
-                        <Shield size={11} /> You must accept the Terms of
-                        Service to create an account
-                      </p>
-                    )}
-                  </div>
-                </div>
-
                 <button
                   type="submit"
-                  disabled={loading || !agreed}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-xl text-sm transition"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-60 text-white font-black rounded-xl text-sm transition mt-2"
                 >
                   {loading ? (
                     <>
@@ -511,22 +363,32 @@ export default function SignupPage() {
                       Creating account…
                     </>
                   ) : (
-                    "Create Account"
+                    "Create account"
                   )}
                 </button>
               </form>
 
-              <p className="text-center text-sm text-gray-500 mt-5">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="text-primary-600 font-semibold hover:underline"
-                >
-                  Log in
-                </Link>
-              </p>
+              <button
+                onClick={() => {
+                  setStep(1);
+                  setError("");
+                }}
+                className="mt-4 text-sm text-gray-400 hover:text-gray-600 transition w-full text-center"
+              >
+                ← Change role
+              </button>
             </>
           )}
+
+          <p className="text-center text-sm text-gray-500 mt-5">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-primary-600 font-semibold hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

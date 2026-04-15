@@ -23,7 +23,18 @@ const jobnodeSchema = new mongoose.Schema(
     resume: { type: String, default: "" },
     resumePublic: { type: Boolean, default: true },
 
-    // Plan fields (set by subscription webhook)
+    // ── OAuth ─────────────────────────────────────────────────────────────────
+    oauthProvider: { type: String, default: null }, // "google" | "linkedin" | null
+    oauthId: { type: String, default: null },
+    emailVerified: { type: Boolean, default: false },
+
+    // ── Onboarding / role flow ────────────────────────────────────────────────
+    // needsRoleSelection: true = brand-new OAuth user who hasn't picked a role yet
+    // They land on /oauth/select-role, pick a role, then this is set to false.
+    needsRoleSelection: { type: Boolean, default: false },
+    onboardingComplete: { type: Boolean, default: false },
+
+    // ── Plan fields (set by subscription webhook) ─────────────────────────────
     activePlan: { type: String, default: "jobseeker_free" },
     planExpiresAt: { type: Date, default: null },
 
@@ -44,6 +55,7 @@ const jobnodeSchema = new mongoose.Schema(
 jobnodeSchema.index({ createdAt: -1 });
 jobnodeSchema.index({ "location.city": 1 });
 jobnodeSchema.index({ activePlan: 1 });
+jobnodeSchema.index({ oauthProvider: 1, oauthId: 1 }, { sparse: true });
 
 export default mongoose.models.Jobnode ||
   mongoose.model("Jobnode", jobnodeSchema);

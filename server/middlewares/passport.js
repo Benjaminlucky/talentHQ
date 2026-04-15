@@ -1,7 +1,4 @@
 // server/middlewares/passport.js
-// Passport.js OAuth strategies for Google and LinkedIn.
-// These plug into your existing JWT+cookie auth — no separate session system.
-//
 // npm install passport passport-google-oauth20 passport-linkedin-oauth2
 
 import passport from "passport";
@@ -11,34 +8,13 @@ import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
 
-// ── Startup guard ─────────────────────────────────────────────────────────────
-const missingGoogle = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"].filter(
-  (k) => !process.env[k],
-);
-const missingLinkedIn = ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"].filter(
-  (k) => !process.env[k],
-);
-
-if (missingGoogle.length > 0) {
-  console.warn(
-    `⚠️  Google OAuth disabled — missing: ${missingGoogle.join(", ")}\n` +
-      "   Get credentials at https://console.cloud.google.com/apis/credentials",
-  );
-}
-if (missingLinkedIn.length > 0) {
-  console.warn(
-    `⚠️  LinkedIn OAuth disabled — missing: ${missingLinkedIn.join(", ")}\n` +
-      "   Get credentials at https://www.linkedin.com/developers/apps",
-  );
-}
-
-const BACKEND =
+// Resolved once at startup (after dotenv is loaded via --require ./env-loader.js)
+const BACKEND_URL =
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === "production"
     ? "https://talenthq-vl3n.onrender.com"
     : "http://localhost:5000");
 
-// ── Helper: find or create a user from an OAuth profile ───────────────────────
 async function findOrCreateOAuthUser(profile, provider) {
   const email = profile.emails?.[0]?.value?.toLowerCase().trim();
   const fullName =
@@ -48,96 +24,107 @@ async function findOrCreateOAuthUser(profile, provider) {
   const avatar = profile.photos?.[0]?.value || "";
   const oauthId = profile.id;
 
-  // 1. Returning OAuth user — fastest path
+  // 1. Check all collections for an existing OAuth-linked account
   const [jOAuth, hOAuth, eOAuth] = await Promise.all([
     Jobnode.findOne({ oauthProvider: provider, oauthId }),
     Handyman.findOne({ oauthProvider: provider, oauthId }),
     Employer.findOne({ oauthProvider: provider, oauthId }),
   ]);
-  const byOAuth = jOAuth || hOAuth || eOAuth;
-  if (byOAuth) return byOAuth;
+  if (jOAuth || hOAuth || eOAuth) return jOAuth || hOAuth || eOAuth;
 
-  // 2. Email matches an existing account → link OAuth to it
+  // 2. Check all collections for an existing email-based account and link it
   if (email) {
     const [jEmail, hEmail, eEmail] = await Promise.all([
       Jobnode.findOne({ email }),
       Handyman.findOne({ email }),
       Employer.findOne({ email }),
     ]);
-    const byEmail = jEmail || hEmail || eEmail;
-    if (byEmail) {
-      byEmail.oauthProvider = provider;
-      byEmail.oauthId = oauthId;
-      if (!byEmail.avatar && avatar) byEmail.avatar = avatar;
-      byEmail.emailVerified = true;
-      await byEmail.save();
-      return byEmail;
+    const existing = jEmail || hEmail || eEmail;
+    if (existing) {
+      existing.oauthProvider = provider;
+      existing.oauthId = oauthId;
+      if (!existing.avatar && avatar) existing.avatar = avatar;
+      existing.emailVerified = true;
+      await existing.save();
+      return existing;
     }
   }
 
-  // 3. Brand new user — create as jobseeker by default
-  //    They'll complete onboarding to set role/details
+  // 3. Brand-new user — create a temporary Jobnode record.
+  //    needsRoleSelection=true sends them to /oauth/select-role after login.
   return Jobnode.create({
     fullName,
     email: email || `${provider}_${oauthId}@oauth.placeholder`,
-    password: `oauth_${provider}_no_password`, // never used — OAuth users can't log in with password
+    password: `oauth_${provider}_${Date.now()}`,
     role: "jobseeker",
     avatar,
     oauthProvider: provider,
     oauthId,
-    emailVerified: true, // OAuth providers already confirm the email
+    emailVerified: true,
     onboardingComplete: false,
+    needsRoleSelection: true,
   });
 }
 
-// ── Google ────────────────────────────────────────────────────────────────────
-if (missingGoogle.length === 0) {
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${BACKEND}/api/auth/google/callback`,
-        scope: ["profile", "email"],
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const user = await findOrCreateOAuthUser(profile, "google");
-          done(null, user);
-        } catch (err) {
-          console.error("❌ Google OAuth:", err.message);
-          done(err, null);
-        }
-      },
-    ),
-  );
-}
+// ── Google Strategy ───────────────────────────────────────────────────────────
+passport.use(
+  "google",
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: `${BACKEND_URL}/api/auth/google/callback`,
+      proxy: true, // trust X-Forwarded-Proto from Render's reverse proxy
+    },
+    async (_accessToken, _refreshToken, profile, done) => {
+      try {
+        const user = await findOrCreateOAuthUser(profile, "google");
+        done(null, user);
+      } catch (err) {
+        console.error("❌ Google OAuth error:", err.message);
+        done(err, null);
+      }
+    },
+  ),
+);
 
-// ── LinkedIn ──────────────────────────────────────────────────────────────────
-if (missingLinkedIn.length === 0) {
-  passport.use(
-    new LinkedInStrategy(
-      {
-        clientID: process.env.LINKEDIN_CLIENT_ID,
-        clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-        callbackURL: `${BACKEND}/api/auth/linkedin/callback`,
-        scope: ["openid", "profile", "email"],
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const user = await findOrCreateOAuthUser(profile, "linkedin");
-          done(null, user);
-        } catch (err) {
-          console.error("❌ LinkedIn OAuth:", err.message);
-          done(err, null);
-        }
-      },
-    ),
-  );
-}
+// ── LinkedIn Strategy ─────────────────────────────────────────────────────────
+passport.use(
+  "linkedin",
+  new LinkedInStrategy(
+    {
+      clientID: process.env.LINKEDIN_CLIENT_ID,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+      callbackURL: `${BACKEND_URL}/api/auth/linkedin/callback`,
+      scope: ["openid", "profile", "email"],
+      proxy: true,
+    },
+    async (_accessToken, _refreshToken, profile, done) => {
+      try {
+        const user = await findOrCreateOAuthUser(profile, "linkedin");
+        done(null, user);
+      } catch (err) {
+        console.error("❌ LinkedIn OAuth error:", err.message);
+        done(err, null);
+      }
+    },
+  ),
+);
 
-// Passport requires these even when not using server sessions
-passport.serializeUser((user, done) => done(null, user._id));
-passport.deserializeUser((id, done) => done(null, { id }));
+// ── Session serialization ─────────────────────────────────────────────────────
+// Only used during the OAuth redirect dance — JWT takes over after that.
+passport.serializeUser((user, done) => done(null, user._id.toString()));
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user =
+      (await Jobnode.findById(id).lean()) ||
+      (await Handyman.findById(id).lean()) ||
+      (await Employer.findById(id).lean());
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+});
 
 export default passport;

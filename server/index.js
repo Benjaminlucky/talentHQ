@@ -1,6 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
-
+// Env vars are loaded via "-r dotenv/config" in the npm scripts.
+// This runs BEFORE any ESM imports resolve, so process.env is fully
+// populated by the time passport.js, env-check.js, etc. are imported.
 import { checkEnv } from "./utils/env-check.js";
 checkEnv();
 
@@ -10,7 +10,7 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import cookieParser from "cookie-parser";
-import session from "express-session"; // needed by passport for the OAuth handshake only
+import session from "express-session";
 import { rateLimit } from "express-rate-limit";
 import passportMiddleware from "./middlewares/passport.js";
 
@@ -27,44 +27,26 @@ import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
-import interviewRoutes from "./routes/interviewroutes.js";
-import handymanRoutes from "./routes/Handymanroutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
+import handymanRoutes from "./routes/handymanRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import flagRoutes from "./routes/Flagroutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
+import flagRoutes from "./routes/flagRoutes.js";
 
 const app = express();
 
 app.set("trust proxy", 1);
-// Raw body needed by Paystack webhook signature verification
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/payments/webhook") {
-    let raw = "";
-    req.on("data", (chunk) => {
-      raw += chunk;
-    });
-    req.on("end", () => {
-      req.rawBody = raw;
-      next();
-    });
-  } else {
-    next();
-  }
-});
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 
-// Passport needs a minimal session for the OAuth handshake redirect (not for auth state —
-// we use JWT for that). The session is ephemeral and stores nothing sensitive.
 app.use(
   session({
-    secret: process.env.JWT_SECRET, // reuse your existing secret
+    secret: process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 5 * 60 * 1000, // 5 minutes — just long enough for the OAuth dance
+      maxAge: 5 * 60 * 1000,
     },
   }),
 );
@@ -76,15 +58,13 @@ const resumePath = "./uploads/resumes";
 if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// Normalize: strip trailing slash so "https://talenthq.buzz/" and
-// "https://talenthq.buzz" both match correctly.
 const normalizeOrigin = (o) => (o ? o.replace(/\/$/, "") : o);
 
 const PRODUCTION_ORIGINS = [
-  process.env.FRONTEND_URL, // primary — set this in Render env vars
-  "https://talenthq.buzz", // custom domain
-  "https://www.talenthq.buzz", // www variant
-  "https://talenthq.netlify.app", // Netlify subdomain (OAuth redirects here)
+  process.env.FRONTEND_URL,
+  "https://talenthq.buzz",
+  "https://www.talenthq.buzz",
+  "https://talenthq.netlify.app",
 ]
   .filter(Boolean)
   .map(normalizeOrigin);
@@ -146,7 +126,7 @@ app.get("/", (req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/auth", oauthRoutes); // Google + LinkedIn OAuth (no rate limit — Google handles abuse)
+app.use("/api/auth", oauthRoutes);
 app.use("/api/superadmin", authLimiter, superAdminRoutes);
 app.use("/api/contact", contactLimiter, contactRoutes);
 app.use("/api/superadmin", adminRoutes);
@@ -161,7 +141,6 @@ app.use("/api/interviews", interviewRoutes);
 app.use("/api/handymen", handymanRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flags", flagRoutes);
-app.use("/api/payments", paymentRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -193,7 +172,6 @@ mongoose
     console.log("✅ MongoDB connected");
     try {
       const db = mongoose.connection.db;
-      // Core indexes
       await db
         .collection("jobnodes")
         .createIndex({ email: 1 }, { unique: true, background: true });
@@ -227,12 +205,9 @@ mongoose
       await db
         .collection("jobs")
         .createIndex({ createdAt: -1 }, { background: true });
-      // Text index omitted — MongoDB already has title+description+skills text index.
-      // Only one text index allowed per collection; existing one is better.
       await db
         .collection("applications")
         .createIndex({ jobseeker: 1 }, { background: true });
-      // Auth/session indexes
       await db
         .collection("emailtokens")
         .createIndex({ token: 1 }, { background: true });
