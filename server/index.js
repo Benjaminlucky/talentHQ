@@ -30,7 +30,7 @@ import messageRoutes from "./routes/messageRoutes.js";
 import interviewRoutes from "./routes/interviewroutes.js";
 import handymanRoutes from "./routes/Handymanroutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
-import flagRoutes from "./routes/flagRoutes.js";
+import flagRoutes from "./routes/Flagroutes.js";
 
 const app = express();
 
