@@ -27,15 +27,16 @@ function LayoutWrapper({ children }) {
   return (
     <>
       {!hideNavbar && <Navbar />}
-      <main
-        className={
-          isDashboard
-            ? "w-full px-0 py-0 bg-white"
-            : "max-w-7xl mx-auto px-4 py-6"
-        }
-      >
-        {isDashboard ? children : <LoadingSpinner>{children}</LoadingSpinner>}
-      </main>
+
+      {isDashboard ? (
+        // Dashboard pages: full-width, no padding — sidebar layout handles spacing
+        <main className="w-full px-0 py-0 bg-white">{children}</main>
+      ) : (
+        // Public pages: NO constraining wrapper — each page controls its own width.
+        // Pages that want a container use max-w-* inside themselves.
+        // This allows full-bleed heroes, banners and sections to stretch end to end.
+        <LoadingSpinner>{children}</LoadingSpinner>
+      )}
     </>
   );
 }

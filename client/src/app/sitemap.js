@@ -65,21 +65,31 @@ export default async function sitemap() {
   ];
 
   // ── Dynamic job routes ────────────────────────────────────────────────────
+  // 5-second timeout so a sleeping Render instance never crashes the sitemap.
+  // If backend is unavailable, Google still gets all static routes cleanly.
   let jobRoutes = [];
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
     const res = await fetch(`${API}/api/jobs?limit=500&page=1`, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      signal: controller.signal,
+      next: { revalidate: 3600 },
     });
-    const data = await res.json();
-    const jobs = data.jobs || [];
-    jobRoutes = jobs.map((job) => ({
-      url: `${SITE_URL}/findjob/${job._id}`,
-      lastModified: job.updatedAt ? new Date(job.updatedAt) : new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    }));
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      jobRoutes = jobs.map((job) => ({
+        url: `${SITE_URL}/findjob/${job._id}`,
+        lastModified: job.updatedAt ? new Date(job.updatedAt) : new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      }));
+    }
   } catch {
-    // Silently fail — static routes still served
+    // Timed out or unavailable — static routes still returned to Google.
   }
 
   return [...staticRoutes, ...jobRoutes];
