@@ -31,6 +31,7 @@ import interviewRoutes from "./routes/interviewroutes.js";
 import handymanRoutes from "./routes/Handymanroutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import flagRoutes from "./routes/Flagroutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
@@ -141,6 +142,7 @@ app.use("/api/interviews", interviewRoutes);
 app.use("/api/handymen", handymanRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flags", flagRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
