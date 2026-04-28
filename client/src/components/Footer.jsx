@@ -49,7 +49,7 @@ export default function Footer() {
                 alt="TalentHQ"
                 width={140}
                 height={36}
-                className="h-9 w-auto"
+                style={{ width: "auto", height: "36px" }}
               />
             </Link>
             <p className="text-sm text-gray-500 mt-3 leading-relaxed max-w-xs">

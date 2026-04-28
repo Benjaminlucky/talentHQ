@@ -31,7 +31,7 @@ function NavbarComponent() {
             width={140}
             height={36}
             priority
-            className="h-9 w-auto"
+            style={{ width: "auto", height: "36px" }}
           />
         </Link>
 
@@ -121,9 +121,9 @@ function NavbarComponent() {
               src="/talenthqWebsiteLogo.svg"
               alt="TalentHQ"
               width={130}
-              height={34}
+              height={32}
               priority
-              className="h-8 w-auto"
+              style={{ width: "auto", height: "32px" }}
             />
           </Link>
           <button onClick={() => setMenuOpen(false)} aria-label="Close menu">
