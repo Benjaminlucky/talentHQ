@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, memo } from "react";
 import { Menu, X, Zap } from "lucide-react";
@@ -22,9 +23,16 @@ function NavbarComponent() {
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        {/* Logo */}
-        <Link href="/" prefetch className="text-xl font-bold text-gray-800">
-          Talent<span className="text-primary-500">HQ</span>
+        {/* Logo — desktop */}
+        <Link href="/" prefetch className="flex items-center">
+          <Image
+            src="/talenthqWebsiteLogo.svg"
+            alt="TalentHQ"
+            width={140}
+            height={36}
+            priority
+            className="h-9 w-auto"
+          />
         </Link>
 
         {/* Desktop Nav */}
@@ -89,6 +97,7 @@ function NavbarComponent() {
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="md:hidden text-gray-700"
+          aria-label="Toggle menu"
         >
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -101,10 +110,23 @@ function NavbarComponent() {
         }`}
       >
         <div className="p-4 flex justify-between items-center border-b">
-          <Link href="/" prefetch className="text-xl font-bold text-gray-800">
-            Talent<span className="text-primary-500">HQ</span>
+          {/* Logo — mobile */}
+          <Link
+            href="/"
+            prefetch
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center"
+          >
+            <Image
+              src="/talenthqWebsiteLogo.svg"
+              alt="TalentHQ"
+              width={130}
+              height={34}
+              priority
+              className="h-8 w-auto"
+            />
           </Link>
-          <button onClick={() => setMenuOpen(false)}>
+          <button onClick={() => setMenuOpen(false)} aria-label="Close menu">
             <X size={28} />
           </button>
         </div>

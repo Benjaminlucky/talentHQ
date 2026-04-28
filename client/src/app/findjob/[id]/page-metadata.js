@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
     const job = await res.json();
 
     const title = `${job.title} at ${job.company?.companyName || "TalentHQ"}`;
-    const description = `${job.type} · ${job.location} · ${job.salary ? `₦${job.salary}` : "Salary TBC"}. ${(job.description || "").slice(0, 120)}`;
+    const description = `${job.type} · ${job.location}  ${job.salary ? `₦${job.salary}` : "Salary TBC"}. ${(job.description || "").slice(0, 120)}`;
 
     return {
       title,

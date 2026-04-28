@@ -1,6 +1,7 @@
 "use client";
 // src/components/Footer.jsx
 import Link from "next/link";
+import Image from "next/image";
 
 const YEAR = new Date().getFullYear();
 
@@ -42,8 +43,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="text-xl font-black text-gray-900">
-              Talent<span className="text-lime-600">HQ</span>
+            <Link href="/" className="inline-flex items-center">
+              <Image
+                src="/talenthqWebsiteLogo.svg"
+                alt="TalentHQ"
+                width={140}
+                height={36}
+                className="h-9 w-auto"
+              />
             </Link>
             <p className="text-sm text-gray-500 mt-3 leading-relaxed max-w-xs">
               Nigeria's talent marketplace — connecting employers, jobseekers

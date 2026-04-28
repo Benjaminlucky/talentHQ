@@ -7,6 +7,7 @@ import { IoLocationOutline } from "react-icons/io5";
 import { FiBriefcase } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import LoadingButton from "./LoadingButton";
+import { TbCurrencyNaira } from "react-icons/tb";
 
 export default function FeaturedJobs({
   search = "",
@@ -233,6 +234,7 @@ export default function FeaturedJobs({
                 <div className="flex items-center justify-between mt-6">
                   <div>
                     <p className="text-gray-800 font-semibold">
+                      <TbCurrencyNaira size={17} />{" "}
                       {job.salary || "Not specified"}
                     </p>
                     {job.deadline && (

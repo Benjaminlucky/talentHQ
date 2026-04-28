@@ -443,7 +443,7 @@ export default function JobDetailPage() {
                   )}
                   {job.salary && (
                     <span className="flex items-center gap-1 text-lime-700 font-semibold">
-                      <DollarSign size={13} />₦{job.salary}
+                      ₦{job.salary}
                     </span>
                   )}
                   {job.category && (

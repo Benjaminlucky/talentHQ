@@ -39,6 +39,22 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
+
+  // ── Favicons & PWA manifest ───────────────────────────────────────────────
+  icons: {
+    icon: [
+      { url: "/favicon.ico", rel: "shortcut icon" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    title: "TalentHQ",
+  },
+  // ─────────────────────────────────────────────────────────────────────────
+
   openGraph: {
     type: "website",
     locale: "en_NG",

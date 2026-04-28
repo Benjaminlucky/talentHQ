@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Building2,
 } from "lucide-react";
+import { TbCurrencyNaira } from "react-icons/tb";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -128,8 +129,8 @@ function JobCard({ job }) {
           </span>
         )}
         {job.salary && (
-          <span className="flex items-center gap-1 text-lime-700 font-medium">
-            <DollarSign size={11} />
+          <span className="flex items-center  text-lime-700 font-medium">
+            <TbCurrencyNaira size={17} />
             {job.salary}
           </span>
         )}

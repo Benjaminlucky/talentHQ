@@ -123,13 +123,13 @@ export default function JobDetails() {
                     <span className="font-semibold">
                       {job.company?.companyName || "Unknown Company"}
                     </span>
-                    • <span>{job.location}</span>
+                    <span>{job.location}</span>
                     {job.experienceLevel && (
                       <>
-                        • <span>{job.experienceLevel}</span>
+                        <span>{job.experienceLevel}</span>
                       </>
                     )}
-                    • <span className="font-semibold">{job.type}</span>
+                    <span className="font-semibold">{job.type}</span>
                   </div>
                 </div>
               </div>
