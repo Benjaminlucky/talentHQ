@@ -1,38 +1,53 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+// app/utils/employerAuthRedirect.js
+//
+// Drop-in replacement for the old localStorage-based hook.
+// Uses AuthContext (httpOnly JWT cookie) instead of localStorage so it
+// works with the current auth system.
+//
+// Usage (unchanged from before):
+//   const status = useEmployerAuthRedirect("employer");
+//   if (status !== "authorized") return null; // or a spinner
+//
+// Returns: "checking" | "authorized" | "unauthorized"
 
-const useEmployerAuthRedirect = (allowedRole) => {
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+
+const useEmployerAuthRedirect = (allowedRole = "employer") => {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [status, setStatus] = useState("checking"); // ✅ track state
+  const pathname = usePathname();
+  const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
+    // Still waiting for /api/auth/me
+    if (loading) return;
 
-    if (!userData) {
-      router.push("/employer-signin");
+    if (!user) {
       setStatus("unauthorized");
+      const encoded = encodeURIComponent(pathname);
+      router.replace(`/login?redirect=${encoded}`);
       return;
     }
 
-    try {
-      const user = JSON.parse(userData);
-      const role = user?.role;
-
-      if (allowedRole && role !== allowedRole) {
-        router.push("/employer-signin");
-        setStatus("unauthorized");
-      } else {
-        setStatus("authorized");
-      }
-    } catch (err) {
-      console.error("Failed to parse user data", err);
-      router.push("/employer-signin");
+    if (user.role !== allowedRole) {
       setStatus("unauthorized");
+      // Send the user to their actual dashboard rather than a 404/error page
+      const dashMap = {
+        jobseeker: "/dashboard/jobseeker",
+        handyman: "/dashboard/handyman",
+        employer: "/dashboard/employer",
+      };
+      router.replace(dashMap[user.role] || "/");
+      return;
     }
-  }, [allowedRole, router]);
 
-  return status; // ✅ return status to consuming component
+    setStatus("authorized");
+  }, [user, loading, router, allowedRole, pathname]);
+
+  return status;
 };
 
 export default useEmployerAuthRedirect;

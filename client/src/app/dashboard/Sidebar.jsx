@@ -38,6 +38,7 @@ export default function Sidebar({ open, setOpen }) {
     handyman: [
       { href: "/dashboard/handyman", label: "Overview" },
       { href: "/dashboard/handyman/jobs", label: "Browse Jobs" },
+      { href: "/dashboard/handyman/applications", label: "My Applications" },
       { href: "/dashboard/handyman/interviews", label: "Interview Invites" },
       { href: "/dashboard/handyman/messages", label: "Messages", badge: true },
       { href: "/account/settings", label: "Account & Security", icon: Shield },

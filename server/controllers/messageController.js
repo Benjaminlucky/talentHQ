@@ -8,6 +8,16 @@ import {
   roleToModel,
 } from "../utils/notificationHelper.js";
 
+// Lazy-load io to avoid circular import issues at startup
+let _io = null;
+async function getIO() {
+  if (!_io) {
+    const mod = await import("../index.js");
+    _io = mod.io;
+  }
+  return _io;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const MODEL_MAP = {
   jobseeker: { Model: Jobnode, modelName: "Jobnode" },
@@ -65,14 +75,12 @@ export const getConversations = async (req, res) => {
 export const startConversation = async (req, res) => {
   try {
     const { recipientId, recipientRole } = req.body;
-    if (!recipientId || !recipientRole) {
+    if (!recipientId || !recipientRole)
       return res
         .status(400)
         .json({ message: "recipientId and recipientRole are required" });
-    }
-    if (req.user.id.toString() === recipientId.toString()) {
+    if (req.user.id.toString() === recipientId.toString())
       return res.status(400).json({ message: "You cannot message yourself" });
-    }
 
     const existing = await Conversation.findOne({
       "participants.userId": { $all: [req.user.id, recipientId] },
@@ -97,7 +105,7 @@ export const startConversation = async (req, res) => {
   }
 };
 
-// ── GET /api/messages/:conversationId ─────────────────────────────────────────
+// ── GET /api/messages/:conversationId ────────────────────────────────────────
 export const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -140,7 +148,7 @@ export const getMessages = async (req, res) => {
   }
 };
 
-// ── POST /api/messages/:conversationId ────────────────────────────────────────
+// ── POST /api/messages/:conversationId ───────────────────────────────────────
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -188,30 +196,64 @@ export const sendMessage = async (req, res) => {
       unreadCount: unread,
     });
 
-    // ── Notify the OTHER participant ─────────────────────────────────────────
-    const otherParticipant = convo.participants[otherIndex];
-    const senderParticipant = convo.participants[myIndex];
-    if (otherParticipant?.userId) {
-      const otherModel = roleToModel(otherParticipant.role);
-      const dashRoute =
-        otherParticipant.role === "employer"
-          ? "/dashboard/employer/messages"
-          : otherParticipant.role === "handyman"
-            ? "/dashboard/handyman/messages"
-            : "/dashboard/jobseeker/messages";
-
-      createNotification({
-        recipientId: otherParticipant.userId,
-        recipientModel: otherModel,
-        type: "new_message",
-        title: `New message from ${senderParticipant?.fullName || "someone"}`,
-        message:
-          text.trim().slice(0, 100) + (text.trim().length > 100 ? "…" : ""),
-        link: dashRoute,
-      });
-    }
-
+    // ── Respond to sender immediately ─────────────────────────────────────────
     res.status(201).json({ message });
+
+    // ── Real-time delivery (fire-and-forget after response is sent) ───────────
+    try {
+      const io = await getIO();
+      const otherParticipant = convo.participants[otherIndex];
+      const senderParticipant = convo.participants[myIndex];
+
+      const payload = {
+        message,
+        conversationId,
+        sender: senderParticipant,
+        conversationUpdate: {
+          _id: conversationId,
+          lastMessage: text.trim().slice(0, 100),
+          lastMessageAt: new Date().toISOString(),
+          unread: unread[otherIndex],
+        },
+      };
+
+      // Push to both participants if they have the conversation open
+      io.to(`convo_${conversationId}`).emit("new_message", payload);
+
+      // Push to recipient's personal room so their conversation list updates
+      if (otherParticipant?.userId) {
+        io.to(otherParticipant.userId.toString()).emit(
+          "conversation_updated",
+          payload.conversationUpdate,
+        );
+      }
+
+      // ── In-app notification ───────────────────────────────────────────────
+      if (otherParticipant?.userId) {
+        const otherModel = roleToModel(otherParticipant.role);
+        const dashRoute =
+          otherParticipant.role === "employer"
+            ? "/dashboard/employer/messages"
+            : otherParticipant.role === "handyman"
+              ? "/dashboard/handyman/messages"
+              : "/dashboard/jobseeker/messages";
+
+        createNotification({
+          recipientId: otherParticipant.userId,
+          recipientModel: otherModel,
+          type: "new_message",
+          title: `New message from ${senderParticipant?.fullName || "someone"}`,
+          message:
+            text.trim().slice(0, 100) + (text.trim().length > 100 ? "…" : ""),
+          link: dashRoute,
+        });
+      }
+    } catch (socketErr) {
+      console.error(
+        "⚠️  Socket.io emit failed (non-fatal):",
+        socketErr.message,
+      );
+    }
   } catch (err) {
     console.error("❌ sendMessage:", err);
     res.status(500).json({ message: "Failed to send message" });
@@ -238,7 +280,7 @@ export const getUnreadCount = async (req, res) => {
   }
 };
 
-// ── DELETE /api/messages/conversations/:conversationId ────────────────────────
+// ── DELETE /api/messages/conversations/:conversationId ───────────────────────
 export const deleteConversation = async (req, res) => {
   try {
     const convo = await Conversation.findOne({

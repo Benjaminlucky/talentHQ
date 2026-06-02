@@ -1,6 +1,7 @@
 // controllers/jobController.js
 import Employer from "../models/Employer.js";
 import JobModel from "../models/job.model.js";
+import Plan from "../models/Plan.js";
 
 // ── Create Job ────────────────────────────────────────────────────────────────
 export const createJob = async (req, res) => {
@@ -26,24 +27,55 @@ export const createJob = async (req, res) => {
       jobFor,
     } = req.body;
 
-    if (!title?.trim() || !description?.trim() || !location?.trim()) {
+    if (!title?.trim() || !description?.trim() || !location?.trim())
       return res
         .status(400)
         .json({ message: "Title, description and location are required" });
-    }
 
     let companyId = company;
+
     if (req.user.role === "employer") {
       const employer = await Employer.findById(req.user.id);
       if (!employer)
         return res.status(404).json({ message: "Employer not found" });
       companyId = employer._id;
+
+      // ── Plan limit enforcement ─────────────────────────────────────────────
+      const planName = employer.activePlan || "employer_free";
+      const planExpiresAt = employer.planExpiresAt;
+      // Treat expired paid plans as free
+      const effectivePlan =
+        planExpiresAt && new Date(planExpiresAt) < new Date()
+          ? "employer_free"
+          : planName;
+
+      const planDoc = await Plan.findOne({
+        name: effectivePlan,
+        active: true,
+      }).lean();
+      const jobPostLimit = planDoc?.features?.jobPostLimit ?? 2;
+
+      if (jobPostLimit !== -1) {
+        const activeJobCount = await JobModel.countDocuments({
+          company: employer._id,
+          status: { $in: ["open", "paused"] },
+        });
+
+        if (activeJobCount >= jobPostLimit) {
+          return res.status(403).json({
+            message: `Your ${planDoc?.displayName || "current"} plan allows up to ${jobPostLimit} active job${jobPostLimit === 1 ? "" : "s"}. Close an existing job or upgrade your plan to post more.`,
+            code: "PLAN_LIMIT_REACHED",
+            limit: jobPostLimit,
+            current: activeJobCount,
+          });
+        }
+      }
     }
-    if (req.user.role === "superadmin" && !companyId) {
+
+    if (req.user.role === "superadmin" && !companyId)
       return res
         .status(400)
         .json({ message: "Superadmin must provide a company id" });
-    }
 
     const newJob = await JobModel.create({
       title: title.trim(),
@@ -105,34 +137,28 @@ export const getMyJobs = async (req, res) => {
 };
 
 // ── Update job status ─────────────────────────────────────────────────────────
-// PATCH /api/jobs/:id/status
-// Employer marks a job as open / filled / closed / paused
 export const updateJobStatus = async (req, res) => {
   try {
     const { status } = req.body;
     const allowed = ["open", "filled", "closed", "paused"];
-    if (!allowed.includes(status)) {
-      return res.status(400).json({
-        message: `Status must be one of: ${allowed.join(", ")}`,
-      });
-    }
+    if (!allowed.includes(status))
+      return res
+        .status(400)
+        .json({ message: `Status must be one of: ${allowed.join(", ")}` });
 
     const job = await JobModel.findById(req.params.id);
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    // Only the employer who posted or superadmin can change status
     if (
       req.user.role !== "superadmin" &&
       job.company?.toString() !== req.user.id.toString()
-    ) {
+    )
       return res
         .status(403)
         .json({ message: "Not authorised to update this job" });
-    }
 
     job.status = status;
     await job.save();
-
     res.json({ message: `Job marked as ${status}`, job });
   } catch (error) {
     console.error("❌ updateJobStatus:", error);
@@ -149,11 +175,10 @@ export const deleteJob = async (req, res) => {
     if (
       req.user.role !== "superadmin" &&
       job.company?.toString() !== req.user.id.toString()
-    ) {
+    )
       return res
         .status(403)
         .json({ message: "Not authorised to delete this job" });
-    }
 
     await job.deleteOne();
     res.json({ message: "Job deleted" });
@@ -177,8 +202,6 @@ export const getJobs = async (req, res) => {
       company = "",
     } = req.query;
 
-    // Public listing shows open jobs + legacy jobs that have no status field yet
-    // (status field was added later — existing jobs default to "open" behaviour)
     const query = { $or: [{ status: "open" }, { status: { $exists: false } }] };
     if (search) query.title = { $regex: search, $options: "i" };
     if (location) query.location = { $regex: location, $options: "i" };
@@ -222,7 +245,6 @@ export const getJobById = async (req, res) => {
         "companyName logo companyWebsite industry location phone avgRating reviewCount",
       )
       .lean();
-
     if (!job) return res.status(404).json({ message: "Job not found" });
     res.json(job);
   } catch (error) {
@@ -232,8 +254,6 @@ export const getJobById = async (req, res) => {
 };
 
 // ── Get employer public profile ───────────────────────────────────────────────
-// GET /api/jobs/employer/:employerId/profile
-// Returns employer info + their open job listings
 export const getEmployerPublicProfile = async (req, res) => {
   try {
     const employer = await Employer.findById(req.params.employerId)
@@ -241,11 +261,9 @@ export const getEmployerPublicProfile = async (req, res) => {
         "-password -oauthId -oauthProvider -emailVerified -banned -onboardingComplete -__v",
       )
       .lean();
-
     if (!employer)
       return res.status(404).json({ message: "Employer not found" });
 
-    // All open jobs by this employer (+ legacy jobs with no status field)
     const jobs = await JobModel.find({
       company: req.params.employerId,
       $or: [{ status: "open" }, { status: { $exists: false } }],

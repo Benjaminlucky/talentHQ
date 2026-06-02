@@ -1,3 +1,4 @@
+// server/routes/OnboardingRoutes.js
 import express from "express";
 import {
   updateJobSeekerOnboarding,
@@ -9,9 +10,7 @@ import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// Jobseeker: accepts resume + avatar
-// upload.single("resume") was rejecting the "avatar" field with MulterError: Unexpected field
-// upload.fields() accepts multiple named fields without that error
+// ── Jobseeker: resume (raw/pdf) + avatar (image) ──────────────────────────────
 router.patch(
   "/jobseeker",
   verifyToken,
@@ -22,10 +21,16 @@ router.patch(
   updateJobSeekerOnboarding,
 );
 
-// Handyman: no file uploads at onboarding
-router.patch("/handyman", verifyToken, updateHandymanOnboarding);
+// ── Handyman: avatar (image) — FIX: was JSON-only, now has upload middleware ──
+// The smart storage in upload.js routes "avatar" → imageCloudStorage automatically.
+router.patch(
+  "/handyman",
+  verifyToken,
+  upload.fields([{ name: "avatar", maxCount: 1 }]),
+  updateHandymanOnboarding,
+);
 
-// Employer: logo only
+// ── Employer: logo (image) ────────────────────────────────────────────────────
 router.patch(
   "/employer",
   verifyToken,

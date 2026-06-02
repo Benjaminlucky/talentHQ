@@ -1,32 +1,40 @@
-// src/app/dashboard/layout.jsx
 "use client";
-import { useState } from "react";
+// app/dashboard/layout.jsx
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
-import LoadingSpinner from "@/components/LoadingSpinner"; // ✅ import spinner
 
 export default function DashboardLayout({ children }) {
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      const encoded = encodeURIComponent(pathname);
+      router.replace(`/login?redirect=${encoded}`);
+    }
+  }, [user, loading, router, pathname]);
+
+  // ── Spinner while /api/auth/me is resolving ───────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Checking authentication...</p>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={28} className="animate-spin text-primary-500" />
+          <p className="text-sm text-gray-500 font-medium">Loading…</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-600 font-semibold">
-          Not logged in — please go to /login
-        </p>
-      </div>
-    );
-  }
+  // ── Not authenticated — return null while redirect fires ──────────────────
+  if (!user) return null;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -41,13 +49,12 @@ export default function DashboardLayout({ children }) {
           >
             <Menu className="h-6 w-6 text-gray-700" />
           </button>
-          <h1 className="font-bold text-lg">TalentHQ</h1>
+          <span className="font-bold text-lg text-gray-900">
+            Talent<span className="text-lime-600">HQ</span>
+          </span>
         </div>
 
-        {/* ✅ Wrap dashboard children with LoadingSpinner */}
-        <main className="flex-1 p-6 md:p-10">
-          <LoadingSpinner>{children}</LoadingSpinner>
-        </main>
+        <main className="flex-1 p-6 md:p-10">{children}</main>
       </div>
     </div>
   );

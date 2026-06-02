@@ -1,7 +1,7 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import axios from "axios";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Loader2,
   Shield,
+  AlertCircle,
+  Calendar,
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
@@ -40,12 +42,12 @@ const BENEFITS = [
 ];
 
 export default function JobseekerUpgradePage() {
-  const router = useRouter();
   const [plan, setPlan] = useState(null);
   const [sub, setSub] = useState(null);
   const [interval, setInt] = useState("monthly");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -53,10 +55,11 @@ export default function JobseekerUpgradePage() {
       axios.get(`${API}/api/payments/subscription`, { withCredentials: true }),
     ])
       .then(([plansRes, subRes]) => {
-        const premium = (plansRes.data.plans || []).find(
-          (p) => p.name === "jobseeker_premium",
+        setPlan(
+          (plansRes.data.plans || []).find(
+            (p) => p.name === "jobseeker_premium",
+          ) || null,
         );
-        setPlan(premium || null);
         setSub(subRes.data.subscription);
       })
       .catch(() => {})
@@ -70,6 +73,7 @@ export default function JobseekerUpgradePage() {
   const handleUpgrade = async () => {
     if (!plan) return;
     setLoading(true);
+    setError("");
     try {
       const res = await axios.post(
         `${API}/api/payments/subscription/initialize`,
@@ -78,13 +82,18 @@ export default function JobseekerUpgradePage() {
       );
       window.location.href = res.data.authorizationUrl;
     } catch (err) {
-      alert(err.response?.data?.message || "Payment failed. Please try again.");
+      setError(
+        err.response?.data?.message || "Payment failed. Please try again.",
+      );
       setLoading(false);
     }
   };
 
   const isActive =
     sub?.planName === "jobseeker_premium" && sub?.status === "active";
+  const daysLeft = sub?.expiresAt
+    ? Math.max(0, Math.ceil((new Date(sub.expiresAt) - Date.now()) / 86400000))
+    : 0;
 
   return (
     <ProtectedRoute allowedRoles={["jobseeker"]}>
@@ -103,15 +112,29 @@ export default function JobseekerUpgradePage() {
             <Loader2 size={24} className="animate-spin text-gray-400" />
           </div>
         ) : isActive ? (
-          <div className="bg-primary-50 border-2 border-primary-300 rounded-2xl p-8 text-center space-y-3">
+          <div className="bg-primary-50 border-2 border-primary-300 rounded-2xl p-8 text-center space-y-4">
             <div className="w-14 h-14 bg-primary-500 rounded-2xl flex items-center justify-center mx-auto">
               <Crown size={24} className="text-white" />
             </div>
             <h2 className="text-xl font-black text-gray-900">
               You're Premium! 🎉
             </h2>
+            <div className="grid grid-cols-2 gap-3 text-left max-w-xs mx-auto">
+              {BENEFITS.map(({ title }) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-2 text-sm text-gray-700"
+                >
+                  <CheckCircle2
+                    size={14}
+                    className="text-primary-500 flex-shrink-0"
+                  />
+                  {title}
+                </div>
+              ))}
+            </div>
             <p className="text-sm text-gray-600">
-              Your premium features are active until{" "}
+              Active until{" "}
               <strong>
                 {new Date(sub.expiresAt).toLocaleDateString("en-NG", {
                   day: "numeric",
@@ -119,16 +142,21 @@ export default function JobseekerUpgradePage() {
                   year: "numeric",
                 })}
               </strong>
-              .
             </p>
-            <p className="text-xs text-gray-400">
-              All premium benefits are automatically applied to your profile and
-              applications.
+            {daysLeft <= 7 && daysLeft > 0 && (
+              <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                <AlertCircle size={13} />
+                Expires in {daysLeft} day{daysLeft === 1 ? "" : "s"} — consider
+                renewing.
+              </div>
+            )}
+            <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
+              <Calendar size={11} />
+              {sub.interval === "yearly" ? "Yearly" : "Monthly"} billing
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Benefits list */}
             <div className="lg:col-span-3 space-y-4">
               {BENEFITS.map(({ icon: Icon, title, desc }) => (
                 <div
@@ -150,15 +178,12 @@ export default function JobseekerUpgradePage() {
               ))}
             </div>
 
-            {/* Payment card */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-2xl border-2 border-primary-200 p-6 sticky top-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Crown size={18} className="text-primary-600" />
                   <p className="font-black text-gray-900">Premium Plan</p>
                 </div>
-
-                {/* Billing toggle */}
                 <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
                   {["monthly", "yearly"].map((i) => (
                     <button
@@ -170,7 +195,6 @@ export default function JobseekerUpgradePage() {
                     </button>
                   ))}
                 </div>
-
                 <div className="mb-5">
                   <p className="text-3xl font-black text-gray-900">
                     ₦{price.toLocaleString()}
@@ -189,7 +213,12 @@ export default function JobseekerUpgradePage() {
                     </p>
                   )}
                 </div>
-
+                {error && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 mb-4">
+                    <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+                    {error}
+                  </div>
+                )}
                 <button
                   onClick={handleUpgrade}
                   disabled={loading || !plan}
@@ -207,7 +236,6 @@ export default function JobseekerUpgradePage() {
                     </>
                   )}
                 </button>
-
                 <p className="text-[11px] text-gray-400 text-center leading-relaxed">
                   Payments processed securely by Paystack. Cancel anytime.
                 </p>

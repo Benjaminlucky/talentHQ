@@ -1,6 +1,4 @@
 // server/middlewares/passport.js
-// npm install passport passport-google-oauth20 passport-linkedin-oauth2
-
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as LinkedInStrategy } from "passport-linkedin-oauth2";
@@ -8,13 +6,21 @@ import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
 
-// Resolved once at startup (after dotenv is loaded via --require ./env-loader.js)
-const BACKEND_URL =
+// ── BACKEND_URL ───────────────────────────────────────────────────────────────
+// FIX 1: Removed hardcoded "talenthq-vl3n.onrender.com" fallback.
+//         The correct production host is Railway.
+// FIX 2: .replace(/\/+$/, "") strips any trailing slash from the env var.
+//         A trailing slash makes the callback URL "railway.app//api/auth/..."
+//         (double slash) which never matches the registered redirect URI in
+//         Google/LinkedIn consoles — this was the root cause of all OAuth failures.
+const BACKEND_URL = (
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://talenthq-vl3n.onrender.com"
-    : "http://localhost:5000");
+    ? "https://talenthq-production.up.railway.app"
+    : "http://localhost:5000")
+).replace(/\/+$/, ""); // ← critical — strips trailing slash
 
+// ── Find or create OAuth user ─────────────────────────────────────────────────
 async function findOrCreateOAuthUser(profile, provider) {
   const email = profile.emails?.[0]?.value?.toLowerCase().trim();
   const fullName =
@@ -24,7 +30,7 @@ async function findOrCreateOAuthUser(profile, provider) {
   const avatar = profile.photos?.[0]?.value || "";
   const oauthId = profile.id;
 
-  // 1. Check all collections for an existing OAuth-linked account
+  // 1. Existing account already linked to this provider
   const [jOAuth, hOAuth, eOAuth] = await Promise.all([
     Jobnode.findOne({ oauthProvider: provider, oauthId }),
     Handyman.findOne({ oauthProvider: provider, oauthId }),
@@ -32,7 +38,7 @@ async function findOrCreateOAuthUser(profile, provider) {
   ]);
   if (jOAuth || hOAuth || eOAuth) return jOAuth || hOAuth || eOAuth;
 
-  // 2. Check all collections for an existing email-based account and link it
+  // 2. Existing account with matching email — link OAuth to it
   if (email) {
     const [jEmail, hEmail, eEmail] = await Promise.all([
       Jobnode.findOne({ email }),
@@ -50,12 +56,11 @@ async function findOrCreateOAuthUser(profile, provider) {
     }
   }
 
-  // 3. Brand-new user — create a temporary Jobnode record.
-  //    needsRoleSelection=true sends them to /oauth/select-role after login.
+  // 3. Brand-new user — temp Jobnode, needsRoleSelection=true → /oauth/select-role
   return Jobnode.create({
     fullName,
     email: email || `${provider}_${oauthId}@oauth.placeholder`,
-    password: `oauth_${provider}_${Date.now()}`,
+    password: `oauth_${provider}_${oauthId}_${Date.now()}`,
     role: "jobseeker",
     avatar,
     oauthProvider: provider,
@@ -67,6 +72,8 @@ async function findOrCreateOAuthUser(profile, provider) {
 }
 
 // ── Google Strategy ───────────────────────────────────────────────────────────
+// Register this callback in Google Cloud Console:
+// https://talenthq-production.up.railway.app/api/auth/google/callback
 passport.use(
   "google",
   new GoogleStrategy(
@@ -74,7 +81,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: `${BACKEND_URL}/api/auth/google/callback`,
-      proxy: true, // trust X-Forwarded-Proto from Render's reverse proxy
+      proxy: true,
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
@@ -89,6 +96,8 @@ passport.use(
 );
 
 // ── LinkedIn Strategy ─────────────────────────────────────────────────────────
+// Register this callback in LinkedIn Developer Portal:
+// https://talenthq-production.up.railway.app/api/auth/linkedin/callback
 passport.use(
   "linkedin",
   new LinkedInStrategy(
@@ -112,7 +121,9 @@ passport.use(
 );
 
 // ── Session serialization ─────────────────────────────────────────────────────
-// Only used during the OAuth redirect dance — JWT takes over after that.
+// Sessions are only used during the OAuth redirect dance.
+// After handleOAuthCallback issues the httpOnly JWT cookie, regular requests
+// use verifyToken (JWT) not the session.
 passport.serializeUser((user, done) => done(null, user._id.toString()));
 
 passport.deserializeUser(async (id, done) => {
@@ -121,7 +132,7 @@ passport.deserializeUser(async (id, done) => {
       (await Jobnode.findById(id).lean()) ||
       (await Handyman.findById(id).lean()) ||
       (await Employer.findById(id).lean());
-    done(null, user);
+    done(null, user || false);
   } catch (err) {
     done(err, null);
   }

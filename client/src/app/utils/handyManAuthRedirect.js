@@ -1,29 +1,51 @@
-// app/utils/useAuthRedirect.js
 "use client";
+// app/utils/handyManAuthRedirect.js
+//
+// Drop-in replacement for the old localStorage-based hook.
+// Uses AuthContext (httpOnly JWT cookie) instead of localStorage so it
+// works with the current auth system.
+//
+// Usage (unchanged from before):
+//   useHandyManAuthRedirect("handyman");
+//
+// Returns: "checking" | "authorized" | "unauthorized"
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-const useHandyManAuthRedirect = (allowedRole) => {
+const useHandyManAuthRedirect = (allowedRole = "handyman") => {
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
+    // Still waiting for /api/auth/me
+    if (loading) return;
 
-    if (!userData) {
-      router.push("/handyman-signin"); // or your login page
+    if (!user) {
+      setStatus("unauthorized");
+      const encoded = encodeURIComponent(pathname);
+      router.replace(`/login?redirect=${encoded}`);
       return;
     }
 
-    try {
-      const user = JSON.parse(userData);
-      if (user.role !== allowedRole) {
-        router.push("/unauthorized"); // or a generic fallback route
-      }
-    } catch (err) {
-      router.push("/handyman-signin");
+    if (user.role !== allowedRole) {
+      setStatus("unauthorized");
+      const dashMap = {
+        jobseeker: "/dashboard/jobseeker",
+        handyman: "/dashboard/handyman",
+        employer: "/dashboard/employer",
+      };
+      router.replace(dashMap[user.role] || "/");
+      return;
     }
-  }, [allowedRole, router]);
+
+    setStatus("authorized");
+  }, [user, loading, router, allowedRole, pathname]);
+
+  return status;
 };
 
 export default useHandyManAuthRedirect;

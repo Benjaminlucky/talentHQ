@@ -29,6 +29,9 @@ const employerSchema = new mongoose.Schema(
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
 
+    // Email verification (matches Jobnode + Handyman schemas)
+    emailVerified: { type: Boolean, default: false },
+
     // Plan fields (set by subscription webhook)
     activePlan: { type: String, default: "employer_free" },
     planExpiresAt: { type: Date, default: null },

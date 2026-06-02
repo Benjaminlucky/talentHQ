@@ -1,11 +1,34 @@
 // controllers/authController.js
+import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Jobnode from "../models/Jobnode.js";
 import Handyman from "../models/Handyman.js";
 import Employer from "../models/Employer.js";
+import EmailToken from "../models/EmailToken.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+} from "../utils/email.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Map a user role → the userModel string the EmailToken schema expects */
+const roleToUserModel = (role) => {
+  switch (role) {
+    case "handyman":
+      return "Handyman";
+    case "employer":
+      return "Employer";
+    case "jobseeker":
+    default:
+      return "Jobnode";
+  }
+};
+
+/** Given a user doc (from any collection), return its userModel string */
+const docToUserModel = (doc) => roleToUserModel(doc?.role);
 
 /** Check email across all 3 collections in parallel — fast */
 const emailExistsAnywhere = async (email) => {
@@ -17,7 +40,7 @@ const emailExistsAnywhere = async (email) => {
   return Boolean(j || h || e);
 };
 
-/** Strip sensitive fields from any user object (works on both mongoose docs and plain objects) */
+/** Strip sensitive fields from any user object */
 const sanitize = (doc) => {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : { ...doc };
@@ -27,7 +50,7 @@ const sanitize = (doc) => {
   return obj;
 };
 
-/** Find user across all 3 collections in parallel — login doesn't know the role upfront */
+/** Find user across all 3 collections in parallel */
 const findUserByEmail = async (email) => {
   const [j, h, e] = await Promise.all([
     Jobnode.findOne({ email }),
@@ -63,10 +86,10 @@ const issueToken = (res, user) => {
   );
 
   res.cookie("token", token, {
-    httpOnly: true, // not accessible via JS
-    secure: process.env.NODE_ENV === "production", // HTTPS only in prod
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // cross-origin in prod (Render→Netlify)
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
   return token;
@@ -84,8 +107,6 @@ export const signup2 = async (req, res) => {
       location,
       companyName,
       companyWebsite,
-      agreedToTerms,
-      agreedAt,
     } = req.body;
 
     // ── Input validation ────────────────────────────────────────────────────
@@ -102,7 +123,6 @@ export const signup2 = async (req, res) => {
         .status(400)
         .json({ message: "Password must be at least 8 characters" });
     }
-    // Basic email format check
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return res.status(400).json({ message: "Invalid email address" });
     }
@@ -116,7 +136,7 @@ export const signup2 = async (req, res) => {
         .json({ message: "An account with this email already exists" });
     }
 
-    const hashed = await bcrypt.hash(password, 12); // 12 rounds — stronger than the old 10
+    const hashed = await bcrypt.hash(password, 12);
 
     let created;
     if (role === "jobseeker") {
@@ -154,7 +174,35 @@ export const signup2 = async (req, res) => {
       });
     }
 
+    // ── Issue JWT cookie ────────────────────────────────────────────────────
     issueToken(res, created);
+
+    // ── Send verification email (fire-and-forget — never blocks the response)
+    try {
+      const verifyToken = crypto.randomBytes(32).toString("hex");
+      await EmailToken.create({
+        userId: created._id,
+        userModel: roleToUserModel(role), // required by EmailToken schema
+        token: verifyToken,
+        type: "email_verification", // must match schema enum
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      });
+      // fire-and-forget — don't await so signup response stays fast
+      sendVerificationEmail(normalizedEmail, verifyToken).catch((err) =>
+        console.error(
+          "⚠️  Verification email failed (non-fatal):",
+          err.message,
+        ),
+      );
+    } catch (emailErr) {
+      // Email token creation failed — log but don't block signup
+      console.error("⚠️  Could not create email token:", emailErr.message);
+    }
+
+    // ── Send welcome email (fire-and-forget) ────────────────────────────────
+    sendWelcomeEmail(normalizedEmail, fullName.trim(), role).catch((err) =>
+      console.error("⚠️  Welcome email failed (non-fatal):", err.message),
+    );
 
     return res.status(201).json({
       message: "Account created successfully",
@@ -178,12 +226,9 @@ export const login = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-
-    // Search all 3 collections in parallel
     const user = await findUserByEmail(normalizedEmail);
 
-    // Use constant-time compare even if user not found (prevents timing attacks)
-    // We hash a dummy string so bcrypt.compare always runs
+    // Constant-time compare — prevents timing attacks / email enumeration
     const dummyHash =
       "$2b$12$invalidhashusedfortimingprotectiononly1234567890abcdef";
     const isMatch = user
@@ -191,7 +236,6 @@ export const login = async (req, res) => {
       : await bcrypt.compare(password, dummyHash).then(() => false);
 
     if (!user || !isMatch) {
-      // Same message for both cases — prevents email enumeration
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
@@ -211,7 +255,7 @@ export const login = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const { id, role } = req.user;
-    const user = await findUserById(id, role); // already selects out password
+    const user = await findUserById(id, role);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -232,4 +276,254 @@ export const logout = (req, res) => {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
   return res.status(200).json({ message: "Logged out successfully" });
+};
+
+// ── POST /api/auth/forgot-password ───────────────────────────────────────────
+// Always returns 200 — prevents email enumeration.
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email?.trim()) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await findUserByEmail(normalizedEmail);
+
+    // Always respond 200 regardless of whether user exists
+    if (!user) {
+      return res.status(200).json({
+        message:
+          "If this email is registered, you'll receive a reset link shortly.",
+      });
+    }
+
+    // Delete any existing reset tokens for this user (one active at a time)
+    await EmailToken.deleteMany({ userId: user._id, type: "password_reset" });
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    await EmailToken.create({
+      userId: user._id,
+      userModel: docToUserModel(user), // required by EmailToken schema
+      token: resetToken,
+      type: "password_reset", // must match schema enum
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+    });
+
+    // Fire-and-forget
+    sendPasswordResetEmail(normalizedEmail, resetToken).catch((err) =>
+      console.error("⚠️  Reset email failed:", err.message),
+    );
+
+    return res.status(200).json({
+      message:
+        "If this email is registered, you'll receive a reset link shortly.",
+    });
+  } catch (err) {
+    console.error("❌ forgotPassword:", err);
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// ── POST /api/auth/reset-password ────────────────────────────────────────────
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res
+        .status(400)
+        .json({ message: "Token and new password are required" });
+    }
+    if (password.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters" });
+    }
+
+    // Look up the token document
+    const tokenDoc = await EmailToken.findOne({
+      token,
+      type: "password_reset",
+    });
+
+    if (!tokenDoc) {
+      return res.status(400).json({
+        message: "Invalid or expired reset link. Please request a new one.",
+      });
+    }
+
+    if (tokenDoc.expiresAt < new Date()) {
+      await tokenDoc.deleteOne();
+      return res.status(400).json({
+        message: "This reset link has expired. Please request a new one.",
+      });
+    }
+
+    const { userId } = tokenDoc;
+
+    // Find the user across all collections
+    const [j, h, e] = await Promise.all([
+      Jobnode.findById(userId),
+      Handyman.findById(userId),
+      Employer.findById(userId),
+    ]);
+    const user = j || h || e;
+
+    if (!user) {
+      await tokenDoc.deleteOne();
+      return res.status(400).json({ message: "User account not found." });
+    }
+
+    // Hash and save the new password
+    user.password = await bcrypt.hash(password, 12);
+    await user.save();
+
+    // Delete the used token (one-time use)
+    await tokenDoc.deleteOne();
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("❌ resetPassword:", err);
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// ── GET /api/auth/verify-email ────────────────────────────────────────────────
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res
+        .status(400)
+        .json({ message: "Verification token is required." });
+    }
+
+    const tokenDoc = await EmailToken.findOne({
+      token,
+      type: "email_verification",
+    });
+
+    if (!tokenDoc) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or already-used verification link." });
+    }
+
+    if (tokenDoc.expiresAt < new Date()) {
+      await tokenDoc.deleteOne();
+      return res.status(400).json({
+        message:
+          "This verification link has expired. Please request a new one.",
+      });
+    }
+
+    const { userId } = tokenDoc;
+
+    // Mark emailVerified = true on whichever collection holds this user
+    const [j, h, e] = await Promise.all([
+      Jobnode.findByIdAndUpdate(userId, { emailVerified: true }),
+      Handyman.findByIdAndUpdate(userId, { emailVerified: true }),
+      Employer.findByIdAndUpdate(userId, { emailVerified: true }),
+    ]);
+
+    if (!j && !h && !e) {
+      return res.status(400).json({ message: "User account not found." });
+    }
+
+    // Delete the used token
+    await tokenDoc.deleteOne();
+
+    return res
+      .status(200)
+      .json({ message: "Email verified successfully. You can now log in." });
+  } catch (err) {
+    console.error("❌ verifyEmail:", err);
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// ── POST /api/auth/resend-verification ───────────────────────────────────────
+// Lets a logged-in user request a new verification email if theirs expired.
+export const resendVerification = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const user = await findUserById(id, role);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    if (user.emailVerified) {
+      return res.status(400).json({ message: "Email is already verified." });
+    }
+
+    // Delete any existing verify tokens for this user
+    await EmailToken.deleteMany({ userId: id, type: "email_verification" });
+
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    await EmailToken.create({
+      userId: id,
+      userModel: roleToUserModel(role), // required by EmailToken schema
+      token: verifyToken,
+      type: "email_verification", // must match schema enum
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    sendVerificationEmail(user.email, verifyToken).catch((err) =>
+      console.error("⚠️  Resend verification email failed:", err.message),
+    );
+
+    return res.status(200).json({ message: "Verification email sent." });
+  } catch (err) {
+    console.error("❌ resendVerification:", err);
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
+};
+
+// ── PATCH /api/auth/change-password ──────────────────────────────────────────
+// For logged-in users changing their password from account settings.
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const { id, role } = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Current password and new password are required." });
+    }
+    if (newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 8 characters." });
+    }
+
+    // Fetch the full user doc (needs .password which .lean() excludes via select)
+    let user;
+    if (role === "jobseeker") user = await Jobnode.findById(id);
+    else if (role === "handyman") user = await Handyman.findById(id);
+    else if (role === "employer") user = await Employer.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ message: "Current password is incorrect." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("❌ changePassword:", err);
+    res.status(500).json({ message: "Server error. Please try again." });
+  }
 };

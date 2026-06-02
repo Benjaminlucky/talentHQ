@@ -32,12 +32,18 @@ const JOB_CATEGORIES = [
   "Education",
 ];
 
-const STATS = [
-  { value: "12,000+", label: "Active Jobs" },
-  { value: "8,500+", label: "Candidates" },
-  { value: "3,200+", label: "Companies" },
-  { value: "95%", label: "Match Rate" },
+// Default/placeholder stats shown until the real counts load from /api/stats.
+// The "Match Rate" metric was fabricated (no matching algorithm exists), so it
+// has been replaced with "Skilled Trades" (handyman count) — a real number.
+const DEFAULT_STATS = [
+  { value: "—", label: "Active Jobs", key: "activeJobs" },
+  { value: "—", label: "Candidates", key: "candidates" },
+  { value: "—", label: "Companies", key: "companies" },
+  { value: "—", label: "Skilled Trades", key: "handymen" },
 ];
+
+// Format a raw count into a friendly string (e.g. 12000 → "12,000")
+const fmtStat = (n) => (typeof n === "number" ? n.toLocaleString("en-NG") : n);
 
 const WHY_ITEMS = [
   {
@@ -288,10 +294,10 @@ export default function HomePage() {
   const [jobs, setJobs] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [handymen, setHandymen] = useState([]);
+  const [stats, setStats] = useState(DEFAULT_STATS);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
   const [loadingHandymen, setLoadingHandymen] = useState(true);
-  const router_placeholder = null; // not needed here
 
   const base = process.env.NEXT_PUBLIC_API_BASE;
 
@@ -308,20 +314,28 @@ export default function HomePage() {
       .catch(() => {})
       .finally(() => setLoadingCandidates(false));
 
+    // ── Handymen — use the real public handymen endpoint ──────────────────
     axios
-      .get(`${base}/api/jobs`, { params: { jobFor: "handyman", limit: 20 } })
-      .then(() => {})
-      .catch(() => {});
-
-    // Fetch handymen from a generic endpoint — fallback to empty
-    fetch(`${base}/api/profile/applications?limit=20`)
-      .then((r) => r.json())
-      .then((d) => {
-        // Use candidate data as placeholder for handymen since no dedicated endpoint yet
-        setHandymen((d.applications || d || []).slice(0, 10));
-      })
+      .get(`${base}/api/handymen`, { params: { limit: 10 } })
+      .then((r) => setHandymen(r.data.handymen || []))
       .catch(() => {})
       .finally(() => setLoadingHandymen(false));
+
+    // ── Real platform stats from /api/stats ───────────────────────────────
+    axios
+      .get(`${base}/api/stats`)
+      .then((r) => {
+        const s = r.data || {};
+        setStats([
+          { value: fmtStat(s.activeJobs), label: "Active Jobs" },
+          { value: fmtStat(s.candidates), label: "Candidates" },
+          { value: fmtStat(s.companies), label: "Companies" },
+          { value: fmtStat(s.handymen), label: "Skilled Trades" },
+        ]);
+      })
+      .catch(() => {
+        // Leave DEFAULT_STATS placeholders on failure
+      });
   }, [base]);
 
   const handleSearch = (e) => {
@@ -478,7 +492,7 @@ export default function HomePage() {
       <section className="bg-primary-500 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-            {STATS.map(({ value, label }) => (
+            {stats.map(({ value, label }) => (
               <div key={label}>
                 <p className="text-3xl font-black text-white">{value}</p>
                 <p className="text-xs text-primary-200 mt-1 font-medium uppercase tracking-wider">
@@ -597,44 +611,14 @@ export default function HomePage() {
               <Sk key={i} className="flex-shrink-0 w-64 h-24" />
             ))}
           </div>
+        ) : handymen.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            No tradespeople listed yet.
+          </div>
         ) : (
           <ScrollTicker speed={28}>
-            {(handymen.length
-              ? handymen
-              : [
-                  {
-                    _id: "1",
-                    fullName: "Samuel Eze",
-                    trade: "Plumber",
-                    yearsExperience: 8,
-                  },
-                  {
-                    _id: "2",
-                    fullName: "Ibrahim Yusuf",
-                    trade: "Electrician",
-                    yearsExperience: 5,
-                  },
-                  {
-                    _id: "3",
-                    fullName: "Kelechi Obi",
-                    trade: "Tiler",
-                    yearsExperience: 6,
-                  },
-                  {
-                    _id: "4",
-                    fullName: "Sunday Ade",
-                    trade: "Painter",
-                    yearsExperience: 4,
-                  },
-                  {
-                    _id: "5",
-                    fullName: "Musa Danjuma",
-                    trade: "Welder",
-                    yearsExperience: 10,
-                  },
-                ]
-            ).map((h, i) => (
-              <HandymanTickerCard key={h._id || i} h={h.jobseeker || h} />
+            {handymen.map((h, i) => (
+              <HandymanTickerCard key={h._id || i} h={h} />
             ))}
           </ScrollTicker>
         )}

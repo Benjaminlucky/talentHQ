@@ -1,8 +1,18 @@
-// src/app/utils/superAdminAuthRedirect.js
-// Verifies superadmin session server-side.
-// localStorage check is just a fast pre-check — the real verification
-// is done against the server so a tampered localStorage can't grant access.
 "use client";
+// app/utils/superAdminAuthRedirect.js
+//
+// Super admin auth uses a separate localStorage Bearer token system
+// (not the httpOnly JWT cookie used by regular users).
+// This is intentional — admins log in via /admin/login which stores
+// "superadminToken" in localStorage via the /api/superadmin/login endpoint.
+//
+// Usage (unchanged from before):
+//   const isAuthorized = useSuperAdminAuthRedirect();
+//   if (!isAuthorized) return <Spinner />;
+//
+// Returns: false (checking/unauthorized) | true (authorized)
+// NOTE: returns a boolean — not a string — because all consuming pages
+// do  `if (!isAuthorized) return ...`
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,42 +21,46 @@ const API = process.env.NEXT_PUBLIC_API_BASE;
 
 export const useSuperAdminAuthRedirect = () => {
   const router = useRouter();
-  const [status, setStatus] = useState("checking");
+  // false = still checking OR unauthorized; true = verified authorized
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
     const verify = async () => {
-      // Fast pre-check: if nothing in localStorage, redirect immediately
+      // ── Step 1: fast localStorage pre-check ────────────────────────────
       const token = localStorage.getItem("superadminToken");
       if (!token) {
         router.replace("/admin/login");
         return;
       }
 
-      // Server-side verification — the real gate
+      // ── Step 2: server-side verification (the real gate) ───────────────
       try {
         const res = await fetch(`${API}/api/superadmin/verify`, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          // Token is expired or invalid — clear stale data
-          localStorage.removeItem("superadminToken");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          router.replace("/admin/login");
+        if (res.ok) {
+          // Token is valid — allow access
+          setIsAuthorized(true);
           return;
         }
 
-        setStatus("authorized");
+        // Token rejected — clear stale data and redirect
+        localStorage.removeItem("superadminToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+        router.replace("/admin/login");
       } catch {
-        // Network error — fall back to localStorage role check only
-        // (better to allow access than to lock out during a network blip)
+        // ── Step 3: network error fallback ─────────────────────────────
+        // If the verify request fails (Railway cold start, network blip)
+        // fall back to checking the stored user role. This prevents
+        // admins from being locked out during brief outages.
         try {
-          const userData = localStorage.getItem("user");
-          const parsed = userData ? JSON.parse(userData) : null;
+          const raw = localStorage.getItem("user");
+          const parsed = raw ? JSON.parse(raw) : null;
           if (parsed?.role === "superadmin") {
-            setStatus("authorized");
+            setIsAuthorized(true);
           } else {
             router.replace("/admin/login");
           }
@@ -59,5 +73,5 @@ export const useSuperAdminAuthRedirect = () => {
     verify();
   }, [router]);
 
-  return status;
+  return isAuthorized;
 };

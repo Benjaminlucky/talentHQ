@@ -1,32 +1,40 @@
 "use client";
-// src/components/ProtectedRoute.jsx
+// components/ProtectedRoute.jsx
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 /**
  * ProtectedRoute
+ *
  * Props:
- *   children     — page content to render when authorized
- *   allowedRoles — string[] of roles that may access this page
- *                  e.g. ["employer"] or ["jobseeker", "handyman"]
+ *   children      — page content to render when authorized
+ *   allowedRoles  — string[] of roles permitted, e.g. ["employer"]
+ *                   omit to allow any authenticated user
+ *
+ * Behaviour:
+ *   • While auth is loading  → full-screen spinner (no flash, no redirect)
+ *   • Not logged in          → replace to /login?redirect=<current path>
+ *   • Wrong role             → replace to the user's own dashboard
+ *   • Authorized             → render children
  */
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // wait for /api/auth/me to respond
 
-    // Not logged in → send to login with return URL
     if (!user) {
-      const returnUrl = encodeURIComponent(window.location.pathname);
-      router.replace(`/login?redirect=${returnUrl}`);
+      // Not logged in — send to login with the current path as ?redirect=
+      const encoded = encodeURIComponent(pathname);
+      router.replace(`/login?redirect=${encoded}`);
       return;
     }
 
-    // Logged in but wrong role → redirect to their own dashboard
+    // Logged in but accessing a page their role can't see
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       const dashMap = {
         jobseeker: "/dashboard/jobseeker",
@@ -35,9 +43,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
       };
       router.replace(dashMap[user.role] || "/");
     }
-  }, [user, loading, router, allowedRoles]);
+  }, [user, loading, router, allowedRoles, pathname]);
 
-  // Loading spinner
+  // ── Still fetching /api/auth/me ───────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -49,7 +57,8 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     );
   }
 
-  // Not yet redirected — render nothing to avoid flash
+  // ── Not logged in or wrong role — return null while redirect fires ─────────
+  // Avoids a flash of protected content before router.replace resolves
   if (!user) return null;
   if (allowedRoles && !allowedRoles.includes(user.role)) return null;
 

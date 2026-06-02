@@ -14,10 +14,20 @@ const interviewSchema = new mongoose.Schema(
       ref: "Employer",
       required: true,
     },
+    // Polymorphic — the candidate may be a Jobnode (jobseeker) or a Handyman.
+    // Field name kept as jobseekerId so existing code/UI keeps working; the
+    // referenced collection is resolved via jobseekerModel (refPath). Existing
+    // interview docs created before this change have no jobseekerModel and
+    // default to "Jobnode" — unchanged behaviour for current data.
     jobseekerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Jobnode",
       required: true,
+      refPath: "jobseekerModel",
+    },
+    jobseekerModel: {
+      type: String,
+      enum: ["Jobnode", "Handyman"],
+      default: "Jobnode",
     },
 
     // ── Scheduling ─────────────────────────────────────────────────────────────

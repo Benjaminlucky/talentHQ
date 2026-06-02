@@ -4,6 +4,7 @@
 import { checkEnv } from "./utils/env-check.js";
 checkEnv();
 
+import http from "http";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -13,6 +14,8 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 import { rateLimit } from "express-rate-limit";
 import passportMiddleware from "./middlewares/passport.js";
+import { Server as SocketIOServer } from "socket.io";
+import jwt from "jsonwebtoken";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -27,13 +30,17 @@ import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
-import interviewRoutes from "./routes/interviewroutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
 import handymanRoutes from "./routes/Handymanroutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import flagRoutes from "./routes/Flagroutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import statsRoutes from "./routes/statsRoutes.js";
 
 const app = express();
+
+// ── HTTP server (shared by Express + Socket.io) ───────────────────────────────
+const httpServer = http.createServer(app);
 
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -55,8 +62,12 @@ app.use(passportMiddleware.initialize());
 app.use(passportMiddleware.session());
 
 // Ensure upload folders exist
+
 const resumePath = "./uploads/resumes";
 if (!fs.existsSync(resumePath)) fs.mkdirSync(resumePath, { recursive: true });
+
+const avatarPath = "./uploads/avatars";
+if (!fs.existsSync(avatarPath)) fs.mkdirSync(avatarPath, { recursive: true });
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const normalizeOrigin = (o) => (o ? o.replace(/\/$/, "") : o);
@@ -86,6 +97,48 @@ app.use(
     credentials: true,
   }),
 );
+
+// ── Socket.io ─────────────────────────────────────────────────────────────────
+// Attached to the shared HTTP server with matching CORS + credentials.
+// Auth: the JWT httpOnly cookie is sent with the handshake; we verify it so only
+// logged-in users can open a socket. Each user joins a personal room (their id)
+// and can join conversation rooms (convo_<id>) to receive live message events.
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: allowedOrigins, credentials: true },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
+
+io.use((socket, next) => {
+  try {
+    const cookieHeader = socket.handshake.headers.cookie || "";
+    const tokenMatch = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+    const token = tokenMatch?.[1];
+    if (!token) return next(new Error("Authentication required"));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    socket.userRole = decoded.role;
+    next();
+  } catch {
+    next(new Error("Invalid token"));
+  }
+});
+
+io.on("connection", (socket) => {
+  // Personal room — lets us push directly to a specific user
+  socket.join(socket.userId.toString());
+
+  socket.on("join_conversation", (conversationId) => {
+    if (conversationId) socket.join(`convo_${conversationId}`);
+  });
+
+  socket.on("leave_conversation", (conversationId) => {
+    if (conversationId) socket.leave(`convo_${conversationId}`);
+  });
+});
+
+// Export io so controllers can emit events (lazy-imported there to avoid cycles)
+export { io };
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({
@@ -143,6 +196,7 @@ app.use("/api/handymen", handymanRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flags", flagRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/stats", statsRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -236,9 +290,10 @@ mongoose
       console.warn("⚠️  Index warning (non-fatal):", e.message);
     }
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
+    // IMPORTANT: listen on httpServer (not app) so Socket.io shares the port
+    httpServer.listen(PORT, () =>
       console.log(
-        `🚀 Server on port ${PORT} [${process.env.NODE_ENV || "development"}]`,
+        `🚀 Server on port ${PORT} [${process.env.NODE_ENV || "development"}] — Socket.io enabled`,
       ),
     );
   })

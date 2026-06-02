@@ -1,38 +1,56 @@
 "use client";
+// app/utils/jobSeekerAuthRedirects.js
+//
+// Drop-in replacement for the old localStorage-based hook.
+// Uses AuthContext (httpOnly JWT cookie) instead of localStorage so it
+// works with the current auth system.
+//
+// Usage (unchanged from before):
+//   const status = useJobSeekerAuthRedirect();
+//   const status = useJobSeekerAuthRedirect("jobseeker");
+//
+// Returns: "loading" | "authorized" | "unauthorized"
+// (kept "loading" as the initial value to match the original API)
 
 import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export function useJobSeekerAuthRedirect(allowedRole = "jobseeker") {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  // Use "loading" as initial value to match the original hook's API
   const [status, setStatus] = useState("loading");
-  // status can be: "loading" | "authorized" | "unauthorized"
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("jobSeeker");
-      if (!storedUser) {
-        setStatus("unauthorized");
-        window.location.href = "/login";
-        return;
-      }
+    // Still waiting for /api/auth/me
+    if (loading) return;
 
-      const user = JSON.parse(storedUser);
-
-      // normalize roles (in case backend sends JobSeeker, jobseeker, etc.)
-      const userRole = user.role?.toLowerCase();
-      const expectedRole = allowedRole.toLowerCase();
-
-      if (userRole === expectedRole) {
-        setStatus("authorized");
-      } else {
-        setStatus("unauthorized");
-        window.location.href = "/login";
-      }
-    } catch (err) {
-      console.error("Auth check failed:", err);
+    if (!user) {
       setStatus("unauthorized");
-      window.location.href = "/login";
+      const encoded = encodeURIComponent(pathname);
+      router.replace(`/login?redirect=${encoded}`);
+      return;
     }
-  }, [allowedRole]);
+
+    // Normalize role comparison (original hook did .toLowerCase())
+    const userRole = user.role?.toLowerCase();
+    const expectedRole = allowedRole.toLowerCase();
+
+    if (userRole !== expectedRole) {
+      setStatus("unauthorized");
+      const dashMap = {
+        jobseeker: "/dashboard/jobseeker",
+        handyman: "/dashboard/handyman",
+        employer: "/dashboard/employer",
+      };
+      router.replace(dashMap[user.role] || "/");
+      return;
+    }
+
+    setStatus("authorized");
+  }, [user, loading, router, allowedRole, pathname]);
 
   return status;
 }

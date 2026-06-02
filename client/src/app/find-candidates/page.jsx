@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import {
   Search,
   MapPin,
@@ -49,6 +50,8 @@ function SkeletonCandidateCard() {
 
 // ─── Candidate Card ───────────────────────────────────────────────────────────
 function CandidateCard({ app }) {
+  const { user } = useAuth();
+  const isEmployer = user?.role === "employer";
   const name = app.jobseeker?.fullName || "Candidate";
   const initials = name
     .split(" ")
@@ -103,7 +106,7 @@ function CandidateCard({ app }) {
           </p>
         </div>
 
-        {app.status && (
+        {isEmployer && app.status && (
           <span
             className={`flex-shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full ${statusColors[app.status] || "bg-gray-100 text-gray-600"}`}
           >

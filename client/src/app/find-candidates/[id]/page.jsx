@@ -545,11 +545,13 @@ export default function CandidateDetailsPage() {
                   <h1 className="text-2xl font-black text-gray-900">
                     {jobseeker?.fullName}
                   </h1>
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_COLORS[candidate.status] || STATUS_COLORS.pending}`}
-                  >
-                    {candidate.status}
-                  </span>
+                  {isEmployer && (
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_COLORS[candidate.status] || STATUS_COLORS.pending}`}
+                    >
+                      {candidate.status}
+                    </span>
+                  )}
                 </div>
                 {jobseeker?.headline && (
                   <p className="text-gray-700 font-medium mb-0.5">

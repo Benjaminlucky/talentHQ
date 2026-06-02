@@ -81,9 +81,12 @@ export const updateMyProfile = async (req, res) => {
     if (updates.avatar && updates.avatar.startsWith("data:image")) {
       try {
         const uploadRes = await cloudinary.uploader.upload(updates.avatar, {
-          folder: "avatars",
+          folder: "talenthq/avatars",
           public_id: `avatar_${req.user.id}`,
           overwrite: true,
+          transformation: [
+            { width: 500, height: 500, crop: "fill", quality: "auto:good" },
+          ],
         });
         updates.avatar = uploadRes.secure_url;
       } catch (uploadErr) {
@@ -95,19 +98,29 @@ export const updateMyProfile = async (req, res) => {
     const profile = await Jobnode.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
-    if (!profile) return res.status(404).json({ msg: "Profile not found" });
+    if (!profile) {
+      return res.status(404).json({ message: "Jobseeker not found" });
+    }
 
     res.json(profile);
   } catch (err) {
     console.error("❌ updateMyProfile error:", err);
-    res.status(500).json({ msg: "Server error", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update profile", error: err.message });
   }
 };
 
-// ✅ Resume upload (unchanged)
+// ✅ Update resume
+// FIX: In production the smart Cloudinary storage sets req.file.path to the
+// full secure_url (https://res.cloudinary.com/.../talenthq/resumes/...).
+// Previously this built "/uploads/resumes/<cloudinaryPublicId>" which is a
+// dead link in production. Now we use req.file.path when present (Cloudinary),
+// and fall back to the local /uploads path in development — mirroring the
+// logic already used in OnboardingController.getUploadedFileUrl.
 export const updateResume = async (req, res) => {
   try {
     if (req.fileValidationError) {
@@ -122,11 +135,25 @@ export const updateResume = async (req, res) => {
         .json({ message: "File too large. Max size is 10MB." });
     }
 
-    const filePath = `/uploads/resumes/${req.file.filename}`;
+    // Cloudinary (production): req.file.path is the full secure_url.
+    // Local disk (development): build the public /uploads path from filename.
+    let filePath;
+    if (req.file.path && /^https?:\/\//i.test(req.file.path)) {
+      filePath = req.file.path; // Cloudinary secure_url
+    } else if (req.file.filename) {
+      filePath = `/uploads/resumes/${req.file.filename}`; // local dev
+    } else if (req.file.path) {
+      filePath = req.file.path; // any other absolute path multer provides
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Could not resolve uploaded file" });
+    }
+
     const user = await Jobnode.findByIdAndUpdate(
       req.user.id,
       { resume: filePath },
-      { new: true }
+      { new: true },
     );
 
     res.json(user);

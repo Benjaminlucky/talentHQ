@@ -28,7 +28,7 @@ async function initializePaystack({
     `${PAYSTACK_BASE}/transaction/initialize`,
     {
       email,
-      amount: amountNGN * 100, // convert NGN to kobo
+      amount: amountNGN * 100, // NGN to kobo
       reference,
       metadata,
       callback_url:
@@ -36,11 +36,56 @@ async function initializePaystack({
     },
     { headers: paystackHeaders() },
   );
-  return res.data.data; // { authorization_url, access_code, reference }
+  return res.data.data;
+}
+
+// ── Helper: activate subscription in DB ───────────────────────────────────────
+// Shared by webhook AND verifyPayment — both paths produce identical results.
+// This eliminates the race condition where webhook fires after the user lands
+// on the callback page but the plan was never activated.
+async function activateSubscription({
+  userId,
+  userModel,
+  planId,
+  planName,
+  interval,
+  paystackRef,
+}) {
+  const plan = await Plan.findById(planId);
+  if (!plan) throw new Error(`Plan ${planId} not found`);
+
+  const durationMs = interval === "yearly" ? 365 * 86400000 : 30 * 86400000;
+  const expiresAt = new Date(Date.now() + durationMs);
+
+  // Cancel any existing active subscription for this user first
+  await Subscription.updateMany(
+    { userId, status: "active" },
+    { status: "cancelled" },
+  );
+
+  await Subscription.create({
+    userId,
+    userModel,
+    planId,
+    planName,
+    paystackRef,
+    interval,
+    startedAt: new Date(),
+    expiresAt,
+    status: "active",
+  });
+
+  // Store plan name on user doc for fast plan checks
+  const UserModel = userModel === "Employer" ? Employer : Jobnode;
+  await UserModel.findByIdAndUpdate(userId, {
+    activePlan: planName,
+    planExpiresAt: expiresAt,
+  });
+
+  return { plan, expiresAt };
 }
 
 // ── POST /api/payments/subscription/initialize ────────────────────────────────
-// Employer or jobseeker initiates a plan upgrade
 export const initializeSubscription = async (req, res) => {
   try {
     const { planId, interval = "monthly" } = req.body;
@@ -57,7 +102,11 @@ export const initializeSubscription = async (req, res) => {
     const amountNGN =
       interval === "yearly" ? plan.priceYearly / 100 : plan.priceMonthly / 100;
     const reference = `sub_${req.user.id}_${Date.now()}`;
-    const callbackUrl = `${process.env.FRONTEND_URL}/payment/callback?type=subscription&planId=${planId}&interval=${interval}`;
+
+    // Pass userRole in callback URL so the callback page redirects correctly
+    const callbackUrl =
+      `${process.env.FRONTEND_URL}/payment/callback` +
+      `?type=subscription&planId=${planId}&interval=${interval}&userRole=${req.user.role}`;
 
     const payment = await initializePaystack({
       email: user.email || user.companyEmail,
@@ -85,7 +134,6 @@ export const initializeSubscription = async (req, res) => {
 };
 
 // ── POST /api/payments/ad/initialize ─────────────────────────────────────────
-// Anyone initializes an ad placement payment
 export const initializeAdPayment = async (req, res) => {
   try {
     const {
@@ -105,9 +153,8 @@ export const initializeAdPayment = async (req, res) => {
       });
     }
 
-    // Pricing matrix: zone × duration
     const ZONE_PRICES = {
-      sidebar: 500, // ₦500/day
+      sidebar: 500,
       feed_inline: 800,
       feed_top: 1200,
       findjob_banner: 2000,
@@ -124,10 +171,8 @@ export const initializeAdPayment = async (req, res) => {
 
     const UserDoc = req.user.role === "employer" ? Employer : Jobnode;
     const user = await UserDoc.findById(req.user.id).lean();
-
     const reference = `ad_${req.user.id}_${Date.now()}`;
 
-    // Create ad record in pending_payment state
     const ad = await Ad.create({
       placedBy: req.user.id,
       placedByModel: userModel,
@@ -164,24 +209,20 @@ export const initializeAdPayment = async (req, res) => {
 };
 
 // ── POST /api/payments/boost/initialize ──────────────────────────────────────
-// Employer boosts a specific job listing
 export const initializeJobBoost = async (req, res) => {
   try {
-    if (req.user.role !== "employer") {
+    if (req.user.role !== "employer")
       return res.status(403).json({ message: "Only employers can boost jobs" });
-    }
-    const { jobId, durationDays = 7, featured = false } = req.body;
 
+    const { jobId, durationDays = 7, featured = false } = req.body;
     const job = await JobModel.findOne({
       _id: jobId,
       company: { $exists: true },
     });
     if (!job) return res.status(404).json({ message: "Job not found" });
 
-    // Pricing: boost ₦2,000 / 7 days; featured ₦5,000 / 7 days
     const BASE_PRICE = featured ? 5000 : 2000;
     const amountNGN = Math.round(BASE_PRICE * (Number(durationDays) / 7));
-
     const employer = await Employer.findById(req.user.id).lean();
     const reference = `boost_${jobId}_${Date.now()}`;
 
@@ -210,66 +251,54 @@ export const initializeJobBoost = async (req, res) => {
 };
 
 // ── POST /api/payments/webhook ────────────────────────────────────────────────
-// Paystack calls this after every successful payment — MUST be public (no auth middleware)
 export const paystackWebhook = async (req, res) => {
-  // Verify signature
   const hash = crypto
     .createHmac("sha512", PAYSTACK_SECRET)
     .update(JSON.stringify(req.body))
     .digest("hex");
 
-  if (hash !== req.headers["x-paystack-signature"]) {
+  if (hash !== req.headers["x-paystack-signature"])
     return res.status(400).json({ message: "Invalid signature" });
-  }
 
   const { event, data } = req.body;
 
-  // Acknowledge immediately — Paystack will retry if we don't respond fast
+  // Acknowledge immediately — Paystack retries if we don't respond fast enough
   res.sendStatus(200);
 
   if (event !== "charge.success") return;
 
-  const { reference, metadata, amount } = data;
+  const { reference, metadata } = data;
   const type = metadata?.type;
 
   try {
     if (type === "subscription") {
       const { userId, userModel, planId, planName, interval } = metadata;
-      const plan = await Plan.findById(planId);
-      const durationMs = interval === "yearly" ? 365 * 86400000 : 30 * 86400000;
-
-      // Cancel any existing active subscription
-      await Subscription.updateMany(
-        { userId, status: "active" },
-        { status: "cancelled" },
-      );
-
-      await Subscription.create({
-        userId,
-        userModel,
-        planId,
-        planName,
+      // Guard: skip if verifyPayment already activated this reference
+      const existing = await Subscription.findOne({
         paystackRef: reference,
-        interval,
-        startedAt: new Date(),
-        expiresAt: new Date(Date.now() + durationMs),
         status: "active",
       });
-
-      // Store plan on the user doc for fast middleware checks
-      const UserModel = userModel === "Employer" ? Employer : Jobnode;
-      await UserModel.findByIdAndUpdate(userId, {
-        activePlan: planName,
-        planExpiresAt: new Date(Date.now() + durationMs),
-      });
+      if (!existing) {
+        await activateSubscription({
+          userId,
+          userModel,
+          planId,
+          planName,
+          interval,
+          paystackRef: reference,
+        });
+        console.log(
+          `✅ Webhook activated subscription for ${userId} → ${planName}`,
+        );
+      }
     }
 
     if (type === "ad") {
       const { adId } = metadata;
       const ad = await Ad.findById(adId);
-      if (ad) {
+      if (ad && ad.status === "pending_payment") {
         const now = new Date();
-        ad.status = "pending_review"; // admin reviews before going live
+        ad.status = "pending_review";
         ad.startsAt = now;
         ad.expiresAt = new Date(now.getTime() + ad.durationDays * 86400000);
         await ad.save();
@@ -296,20 +325,82 @@ export const paystackWebhook = async (req, res) => {
 };
 
 // ── GET /api/payments/verify/:reference ──────────────────────────────────────
-// Client-side callback verification
+// FIX: Now activates the subscription if the webhook hasn't fired yet.
+// This makes payment reliable even when Paystack webhook delivery is delayed.
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
+
     const paystackRes = await axios.get(
       `${PAYSTACK_BASE}/transaction/verify/${reference}`,
       { headers: paystackHeaders() },
     );
     const tx = paystackRes.data.data;
-    if (tx.status !== "success") {
+
+    if (tx.status !== "success")
       return res
         .status(400)
         .json({ message: "Payment not successful", status: tx.status });
+
+    const { metadata } = tx;
+    const type = metadata?.type;
+
+    // Activate subscription if webhook hasn't done it yet
+    if (type === "subscription") {
+      const { userId, userModel, planId, planName, interval } = metadata;
+      const existing = await Subscription.findOne({
+        paystackRef: reference,
+        status: "active",
+      });
+      if (!existing) {
+        await activateSubscription({
+          userId,
+          userModel,
+          planId,
+          planName,
+          interval,
+          paystackRef: reference,
+        });
+        console.log(
+          `✅ verifyPayment activated subscription for ${userId} → ${planName}`,
+        );
+      }
     }
+
+    // Activate ad if webhook hasn't done it yet
+    if (type === "ad") {
+      const { adId } = metadata;
+      const ad = await Ad.findById(adId);
+      if (ad && ad.status === "pending_payment") {
+        const now = new Date();
+        ad.status = "pending_review";
+        ad.startsAt = now;
+        ad.expiresAt = new Date(now.getTime() + ad.durationDays * 86400000);
+        await ad.save();
+      }
+    }
+
+    // Activate boost if webhook hasn't done it yet
+    if (type === "boost") {
+      const { jobId, durationDays, featured } = metadata;
+      const job = await JobModel.findById(jobId);
+      if (job && !job.boosted) {
+        const expiresAt = new Date(
+          Date.now() + Number(durationDays) * 86400000,
+        );
+        const updates = {
+          boosted: true,
+          boostExpiresAt: expiresAt,
+          boostPaystackRef: reference,
+        };
+        if (featured) {
+          updates.featured = true;
+          updates.featuredExpiresAt = expiresAt;
+        }
+        await JobModel.findByIdAndUpdate(jobId, updates);
+      }
+    }
+
     res.json({
       message: "Payment verified",
       metadata: tx.metadata,
@@ -334,8 +425,27 @@ export const getPlans = async (req, res) => {
 };
 
 // ── GET /api/payments/subscription ───────────────────────────────────────────
+// FIX: Auto-expires overdue subscriptions so stale active plans don't persist.
 export const getMySubscription = async (req, res) => {
   try {
+    // Expire any subscriptions past their expiresAt
+    await Subscription.updateMany(
+      { userId: req.user.id, status: "active", expiresAt: { $lt: new Date() } },
+      { status: "expired" },
+    );
+
+    // Reset activePlan on user doc if their plan has lapsed
+    const UserModel = req.user.role === "employer" ? Employer : Jobnode;
+    const user = await UserModel.findById(req.user.id).lean();
+    if (user?.planExpiresAt && new Date(user.planExpiresAt) < new Date()) {
+      const defaultPlan =
+        req.user.role === "employer" ? "employer_free" : "jobseeker_free";
+      await UserModel.findByIdAndUpdate(req.user.id, {
+        activePlan: defaultPlan,
+        planExpiresAt: null,
+      });
+    }
+
     const sub = await Subscription.findOne({
       userId: req.user.id,
       status: "active",
@@ -350,18 +460,13 @@ export const getMySubscription = async (req, res) => {
 };
 
 // ── GET /api/payments/ads/active ─────────────────────────────────────────────
-// Returns active ads for a given zone — public
 export const getActiveAds = async (req, res) => {
   try {
     const { zone } = req.query;
-    const query = {
-      status: "active",
-      expiresAt: { $gt: new Date() },
-    };
+    const query = { status: "active", expiresAt: { $gt: new Date() } };
     if (zone) query.zone = zone;
 
     const ads = await Ad.find(query).sort({ createdAt: -1 }).limit(5).lean();
-    // Track impressions fire-and-forget
     if (ads.length) {
       Ad.updateMany(
         { _id: { $in: ads.map((a) => a._id) } },

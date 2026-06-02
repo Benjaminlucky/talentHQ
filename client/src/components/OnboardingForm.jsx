@@ -1,4 +1,5 @@
 "use client";
+// components/OnboardingForm.jsx
 import { useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -15,9 +16,12 @@ import {
   Wrench,
   FileText,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 
-// ─── Shared UI helpers ────────────────────────────────────────────────────────
+const API = process.env.NEXT_PUBLIC_API_BASE;
+
+// ─── Shared UI helpers ─────────────────────────────────────────────────────────
 function Field({ label, error, children }) {
   return (
     <div className="space-y-1">
@@ -27,7 +31,7 @@ function Field({ label, error, children }) {
         </label>
       )}
       {children}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
 }
@@ -66,7 +70,7 @@ function Textarea({ className = "", ...props }) {
   );
 }
 
-// ─── Progress bar ─────────────────────────────────────────────────────────────
+// ─── Progress bar ──────────────────────────────────────────────────────────────
 function ProgressBar({ step, total, labels }) {
   return (
     <div className="mb-8">
@@ -83,8 +87,9 @@ function ProgressBar({ step, total, labels }) {
               >
                 {done ? <CheckCircle2 className="w-4 h-4" /> : stepNum}
               </div>
+              {/* Labels hidden on mobile (xs) to prevent overflow, shown sm+ */}
               <span
-                className={`text-xs font-medium hidden sm:block ${active ? "text-lime-700" : done ? "text-lime-600" : "text-gray-400"}`}
+                className={`text-xs font-medium hidden sm:block text-center ${active ? "text-lime-700" : done ? "text-lime-600" : "text-gray-400"}`}
               >
                 {label}
               </span>
@@ -92,6 +97,7 @@ function ProgressBar({ step, total, labels }) {
           );
         })}
       </div>
+      {/* Animated fill bar */}
       <div className="relative h-1.5 bg-gray-200 rounded-full mt-1">
         <div
           className="absolute left-0 top-0 h-full bg-lime-600 rounded-full transition-all duration-500"
@@ -102,36 +108,65 @@ function ProgressBar({ step, total, labels }) {
   );
 }
 
-// ─── File upload button ───────────────────────────────────────────────────────
-function FileUploadButton({ label, accept, file, onChange, hint }) {
+// ─── File upload button ────────────────────────────────────────────────────────
+// Shows filename when selected. For image fields (avatar/logo) shows a
+// URL.createObjectURL preview image above the button.
+function FileUploadButton({
+  label,
+  accept,
+  file,
+  onChange,
+  hint,
+  isImage = false,
+}) {
   const ref = useRef();
+  const previewUrl =
+    isImage && file instanceof File ? URL.createObjectURL(file) : null;
+
   return (
-    <div
-      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-lime-500 transition"
-      onClick={() => ref.current?.click()}
-    >
-      <input
-        ref={ref}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={onChange}
-      />
-      <Upload className="mx-auto h-7 w-7 text-gray-400 mb-2" />
-      <p className="text-sm font-medium text-gray-700">
-        {file ? file.name : label}
-      </p>
-      {hint && !file && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
-      {file && (
-        <p className="text-xs text-lime-600 mt-1">
-          ✓ File selected — click to change
-        </p>
+    <div className="space-y-3">
+      {/* Image preview (avatar/logo only) */}
+      {isImage && previewUrl && (
+        <div className="flex justify-center">
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="w-24 h-24 rounded-full object-cover border-2 border-lime-500 shadow-sm"
+          />
+        </div>
       )}
+
+      <div
+        className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-lime-500 transition"
+        onClick={() => ref.current?.click()}
+      >
+        <input
+          ref={ref}
+          type="file"
+          accept={accept}
+          className="hidden"
+          onChange={onChange}
+        />
+        {isImage ? (
+          <ImageIcon className="mx-auto h-7 w-7 text-gray-400 mb-2" />
+        ) : (
+          <Upload className="mx-auto h-7 w-7 text-gray-400 mb-2" />
+        )}
+        <p className="text-sm font-medium text-gray-700">
+          {file ? file.name : label}
+        </p>
+        {hint && !file && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+        {file && (
+          <p className="text-xs text-lime-600 mt-1">
+            ✓ File selected — click to change
+          </p>
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Nigeria states (sample — expand as needed) ───────────────────────────────
+// ─── Static data ───────────────────────────────────────────────────────────────
 const NIGERIA_STATES = [
   "Abia",
   "Adamawa",
@@ -247,29 +282,31 @@ const INDUSTRIES = [
   "Other",
 ];
 
-// ─── VALIDATION ───────────────────────────────────────────────────────────────
+// ─── Validation ────────────────────────────────────────────────────────────────
 function validateStep(role, step, data) {
   const errors = {};
 
   if (step === 1) {
-    if (!data.phone?.trim()) errors.phone = "Phone number is required";
-    else if (!/^[0-9+\s\-()]{7,15}$/.test(data.phone.trim()))
+    if (!data.phone?.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (!/^[0-9+\s\-()]{7,15}$/.test(data.phone.trim())) {
       errors.phone = "Enter a valid phone number";
+    }
     if (!data.state) errors.state = "State is required";
     if (!data.city?.trim()) errors.city = "City / area is required";
   }
 
   if (step === 2) {
     if (role === "jobseeker") {
+      if (!data.headline?.trim())
+        errors.headline = "Professional headline is required";
       if (!data.jobCategory) errors.jobCategory = "Job category is required";
       if (!data.experienceLevel)
         errors.experienceLevel = "Experience level is required";
-      if (!data.headline?.trim())
-        errors.headline = "Professional headline is required";
     }
     if (role === "handyman") {
       if (!data.trade) errors.trade = "Trade is required";
-      if (!data.yearsExperience && data.yearsExperience !== 0)
+      if (data.yearsExperience === "" || data.yearsExperience == null)
         errors.yearsExperience = "Years of experience is required";
     }
     if (role === "employer") {
@@ -279,31 +316,37 @@ function validateStep(role, step, data) {
     }
   }
 
+  // Step 3 for jobseeker (Resume & Photo) — both are optional so no validation needed
+
   return errors;
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function OnboardingForm({ role }) {
   const router = useRouter();
   const { setUser } = useAuth();
 
-  const totalSteps = role === "jobseeker" ? 3 : 2;
+  // Jobseeker: 3 steps | Handyman: 3 steps (added upload step) | Employer: 2 steps
+  const totalSteps = role === "employer" ? 2 : 3;
+
   const stepLabels = {
     jobseeker: ["Basic Info", "Career Details", "Resume & Photo"],
-    handyman: ["Basic Info", "Trade Details"],
+    handyman: ["Basic Info", "Trade Details", "Profile Photo"],
     employer: ["Basic Info", "Company Details"],
   }[role];
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
   const [formData, setFormData] = useState({
-    // shared
+    // ── Shared (step 1) ────────────────────────────────────────────────────
     phone: "",
     whatsapp: "",
     state: "",
     city: "",
-    // jobseeker
+
+    // ── Jobseeker (step 2) ─────────────────────────────────────────────────
     headline: "",
     tagline: "",
     jobCategory: "",
@@ -311,14 +354,22 @@ export default function OnboardingForm({ role }) {
     skills: "",
     linkedin: "",
     github: "",
-    resume: null,
-    avatar: null,
-    // handyman
+
+    // ── Jobseeker (step 3) ─────────────────────────────────────────────────
+    resume: null, // File object
+    avatar: null, // File object
+
+    // ── Handyman (step 2) ──────────────────────────────────────────────────
     trade: "",
     yearsExperience: "",
-    certifications: "",
     bio: "",
-    // employer
+    certifications: "",
+    handymanSkills: "", // separate key to avoid collision with jobseeker skills
+
+    // ── Handyman (step 3 — avatar) ─────────────────────────────────────────
+    // uses avatar field above (shared)
+
+    // ── Employer (step 2) ──────────────────────────────────────────────────
     companyName: "",
     companySize: "",
     industry: "",
@@ -326,9 +377,10 @@ export default function OnboardingForm({ role }) {
     companyLinkedin: "",
     contactPersonName: "",
     contactPersonDesignation: "",
-    logo: null,
+    logo: null, // File object
   });
 
+  // ── Field change handler ───────────────────────────────────────────────────
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files && files[0]) {
@@ -336,10 +388,10 @@ export default function OnboardingForm({ role }) {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
-    // Clear error on change
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
+  // ── Navigation ─────────────────────────────────────────────────────────────
   const goNext = () => {
     const errs = validateStep(role, step, formData);
     if (Object.keys(errs).length > 0) {
@@ -358,6 +410,7 @@ export default function OnboardingForm({ role }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     const errs = validateStep(role, step, formData);
     if (Object.keys(errs).length > 0) {
@@ -370,69 +423,62 @@ export default function OnboardingForm({ role }) {
     try {
       const fd = new FormData();
 
-      // Append text fields (skip File objects and empty strings)
-      const textFields = [
-        "phone",
-        "whatsapp",
-        "state",
-        "city",
-        "headline",
-        "tagline",
-        "jobCategory",
-        "experienceLevel",
-        "skills",
-        "linkedin",
-        "github",
-        "trade",
-        "yearsExperience",
-        "certifications",
-        "bio",
-        "companyName",
-        "companySize",
-        "industry",
-        "companyWebsite",
-        "companyLinkedin",
-        "contactPersonName",
-        "contactPersonDesignation",
-      ];
+      // ── Text fields — append only non-empty values ─────────────────────
+      const sharedFields = ["phone", "whatsapp", "state", "city"];
 
-      textFields.forEach((key) => {
-        if (formData[key] !== "" && formData[key] != null) {
-          fd.append(key, formData[key]);
-        }
+      const roleFields = {
+        jobseeker: [
+          "headline",
+          "tagline",
+          "jobCategory",
+          "experienceLevel",
+          "skills",
+          "linkedin",
+          "github",
+        ],
+        handyman: ["trade", "yearsExperience", "bio", "certifications"],
+        employer: [
+          "companyName",
+          "companySize",
+          "industry",
+          "companyWebsite",
+          "companyLinkedin",
+          "contactPersonName",
+          "contactPersonDesignation",
+        ],
+      };
+
+      [...sharedFields, ...(roleFields[role] || [])].forEach((key) => {
+        const val = formData[key];
+        if (val !== "" && val != null) fd.append(key, val);
       });
 
-      // Combine state + city into location string for jobseeker/handyman
-      if (role !== "employer") {
-        fd.append("location", `${formData.city}, ${formData.state}`);
-      } else {
-        fd.append("location", `${formData.city}, ${formData.state}`);
+      // Handyman skills use a separate formData key to avoid collision
+      if (role === "handyman" && formData.handymanSkills?.trim()) {
+        fd.append("skills", formData.handymanSkills);
       }
 
-      // File fields
+      // ── File fields ────────────────────────────────────────────────────
       if (formData.resume instanceof File) fd.append("resume", formData.resume);
       if (formData.avatar instanceof File) fd.append("avatar", formData.avatar);
       if (formData.logo instanceof File) fd.append("logo", formData.logo);
 
-      const res = await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_BASE}/api/onboarding/${role}`,
-        fd,
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
+      // ── POST to backend ────────────────────────────────────────────────
+      const res = await axios.patch(`${API}/api/onboarding/${role}`, fd, {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      // Update auth context and localStorage
+      // ── Update auth context ────────────────────────────────────────────
       const updatedUser = res.data.user;
       if (updatedUser) {
         setUser(updatedUser);
+        // Keep localStorage copy in sync (used by super-admin flow)
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
 
       toast.success("Onboarding complete! Welcome to TalentHQ 🎉");
 
-      // Redirect to the correct dashboard
       setTimeout(() => {
         router.push(`/dashboard/${role}`);
       }, 800);
@@ -448,64 +494,161 @@ export default function OnboardingForm({ role }) {
     }
   };
 
-  // ─── STEP CONTENT ─────────────────────────────────────────────────────────
-  const renderStep = () => {
-    // ── STEP 1: Basic Info (all roles) ──────────────────────────────────────
-    if (step === 1) {
+  // ─── STEP CONTENT ──────────────────────────────────────────────────────────
+
+  // ── STEP 1: Basic Info (all roles) ─────────────────────────────────────────
+  const renderStep1 = () => (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 mb-1">
+        <User className="w-5 h-5 text-lime-600" />
+        <h2 className="text-lg font-semibold text-gray-800">
+          Basic Information
+        </h2>
+      </div>
+      <p className="text-sm text-gray-500">
+        Help employers and clients find you. This information is used to match
+        you with the right opportunities.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Phone Number *" error={errors.phone}>
+          <Input
+            name="phone"
+            type="tel"
+            placeholder="e.g. 08012345678"
+            value={formData.phone}
+            onChange={handleChange}
+          />
+        </Field>
+        <Field label="WhatsApp Number">
+          <Input
+            name="whatsapp"
+            type="tel"
+            placeholder="Same as phone or different"
+            value={formData.whatsapp}
+            onChange={handleChange}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="State *" error={errors.state}>
+          <Select name="state" value={formData.state} onChange={handleChange}>
+            <option value="">Select State</option>
+            {NIGERIA_STATES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="City / Area *" error={errors.city}>
+          <Input
+            name="city"
+            placeholder="e.g. Ikeja, Victoria Island"
+            value={formData.city}
+            onChange={handleChange}
+          />
+        </Field>
+      </div>
+    </div>
+  );
+
+  // ── STEP 2: Role-specific details ──────────────────────────────────────────
+  const renderStep2 = () => {
+    if (role === "jobseeker") {
       return (
         <div className="space-y-5">
           <div className="flex items-center gap-2 mb-1">
-            <User className="w-5 h-5 text-lime-600" />
+            <Briefcase className="w-5 h-5 text-lime-600" />
             <h2 className="text-lg font-semibold text-gray-800">
-              Basic Information
+              Career Details
             </h2>
           </div>
           <p className="text-sm text-gray-500">
-            Help employers and clients find you. This information is used to
-            match you with the right opportunities.
+            Tell employers what you do and what you're looking for.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Phone Number *" error={errors.phone}>
-              <Input
-                name="phone"
-                type="tel"
-                placeholder="e.g. 08012345678"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </Field>
-            <Field label="WhatsApp Number">
-              <Input
-                name="whatsapp"
-                type="tel"
-                placeholder="Same as phone or different"
-                value={formData.whatsapp}
-                onChange={handleChange}
-              />
-            </Field>
-          </div>
+          <Field label="Professional Headline *" error={errors.headline}>
+            <Input
+              name="headline"
+              placeholder="e.g. Senior Frontend Developer | React & Next.js"
+              value={formData.headline}
+              onChange={handleChange}
+              maxLength={120}
+            />
+          </Field>
+
+          <Field label="Tagline / Short Bio">
+            <Input
+              name="tagline"
+              placeholder="e.g. 5 years building products users love"
+              value={formData.tagline}
+              onChange={handleChange}
+              maxLength={200}
+            />
+          </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="State *" error={errors.state}>
+            <Field label="Job Category *" error={errors.jobCategory}>
               <Select
-                name="state"
-                value={formData.state}
+                name="jobCategory"
+                value={formData.jobCategory}
                 onChange={handleChange}
               >
-                <option value="">Select State</option>
-                {NIGERIA_STATES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                <option value="">Select Category</option>
+                {JOB_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="City / Area *" error={errors.city}>
+            <Field label="Experience Level *" error={errors.experienceLevel}>
+              <Select
+                name="experienceLevel"
+                value={formData.experienceLevel}
+                onChange={handleChange}
+              >
+                <option value="">Select Level</option>
+                <option value="entry">Entry Level (0–2 yrs)</option>
+                <option value="mid">Mid Level (2–5 yrs)</option>
+                <option value="senior">Senior (5–10 yrs)</option>
+                <option value="lead">Lead / Principal (10+ yrs)</option>
+                <option value="executive">Executive / C-Suite</option>
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Key Skills (comma-separated)">
+            <Input
+              name="skills"
+              placeholder="e.g. React, Node.js, PostgreSQL, Product Management"
+              value={formData.skills}
+              onChange={handleChange}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              You can add more skills in detail from your dashboard profile
+              page.
+            </p>
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="LinkedIn URL">
               <Input
-                name="city"
-                placeholder="e.g. Ikeja, Victoria Island"
-                value={formData.city}
+                name="linkedin"
+                type="url"
+                placeholder="https://linkedin.com/in/yourname"
+                value={formData.linkedin}
+                onChange={handleChange}
+              />
+            </Field>
+            <Field label="GitHub / Portfolio URL">
+              <Input
+                name="github"
+                type="url"
+                placeholder="https://github.com/yourname"
+                value={formData.github}
                 onChange={handleChange}
               />
             </Field>
@@ -514,293 +657,195 @@ export default function OnboardingForm({ role }) {
       );
     }
 
-    // ── STEP 2: Role-specific ────────────────────────────────────────────────
-    if (step === 2) {
-      if (role === "jobseeker") {
-        return (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 mb-1">
-              <Briefcase className="w-5 h-5 text-lime-600" />
-              <h2 className="text-lg font-semibold text-gray-800">
-                Career Details
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500">
-              Tell employers what you do and what you're looking for.
-            </p>
-
-            <Field label="Professional Headline *" error={errors.headline}>
-              <Input
-                name="headline"
-                placeholder="e.g. Senior Frontend Developer | React & Next.js"
-                value={formData.headline}
-                onChange={handleChange}
-                maxLength={120}
-              />
-            </Field>
-
-            <Field label="Tagline / Short Bio">
-              <Input
-                name="tagline"
-                placeholder="e.g. 5 years building products users love"
-                value={formData.tagline}
-                onChange={handleChange}
-                maxLength={200}
-              />
-            </Field>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Job Category *" error={errors.jobCategory}>
-                <Select
-                  name="jobCategory"
-                  value={formData.jobCategory}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Category</option>
-                  {JOB_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field label="Experience Level *" error={errors.experienceLevel}>
-                <Select
-                  name="experienceLevel"
-                  value={formData.experienceLevel}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Level</option>
-                  <option value="entry">Entry Level (0–2 yrs)</option>
-                  <option value="mid">Mid Level (2–5 yrs)</option>
-                  <option value="senior">Senior (5–10 yrs)</option>
-                  <option value="lead">Lead / Principal (10+ yrs)</option>
-                  <option value="executive">Executive / C-Suite</option>
-                </Select>
-              </Field>
-            </div>
-
-            <Field label="Key Skills (comma-separated)">
-              <Input
-                name="skills"
-                placeholder="e.g. React, Node.js, PostgreSQL, Product Management"
-                value={formData.skills}
-                onChange={handleChange}
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                You can add more skills in detail from your dashboard profile
-                page.
-              </p>
-            </Field>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="LinkedIn URL">
-                <Input
-                  name="linkedin"
-                  type="url"
-                  placeholder="https://linkedin.com/in/yourname"
-                  value={formData.linkedin}
-                  onChange={handleChange}
-                />
-              </Field>
-              <Field label="GitHub / Portfolio URL">
-                <Input
-                  name="github"
-                  type="url"
-                  placeholder="https://github.com/yourname"
-                  value={formData.github}
-                  onChange={handleChange}
-                />
-              </Field>
-            </div>
+    if (role === "handyman") {
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench className="w-5 h-5 text-lime-600" />
+            <h2 className="text-lg font-semibold text-gray-800">
+              Trade Details
+            </h2>
           </div>
-        );
-      }
+          <p className="text-sm text-gray-500">
+            Tell clients what trade you practice and how experienced you are.
+          </p>
 
-      if (role === "handyman") {
-        return (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 mb-1">
-              <Wrench className="w-5 h-5 text-lime-600" />
-              <h2 className="text-lg font-semibold text-gray-800">
-                Trade Details
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500">
-              Tell clients what trade you practice and how experienced you are.
+          <Field label="Trade / Specialization *" error={errors.trade}>
+            <Select name="trade" value={formData.trade} onChange={handleChange}>
+              <option value="">Select your trade</option>
+              {HANDYMAN_TRADES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Years of Experience *" error={errors.yearsExperience}>
+            <Select
+              name="yearsExperience"
+              value={formData.yearsExperience}
+              onChange={handleChange}
+            >
+              <option value="">Select experience</option>
+              <option value="0">Less than 1 year</option>
+              <option value="1">1 year</option>
+              <option value="2">2 years</option>
+              <option value="3">3 years</option>
+              <option value="5">5 years</option>
+              <option value="7">7 years</option>
+              <option value="10">10+ years</option>
+              <option value="15">15+ years</option>
+            </Select>
+          </Field>
+
+          <Field label="Skills / Tools (comma-separated)">
+            <Input
+              name="handymanSkills"
+              placeholder="e.g. Soldering, Pipe fitting, Load testing, Inverter installation"
+              value={formData.handymanSkills}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field label="Certifications / Qualifications">
+            <Input
+              name="certifications"
+              placeholder="e.g. NABTEB Certified, COREN, SON Approved"
+              value={formData.certifications}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field label="Brief Bio">
+            <Textarea
+              name="bio"
+              placeholder="Describe your experience, the type of jobs you handle best, and your work ethic..."
+              value={formData.bio}
+              onChange={handleChange}
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-400 text-right mt-1">
+              {formData.bio.length}/500
             </p>
+          </Field>
+        </div>
+      );
+    }
 
-            <Field label="Trade / Specialization *" error={errors.trade}>
+    if (role === "employer") {
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="w-5 h-5 text-lime-600" />
+            <h2 className="text-lg font-semibold text-gray-800">
+              Company Details
+            </h2>
+          </div>
+          <p className="text-sm text-gray-500">
+            Help candidates learn about your company before applying.
+          </p>
+
+          <Field label="Company Name *" error={errors.companyName}>
+            <Input
+              name="companyName"
+              placeholder="e.g. Acme Technologies Ltd"
+              value={formData.companyName}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Industry *" error={errors.industry}>
               <Select
-                name="trade"
-                value={formData.trade}
+                name="industry"
+                value={formData.industry}
                 onChange={handleChange}
               >
-                <option value="">Select your trade</option>
-                {HANDYMAN_TRADES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                <option value="">Select industry</option>
+                {INDUSTRIES.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
                   </option>
                 ))}
               </Select>
             </Field>
-
-            <Field label="Years of Experience *" error={errors.yearsExperience}>
+            <Field label="Company Size">
               <Select
-                name="yearsExperience"
-                value={formData.yearsExperience}
+                name="companySize"
+                value={formData.companySize}
                 onChange={handleChange}
               >
-                <option value="">Select experience</option>
-                <option value="0">Less than 1 year</option>
-                <option value="1">1 year</option>
-                <option value="2">2 years</option>
-                <option value="3">3 years</option>
-                <option value="5">5 years</option>
-                <option value="7">7 years</option>
-                <option value="10">10+ years</option>
-                <option value="15">15+ years</option>
+                <option value="">Select size</option>
+                <option value="1-10">1–10 employees</option>
+                <option value="11-50">11–50 employees</option>
+                <option value="51-200">51–200 employees</option>
+                <option value="201-500">201–500 employees</option>
+                <option value="500+">500+ employees</option>
               </Select>
             </Field>
-
-            <Field label="Certifications / Qualifications">
-              <Input
-                name="certifications"
-                placeholder="e.g. NABTEB Certified, COREN, SON Approved"
-                value={formData.certifications}
-                onChange={handleChange}
-              />
-            </Field>
-
-            <Field label="Brief Bio">
-              <Textarea
-                name="bio"
-                placeholder="Describe your experience, the type of jobs you handle best, and your work ethic..."
-                value={formData.bio}
-                onChange={handleChange}
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-400 text-right mt-1">
-                {formData.bio.length}/500
-              </p>
-            </Field>
           </div>
-        );
-      }
 
-      if (role === "employer") {
-        return (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="w-5 h-5 text-lime-600" />
-              <h2 className="text-lg font-semibold text-gray-800">
-                Company Details
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500">
-              Help candidates learn about your company before applying.
-            </p>
-
-            <Field label="Company Name *" error={errors.companyName}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Company Website">
               <Input
-                name="companyName"
-                placeholder="e.g. Acme Technologies Ltd"
-                value={formData.companyName}
+                name="companyWebsite"
+                type="url"
+                placeholder="https://yourcompany.com"
+                value={formData.companyWebsite}
                 onChange={handleChange}
               />
             </Field>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Industry *" error={errors.industry}>
-                <Select
-                  name="industry"
-                  value={formData.industry}
-                  onChange={handleChange}
-                >
-                  <option value="">Select industry</option>
-                  {INDUSTRIES.map((i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field label="Company Size">
-                <Select
-                  name="companySize"
-                  value={formData.companySize}
-                  onChange={handleChange}
-                >
-                  <option value="">Select size</option>
-                  <option value="1-10">1–10 employees</option>
-                  <option value="11-50">11–50 employees</option>
-                  <option value="51-200">51–200 employees</option>
-                  <option value="201-500">201–500 employees</option>
-                  <option value="500+">500+ employees</option>
-                </Select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Company Website">
-                <Input
-                  name="companyWebsite"
-                  type="url"
-                  placeholder="https://yourcompany.com"
-                  value={formData.companyWebsite}
-                  onChange={handleChange}
-                />
-              </Field>
-              <Field label="Company LinkedIn">
-                <Input
-                  name="companyLinkedin"
-                  type="url"
-                  placeholder="https://linkedin.com/company/..."
-                  value={formData.companyLinkedin}
-                  onChange={handleChange}
-                />
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Contact Person Name">
-                <Input
-                  name="contactPersonName"
-                  placeholder="e.g. Amaka Obi"
-                  value={formData.contactPersonName}
-                  onChange={handleChange}
-                />
-              </Field>
-              <Field label="Contact Person Designation">
-                <Input
-                  name="contactPersonDesignation"
-                  placeholder="e.g. Head of People"
-                  value={formData.contactPersonDesignation}
-                  onChange={handleChange}
-                />
-              </Field>
-            </div>
-
-            <Field label="Company Logo">
-              <FileUploadButton
-                label="Upload company logo"
-                accept="image/*"
-                file={formData.logo}
-                hint="PNG, JPG or SVG — max 2MB"
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, logo: e.target.files[0] }))
-                }
+            <Field label="Company LinkedIn">
+              <Input
+                name="companyLinkedin"
+                type="url"
+                placeholder="https://linkedin.com/company/..."
+                value={formData.companyLinkedin}
+                onChange={handleChange}
               />
             </Field>
           </div>
-        );
-      }
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Contact Person Name">
+              <Input
+                name="contactPersonName"
+                placeholder="e.g. Amaka Obi"
+                value={formData.contactPersonName}
+                onChange={handleChange}
+              />
+            </Field>
+            <Field label="Contact Person Designation">
+              <Input
+                name="contactPersonDesignation"
+                placeholder="e.g. Head of People"
+                value={formData.contactPersonDesignation}
+                onChange={handleChange}
+              />
+            </Field>
+          </div>
+
+          <Field label="Company Logo">
+            <FileUploadButton
+              label="Upload company logo"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              file={formData.logo}
+              hint="PNG, JPG or WEBP — max 2MB"
+              isImage={true}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, logo: e.target.files[0] }))
+              }
+            />
+          </Field>
+        </div>
+      );
     }
+  };
 
-    // ── STEP 3: Jobseeker — Resume & Photo ──────────────────────────────────
-    if (step === 3 && role === "jobseeker") {
+  // ── STEP 3: Upload step ────────────────────────────────────────────────────
+  const renderStep3 = () => {
+    if (role === "jobseeker") {
       return (
         <div className="space-y-5">
           <div className="flex items-center gap-2 mb-1">
@@ -811,30 +856,21 @@ export default function OnboardingForm({ role }) {
           </div>
           <p className="text-sm text-gray-500">
             Profiles with a photo and resume get <strong>3× more views</strong>.
-            You can also skip this step and add them later from your dashboard.
+            Both are optional — you can add them later from your dashboard.
           </p>
 
           <Field label="Profile Photo">
             <FileUploadButton
               label="Upload profile photo"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               file={formData.avatar}
-              hint="JPG or PNG — max 5MB. Clear, professional photo recommended."
+              hint="JPG, PNG or WEBP — max 2MB. Clear, professional photo recommended."
+              isImage={true}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, avatar: e.target.files[0] }))
               }
             />
           </Field>
-
-          {formData.avatar && (
-            <div className="flex justify-center">
-              <img
-                src={URL.createObjectURL(formData.avatar)}
-                alt="Preview"
-                className="w-24 h-24 rounded-full object-cover border-2 border-lime-500"
-              />
-            </div>
-          )}
 
           <Field label="Resume / CV (PDF recommended)">
             <FileUploadButton
@@ -842,6 +878,7 @@ export default function OnboardingForm({ role }) {
               accept=".pdf,.doc,.docx"
               file={formData.resume}
               hint="PDF, DOC or DOCX — max 10MB"
+              isImage={false}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, resume: e.target.files[0] }))
               }
@@ -855,9 +892,56 @@ export default function OnboardingForm({ role }) {
         </div>
       );
     }
+
+    if (role === "handyman") {
+      return (
+        <div className="space-y-5">
+          <div className="flex items-center gap-2 mb-1">
+            <ImageIcon className="w-5 h-5 text-lime-600" />
+            <h2 className="text-lg font-semibold text-gray-800">
+              Profile Photo
+            </h2>
+          </div>
+          <p className="text-sm text-gray-500">
+            A clear profile photo helps clients trust you more before booking.
+            This is optional — you can add it later from your dashboard.
+          </p>
+
+          <Field label="Profile Photo">
+            <FileUploadButton
+              label="Upload profile photo"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              file={formData.avatar}
+              hint="JPG, PNG or WEBP — max 2MB"
+              isImage={true}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, avatar: e.target.files[0] }))
+              }
+            />
+          </Field>
+
+          <div className="bg-lime-50 border border-lime-200 rounded-lg p-3 text-sm text-lime-800">
+            <strong>Tip:</strong> Handymen with profile photos receive{" "}
+            <strong>2× more enquiries</strong> than those without.
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
-  // ─── RENDER ───────────────────────────────────────────────────────────────
+  const renderStep = () => {
+    if (step === 1) return renderStep1();
+    if (step === 2) return renderStep2();
+    if (step === 3) return renderStep3();
+    return null;
+  };
+
+  // ── Is this the final step? ────────────────────────────────────────────────
+  const isFinalStep = step === totalSteps;
+
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex items-start justify-center py-10 px-4">
       <div className="w-full max-w-2xl">
@@ -882,7 +966,7 @@ export default function OnboardingForm({ role }) {
           {renderStep()}
         </div>
 
-        {/* Navigation */}
+        {/* Navigation buttons */}
         <div className="flex items-center justify-between mt-6 gap-4">
           {step > 1 ? (
             <button
@@ -898,7 +982,7 @@ export default function OnboardingForm({ role }) {
             <div />
           )}
 
-          {step < totalSteps ? (
+          {!isFinalStep ? (
             <button
               type="button"
               onClick={goNext}
@@ -917,7 +1001,7 @@ export default function OnboardingForm({ role }) {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
+                  Saving…
                 </>
               ) : (
                 <>
@@ -929,9 +1013,8 @@ export default function OnboardingForm({ role }) {
           )}
         </div>
 
-        {/* Skip link (only on final step or step 3 for jobseeker) */}
-        {((role === "jobseeker" && step === 3) ||
-          (role !== "jobseeker" && step === totalSteps)) && (
+        {/* Skip link — shown on the final step only */}
+        {isFinalStep && (
           <p className="text-center text-xs text-gray-400 mt-4">
             <button
               type="button"

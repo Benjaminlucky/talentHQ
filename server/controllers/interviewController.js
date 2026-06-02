@@ -2,7 +2,13 @@
 import Interview from "../models/Interview.js";
 import JobseekerApplication from "../models/JobseekerApplication.js";
 import Employer from "../models/Employer.js";
+import Jobnode from "../models/Jobnode.js";
+import Handyman from "../models/Handyman.js";
 import { createNotification } from "../utils/notificationHelper.js";
+import {
+  sendInterviewScheduledEmail,
+  sendInterviewResponseEmail,
+} from "../utils/email.js";
 
 const FORMAT_LABEL = {
   video: "Video Call",
@@ -50,6 +56,8 @@ export const scheduleInterview = async (req, res) => {
       applicationId,
       employerId: req.user.id,
       jobseekerId: application.jobseeker,
+      jobseekerModel:
+        application.applicantModel === "Handyman" ? "Handyman" : "Jobnode",
       date: new Date(date),
       time,
       timezone: timezone || "Africa/Lagos",
@@ -66,26 +74,59 @@ export const scheduleInterview = async (req, res) => {
       });
     }
 
-    // Notify the jobseeker about the interview invite
+    // Fetch employer + jobseeker for notification and email
     const employer = await Employer.findById(req.user.id)
-      .select("companyName fullName")
+      .select("companyName fullName email")
       .lean();
     const companyName =
       employer?.companyName || employer?.fullName || "An employer";
+
     const interviewDate = new Date(date).toLocaleDateString("en-NG", {
       weekday: "short",
       day: "numeric",
       month: "short",
     });
 
+    // ── In-app notification (role-aware: jobseeker OR handyman) ───────────────
+    const isHandymanApplicant = application.applicantModel === "Handyman";
+
     createNotification({
       recipientId: application.jobseeker,
-      recipientModel: "Jobnode",
+      recipientModel: isHandymanApplicant ? "Handyman" : "Jobnode",
       type: "interview_scheduled",
       title: "📅 Interview invitation",
       message: `${companyName} has scheduled a ${FORMAT_LABEL[format] || format} interview with you on ${interviewDate} at ${time}. Please respond.`,
-      link: "/dashboard/jobseeker/interviews",
+      link: isHandymanApplicant
+        ? "/dashboard/handyman/interviews"
+        : "/dashboard/jobseeker/interviews",
     });
+
+    // ── Email notification (fire-and-forget) ─────────────────────────────────
+    // Resolve the applicant from the correct collection.
+    const ApplicantModel = isHandymanApplicant ? Handyman : Jobnode;
+    const jobseeker = await ApplicantModel.findById(application.jobseeker)
+      .select("fullName email")
+      .lean();
+
+    if (jobseeker?.email) {
+      sendInterviewScheduledEmail(jobseeker.email, {
+        applicantName: jobseeker.fullName || "there",
+        companyName,
+        interviewTitle: title,
+        date,
+        time,
+        timezone: timezone || "Africa/Lagos",
+        format,
+        location: location || "",
+        platform: platform || "",
+        notes: notes || "",
+      }).catch((err) =>
+        console.error(
+          "⚠️  Interview scheduled email failed (non-fatal):",
+          err.message,
+        ),
+      );
+    }
 
     res.status(201).json({ message: "Interview scheduled", interview });
   } catch (err) {
@@ -126,7 +167,6 @@ export const getEmployerInterviews = async (req, res) => {
 // ── GET /api/interviews/jobseeker ──────────────────────────────────────────────
 export const getJobseekerInterviews = async (req, res) => {
   try {
-    // Allow both jobseeker and handyman
     if (req.user.role !== "jobseeker" && req.user.role !== "handyman") {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -209,7 +249,7 @@ export const respondToInterview = async (req, res) => {
   try {
     const interview = await Interview.findById(req.params.id).populate(
       "employerId",
-      "_id companyName fullName",
+      "_id companyName fullName email",
     );
     if (!interview)
       return res.status(404).json({ message: "Interview not found" });
@@ -233,7 +273,7 @@ export const respondToInterview = async (req, res) => {
 
     await interview.save();
 
-    // Notify the employer about the candidate's response
+    // ── In-app notification to employer ──────────────────────────────────────
     const verb = response === "accepted" ? "accepted ✓" : "declined";
     createNotification({
       recipientId: interview.employerId._id,
@@ -243,6 +283,31 @@ export const respondToInterview = async (req, res) => {
       message: `A candidate has ${verb} the interview "${interview.title}".${note ? ` Their note: "${note}"` : ""}`,
       link: "/dashboard/employer/interviews",
     });
+
+    // ── Email to employer (fire-and-forget) ───────────────────────────────────
+    const employerEmail = interview.employerId?.email;
+    if (employerEmail) {
+      // Fetch candidate name for the email
+      const jobseeker = await Jobnode.findById(req.user.id)
+        .select("fullName")
+        .lean();
+
+      sendInterviewResponseEmail(employerEmail, {
+        companyContactName:
+          interview.employerId?.fullName ||
+          interview.employerId?.companyName ||
+          "there",
+        applicantName: jobseeker?.fullName || "The candidate",
+        interviewTitle: interview.title,
+        response,
+        candidateNote: note || "",
+      }).catch((err) =>
+        console.error(
+          "⚠️  Interview response email failed (non-fatal):",
+          err.message,
+        ),
+      );
+    }
 
     res.json({ message: `Interview ${response}`, interview });
   } catch (err) {
