@@ -142,12 +142,17 @@ export const forgotPassword = async (req, res) => {
 
     const resetUrl = `${FRONTEND_URL}/admin/reset-password?token=${token}`;
 
-    // Send via Resend if configured
+    // Send via Resend if configured.
+    // IMPORTANT: the `from` address MUST use a domain verified in Resend.
+    // Your verified domain is talenthq.buzz — NOT talenthq.ng. Sending from an
+    // unverified domain causes Resend to reject the email ("Domain not
+    // verified") and it never delivers.
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const EMAIL_FROM = process.env.EMAIL_FROM || "noreply@talenthq.ng";
+    const EMAIL_FROM =
+      process.env.EMAIL_FROM || "TalentHQ <noreply@talenthq.buzz>";
 
     if (RESEND_API_KEY) {
-      await fetch("https://api.resend.com/emails", {
+      const resendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,9 +176,16 @@ export const forgotPassword = async (req, res) => {
             </div>
           `,
         }),
-      }).catch((e) =>
-        console.error("⚠️ Resend email failed (non-fatal):", e.message),
-      );
+      });
+
+      // Surface Resend errors instead of swallowing them — a rejected send
+      // (e.g. unverified domain) returns a non-2xx with a JSON error body.
+      if (!resendRes.ok) {
+        const detail = await resendRes.text().catch(() => "");
+        console.error(
+          `⚠️ Resend rejected admin reset email (${resendRes.status}): ${detail}`,
+        );
+      }
     } else {
       // Log reset link to console in development when Resend not configured
       console.log(`🔑 Admin password reset link (DEV): ${resetUrl}`);
