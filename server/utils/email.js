@@ -189,9 +189,14 @@ function emailHtml(body) {
 
 // ── Internal send helper ───────────────────────────────────────────────────
 async function sendEmail({ to, subject, html }) {
+  // Replies to system emails (verify, reset, welcome, status, interview) should
+  // reach a monitored inbox rather than the unmonitored noreply@ from-address.
+  const REPLY_TO = process.env.ADMIN_EMAIL || "hello@talenthq.buzz";
+
   const { data, error } = await getResend().emails.send({
     from: FROM,
     to: Array.isArray(to) ? to : [to],
+    reply_to: REPLY_TO,
     subject,
     html,
   });

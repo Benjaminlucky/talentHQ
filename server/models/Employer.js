@@ -32,6 +32,13 @@ const employerSchema = new mongoose.Schema(
     // Email verification (matches Jobnode + Handyman schemas)
     emailVerified: { type: Boolean, default: false },
 
+    // OAuth (Google/LinkedIn) — required so a Jobnode→Employer migration during
+    // social signup preserves the provider link. Without these, Mongoose drops
+    // the fields on create and the OAuth account becomes unlinked.
+    oauthProvider: { type: String, default: null },
+    oauthId: { type: String, default: null },
+    needsRoleSelection: { type: Boolean, default: false },
+
     // Plan fields (set by subscription webhook)
     activePlan: { type: String, default: "employer_free" },
     planExpiresAt: { type: Date, default: null },
@@ -43,6 +50,7 @@ const employerSchema = new mongoose.Schema(
 employerSchema.index({ companyName: 1 });
 employerSchema.index({ industry: 1 });
 employerSchema.index({ state: 1 });
+employerSchema.index({ oauthProvider: 1, oauthId: 1 }, { sparse: true });
 employerSchema.index({ avgRating: -1 });
 employerSchema.index({ createdAt: -1 });
 employerSchema.index({ onboardingComplete: 1, createdAt: -1 });

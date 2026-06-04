@@ -16,13 +16,19 @@ const FRONTEND =
     : "http://localhost:3000");
 
 // ── Google ────────────────────────────────────────────────────────────────────
-router.get(
-  "/google",
+// Optional ?role=employer|handyman|jobseeker is forwarded as the OAuth `state`
+// so a brand-new user is created directly in the right collection. If absent,
+// the user is sent to /oauth/select-role after authenticating.
+router.get("/google", (req, res, next) => {
+  const role = ["jobseeker", "handyman", "employer"].includes(req.query.role)
+    ? req.query.role
+    : undefined;
   passport.authenticate("google", {
     scope: ["profile", "email"],
     session: true,
-  }),
-);
+    state: role,
+  })(req, res, next);
+});
 
 router.get(
   "/google/callback",
@@ -34,13 +40,16 @@ router.get(
 );
 
 // ── LinkedIn ──────────────────────────────────────────────────────────────────
-router.get(
-  "/linkedin",
+router.get("/linkedin", (req, res, next) => {
+  const role = ["jobseeker", "handyman", "employer"].includes(req.query.role)
+    ? req.query.role
+    : undefined;
   passport.authenticate("linkedin", {
     scope: ["openid", "profile", "email"],
     session: true,
-  }),
-);
+    state: role,
+  })(req, res, next);
+});
 
 router.get(
   "/linkedin/callback",

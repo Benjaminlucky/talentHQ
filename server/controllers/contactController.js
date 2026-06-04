@@ -82,12 +82,17 @@ async function notifyAdmin(contact) {
       send({
         from: EMAIL_FROM,
         to: [ADMIN_EMAIL],
+        // reply_to is the submitter's address, so hitting "Reply" in the inbox
+        // goes straight to them instead of to the unmonitored noreply@ address.
+        reply_to: contact.email,
         subject: `[TalentHQ Contact] ${contact.subject}`,
         html: adminHtml,
       }),
       send({
         from: EMAIL_FROM,
         to: [contact.email],
+        // Replies to the auto-acknowledgement should reach the support inbox.
+        reply_to: ADMIN_EMAIL,
         subject: "We received your message — TalentHQ",
         html: replyHtml,
       }),

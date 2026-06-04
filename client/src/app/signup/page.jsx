@@ -81,12 +81,13 @@ export default function SignupPage() {
     setError("");
   };
 
-  // ── OAuth: redirect to backend — role will be asked on /oauth/select-role ──
+  // ── OAuth: redirect to backend, forwarding the role chosen on step 1 ──────
+  // If the user picked a role before clicking Google/LinkedIn, we pass it as
+  // ?role= so the backend creates them in the correct collection directly. If
+  // no role was chosen, the backend sends them to /oauth/select-role instead.
   const handleOAuth = (provider) => {
-    // For OAuth we DON'T pre-select a role here because the callback page
-    // (/oauth/select-role) handles role selection after Google/LinkedIn authenticates.
-    // This is intentional — OAuth users see the same role picker after auth.
-    const url = provider === "google" ? GOOGLE_AUTH_URL : LINKEDIN_AUTH_URL;
+    const base = provider === "google" ? GOOGLE_AUTH_URL : LINKEDIN_AUTH_URL;
+    const url = role ? `${base}?role=${encodeURIComponent(role)}` : base;
     window.location.href = url;
   };
 
