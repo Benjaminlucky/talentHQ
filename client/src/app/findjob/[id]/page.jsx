@@ -1,116 +1,138 @@
-// app/findjob/page.js
-import { Suspense } from "react";
-import FindJobsClient from "./FindJobsClient";
-import { SITE_URL, SITE_NAME, OG_DEFAULT, toMetaDescription } from "@/lib/seo";
+// src/app/findjob/[id]/page.jsx
+// SERVER COMPONENT — generates per-job SEO metadata (title, description, and an
+// Open Graph image set to the employer's logo) so each job ranks on search
+// engines and shows a rich preview when its link is shared. The interactive UI
+// lives in JobDetailClient (a client component) rendered below.
 
-// ── Dynamic, filter-aware SEO metadata ──────────────────────────────────────
-// Builds titles like "Graphic Designer Jobs in Lagos | TalentHQ" from the
-// ?search= and ?location= query params, so searches that map to a filtered
-// listing can rank and land here. Falls back to a generic jobs title.
-export async function generateMetadata({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const search = (sp.search || "").toString().trim();
-  const location = (sp.location || sp.jobType || "").toString().trim();
-  const category = (sp.category || "").toString().trim();
+import {
+  SITE_URL,
+  SITE_NAME,
+  OG_DEFAULT,
+  fetchJob,
+  toMetaDescription,
+  absoluteUrl,
+} from "@/lib/seo";
+import JobDetailClient from "./JobDetailClient";
 
-  const subject = search || category || "Jobs";
-  const where = location ? ` in ${location}` : " in Nigeria";
+// Regenerate metadata/page at most every 10 minutes (ISR).
+export const revalidate = 600;
 
-  const title = search
-    ? `${search} Jobs${where}`
-    : category
-      ? `${category} Jobs${where}`
-      : `Browse Jobs${where}`;
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const job = await fetchJob(id);
 
+  if (!job) {
+    return {
+      title: "Job not found",
+      description: "This job posting may have been filled or removed.",
+      robots: { index: false, follow: true },
+    };
+  }
+
+  const company =
+    job.company?.companyName || job.company?.fullName || "a company";
+  const loc = job.location || "Nigeria";
+  const typeLabel = job.type ? ` (${job.type})` : "";
+
+  const title = `${job.title} at ${company} — ${loc}`;
   const description = toMetaDescription(
-    `Find ${search || category || "the latest"} jobs${where} on TalentHQ. ` +
-      `Browse openings from verified employers and apply in one click.`,
+    job.description ||
+      `${job.title}${typeLabel} role at ${company} in ${loc}. Apply now on TalentHQ.`,
   );
 
-  // Index listing pages that carry a real query intent (a search term or a
-  // category) — these are the pages we WANT to rank, e.g. "graphic designer
-  // jobs in lagos". Plain pagination/sort-only variants stay out of the index
-  // to avoid thin, duplicate pages. Filtered pages canonicalise to themselves
-  // so Google treats each meaningful query as its own landing page.
-  const hasQueryIntent = Boolean(search || category);
-  const params = new URLSearchParams();
-  if (search) params.set("search", search);
-  if (category) params.set("category", category);
-  if (location) params.set("location", location);
-  const qs = params.toString();
-  const canonical = `${SITE_URL}/findjob${qs ? `?${qs}` : ""}`;
+  const ogImage = absoluteUrl(job.company?.logo || OG_DEFAULT);
+  const canonical = `${SITE_URL}/findjob/${id}`;
 
   return {
     title,
     description,
     keywords: [
-      subject,
-      `${subject} ${location || "Nigeria"}`,
-      `${subject} jobs`,
-      `jobs ${location || "Nigeria"}`,
-      "Nigeria jobs",
+      job.title,
+      `${job.title} ${loc}`,
+      `${job.title} jobs`,
+      `${job.category || job.title} Nigeria`,
+      `jobs at ${company}`,
+      `${loc} jobs`,
     ].filter(Boolean),
     alternates: { canonical },
-    robots: { index: hasQueryIntent || !qs, follow: true },
     openGraph: {
       type: "website",
       url: canonical,
       siteName: SITE_NAME,
       title,
       description,
-      images: [{ url: OG_DEFAULT, width: 1200, height: 630, alt: SITE_NAME }],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${company} logo`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [OG_DEFAULT],
+      images: [ogImage],
     },
   };
 }
 
-// Skeleton shown during SSR / before client hydrates
-function PageSkeleton() {
+// JSON-LD JobPosting structured data → enables Google Jobs rich results.
+function JobJsonLd({ job, id }) {
+  if (!job) return null;
+  const company =
+    job.company?.companyName || job.company?.fullName || "TalentHQ Employer";
+
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description || job.title,
+    datePosted: job.createdAt || undefined,
+    employmentType: (job.type || "").toUpperCase().replace(/[\s-]/g, "_"),
+    hiringOrganization: {
+      "@type": "Organization",
+      name: company,
+      logo: job.company?.logo ? absoluteUrl(job.company.logo) : undefined,
+      sameAs: job.company?.companyWebsite || undefined,
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.location || "Nigeria",
+        addressCountry: "NG",
+      },
+    },
+    url: `${SITE_URL}/findjob/${id}`,
+  };
+
+  if (job.salary) {
+    data.baseSalary = {
+      "@type": "MonetaryValue",
+      currency: "NGN",
+      value: { "@type": "QuantitativeValue", value: job.salary },
+    };
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 h-[72px]" />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gray-200" />
-                  <div>
-                    <div className="h-4 w-36 bg-gray-200 rounded mb-2" />
-                    <div className="h-3 w-24 bg-gray-100 rounded" />
-                  </div>
-                </div>
-                <div className="h-6 w-20 bg-gray-100 rounded-full" />
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="h-3 w-full bg-gray-100 rounded" />
-                <div className="h-3 w-3/4 bg-gray-100 rounded" />
-              </div>
-              <div className="flex gap-2">
-                <div className="h-6 w-16 bg-gray-100 rounded-full" />
-                <div className="h-6 w-20 bg-gray-100 rounded-full" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
   );
 }
 
-export default function FindJobsPage() {
+export default async function JobDetailPage({ params }) {
+  const { id } = await params;
+  const job = await fetchJob(id);
+
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <FindJobsClient />
-    </Suspense>
+    <>
+      <JobJsonLd job={job} id={id} />
+      <JobDetailClient id={id} />
+    </>
   );
 }
