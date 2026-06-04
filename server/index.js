@@ -30,12 +30,13 @@ import contactRoutes from "./routes/contactRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
-import interviewRoutes from "./routes/interviewRoutes.js";
+import interviewRoutes from "./routes/interviewroutes.js";
 import handymanRoutes from "./routes/Handymanroutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import flagRoutes from "./routes/Flagroutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
+import jobseekerRoutes from "./routes/jobseekerRoutes.js";
 
 const app = express();
 
@@ -193,6 +194,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/handymen", handymanRoutes);
+app.use("/api/jobseekers", jobseekerRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/flags", flagRoutes);
 app.use("/api/payments", paymentRoutes);

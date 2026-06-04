@@ -389,7 +389,14 @@ export default function CandidateDetailClient({ id }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${baseUrl}/api/profile/applications/${id}`);
+      // IDs prefixed "js_" are public jobseeker PROFILES (not applications).
+      // Route them to the jobseekers endpoint; everything else is an application.
+      const isProfile = typeof id === "string" && id.startsWith("js_");
+      const url = isProfile
+        ? `${baseUrl}/api/jobseekers/${id.slice(3)}`
+        : `${baseUrl}/api/profile/applications/${id}`;
+
+      const res = await fetch(url);
       if (!res.ok)
         throw new Error(
           res.status === 404
@@ -503,13 +510,6 @@ export default function CandidateDetailClient({ id }) {
   const isEmployer = user?.role === "employer";
   const alreadyHired = candidate.status === "accepted";
 
-  const STATUS_COLORS = {
-    pending: "bg-amber-50 text-amber-700 border-amber-200",
-    reviewed: "bg-blue-50 text-blue-700 border-blue-200",
-    accepted: "bg-lime-50 text-lime-700 border-lime-200",
-    rejected: "bg-red-50 text-red-600 border-red-200",
-  };
-
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
       {toast && <Toast message={toast.msg} type={toast.type} />}
@@ -544,11 +544,10 @@ export default function CandidateDetailClient({ id }) {
                   <h1 className="text-2xl font-black text-gray-900">
                     {jobseeker?.fullName}
                   </h1>
-                  <span
-                    className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${STATUS_COLORS[candidate.status] || STATUS_COLORS.pending}`}
-                  >
-                    {candidate.status}
-                  </span>
+                  {/* Application status (reviewed/rejected/etc.) is private
+                      feedback for the jobseeker about their own applications.
+                      It is shown ONLY on the jobseeker's dashboard, never on
+                      this public candidate page. */}
                 </div>
                 {jobseeker?.headline && (
                   <p className="text-gray-700 font-medium mb-0.5">

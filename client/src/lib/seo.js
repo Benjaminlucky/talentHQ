@@ -57,7 +57,11 @@ export async function fetchJob(id) {
 }
 
 export async function fetchCandidate(id) {
-  const data = await safeFetch(`/api/profile/applications/${id}`);
-  // getApplicationById returns the shaped application directly
+  // IDs prefixed "js_" are public jobseeker profiles; others are applications.
+  const path =
+    typeof id === "string" && id.startsWith("js_")
+      ? `/api/jobseekers/${id.slice(3)}`
+      : `/api/profile/applications/${id}`;
+  const data = await safeFetch(path);
   return data && (data._id ? data : null);
 }

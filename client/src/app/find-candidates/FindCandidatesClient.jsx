@@ -176,13 +176,68 @@ export default function FindCandidatesClient() {
           ...(filters.location && { location: filters.location }),
           ...(filters.roleType && { roleType: filters.roleType }),
         });
-        const res = await fetch(`${base}/api/profile/applications?${params}`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const list = data.applications || (Array.isArray(data) ? data : []);
-        setApplications((prev) => (append ? [...prev, ...list] : list));
-        setTotalPages(data.totalPages || 1);
-        setTotal(data.total || list.length);
+
+        // Fetch BOTH applicants (people who applied) and onboarded jobseeker
+        // profiles (people discoverable even before applying), in parallel.
+        // This is why a freshly-onboarded jobseeker now appears here.
+        const [appsRes, jsRes] = await Promise.all([
+          fetch(`${base}/api/profile/applications?${params}`).catch(() => null),
+          fetch(`${base}/api/jobseekers?${params}`).catch(() => null),
+        ]);
+
+        let appList = [];
+        let appTotal = 0;
+        let appPages = 1;
+        if (appsRes && appsRes.ok) {
+          const data = await appsRes.json();
+          appList = data.applications || (Array.isArray(data) ? data : []);
+          appTotal = data.total || appList.length;
+          appPages = data.totalPages || 1;
+        }
+
+        // Normalise jobseeker profiles into the same card shape the grid uses
+        // (a card reads app.jobseeker.* and app.roleTitle).
+        let jsList = [];
+        let jsTotal = 0;
+        let jsPages = 1;
+        if (jsRes && jsRes.ok) {
+          const data = await jsRes.json();
+          const seekers = data.jobseekers || [];
+          jsTotal = data.total || seekers.length;
+          jsPages = data.totalPages || 1;
+          jsList = seekers.map((s) => ({
+            _id: `js_${s._id}`, // prefix avoids key collisions with applications
+            profileId: s._id,
+            roleTitle: s.headline || "Professional",
+            roleType: "",
+            preferredLocation: s.location || "",
+            isProfile: true, // marks this as a profile card (not an application)
+            jobseeker: {
+              _id: s._id,
+              fullName: s.fullName,
+              avatar: s.avatar,
+              headline: s.headline,
+              tagline: s.tagline,
+              location: s.location,
+            },
+          }));
+        }
+
+        // Merge, de-duplicating by underlying jobseeker id so someone who both
+        // applied AND has a profile only shows once (the application wins).
+        const seen = new Set(
+          appList.map((a) => (a.jobseeker?._id || a.jobseeker)?.toString()),
+        );
+        const mergedNew = [
+          ...appList,
+          ...jsList.filter((j) => !seen.has(j.profileId?.toString())),
+        ];
+
+        setApplications((prev) =>
+          append ? [...prev, ...mergedNew] : mergedNew,
+        );
+        setTotalPages(Math.max(appPages, jsPages));
+        setTotal(appTotal + jsTotal);
       } catch {
         if (!append) setApplications([]);
       } finally {

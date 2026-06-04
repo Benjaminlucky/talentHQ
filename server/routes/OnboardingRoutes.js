@@ -5,7 +5,7 @@ import {
   updateHandymanOnboarding,
   updateEmployerOnboarding,
 } from "../controllers/OnboardingController.js";
-import upload from "../middlewares/upload.js";
+import { uploadFields } from "../middlewares/upload.js";
 import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -14,19 +14,19 @@ const router = express.Router();
 router.patch(
   "/jobseeker",
   verifyToken,
-  upload.fields([
+  uploadFields([
     { name: "resume", maxCount: 1 },
     { name: "avatar", maxCount: 1 },
   ]),
   updateJobSeekerOnboarding,
 );
 
-// ── Handyman: avatar (image) — FIX: was JSON-only, now has upload middleware ──
+// ── Handyman: avatar (image) ──────────────────────────────────────────────────
 // The smart storage in upload.js routes "avatar" → imageCloudStorage automatically.
 router.patch(
   "/handyman",
   verifyToken,
-  upload.fields([{ name: "avatar", maxCount: 1 }]),
+  uploadFields([{ name: "avatar", maxCount: 1 }]),
   updateHandymanOnboarding,
 );
 
@@ -34,7 +34,7 @@ router.patch(
 router.patch(
   "/employer",
   verifyToken,
-  upload.fields([{ name: "logo", maxCount: 1 }]),
+  uploadFields([{ name: "logo", maxCount: 1 }]),
   updateEmployerOnboarding,
 );
 
