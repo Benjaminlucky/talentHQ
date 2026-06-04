@@ -3,7 +3,8 @@
 
 const SITE_URL = "https://talenthq.buzz";
 const API =
-  process.env.NEXT_PUBLIC_API_BASE || "https://talenthq-vl3n.onrender.com";
+  process.env.NEXT_PUBLIC_API_BASE ||
+  "https://talenthq-production.up.railway.app";
 
 export default async function sitemap() {
   // ── Static routes ─────────────────────────────────────────────────────────
@@ -116,5 +117,34 @@ export default async function sitemap() {
     // Timed out or unavailable — static routes still returned to Google.
   }
 
-  return [...staticRoutes, ...jobRoutes];
+  // ── Dynamic candidate routes ──────────────────────────────────────────────
+  let candidateRoutes = [];
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch(
+      `${API}/api/profile/applications?limit=500&page=1`,
+      {
+        signal: controller.signal,
+        next: { revalidate: 3600 },
+      },
+    );
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      const apps = data.applications || [];
+      candidateRoutes = apps.map((app) => ({
+        url: `${SITE_URL}/find-candidates/${app._id}`,
+        lastModified: app.updatedAt ? new Date(app.updatedAt) : new Date(),
+        changeFrequency: "weekly",
+        priority: 0.7,
+      }));
+    }
+  } catch {
+    // Unavailable — static + job routes still returned.
+  }
+
+  return [...staticRoutes, ...jobRoutes, ...candidateRoutes];
 }
