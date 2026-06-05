@@ -9,10 +9,17 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import SuperAdmin from "../models/superAdmin.model.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
-const JWT_REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET || "fallback_refresh_secret";
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+// Fail fast if secrets are missing. Signing admin tokens with a hardcoded
+// fallback string would let anyone forge a valid superadmin token.
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  throw new Error(
+    "JWT_SECRET and JWT_REFRESH_SECRET must be set in the environment.",
+  );
+}
 
 const signAccessToken = (admin) =>
   jwt.sign({ id: admin._id, role: "superadmin" }, JWT_SECRET, {
@@ -24,12 +31,43 @@ const signRefreshToken = (admin) =>
   });
 
 // POST /api/superadmin/signup
+// LOCKED DOWN. This endpoint exists only to bootstrap the FIRST super admin on
+// a fresh deployment. It works only when BOTH are true:
+//   1. There are zero super admins in the database yet, AND
+//   2. The request includes the correct SUPERADMIN_SIGNUP_SECRET.
+// Once the first admin exists, this endpoint is permanently closed — additional
+// admins must be created by an already-authenticated super admin via
+// POST /api/superadmin/admins (createSuperAdmin below).
 export const registerSuperAdmin = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, signupSecret } = req.body;
     if (!fullName || !email || !password) {
       return res.status(400).json({ message: "All fields are required." });
     }
+
+    // 1. Bootstrap-only: refuse if any super admin already exists.
+    const adminCount = await SuperAdmin.countDocuments();
+    if (adminCount > 0) {
+      return res.status(403).json({
+        message:
+          "Super admin registration is closed. New admins must be added by an existing super admin.",
+      });
+    }
+
+    // 2. Require the bootstrap secret (must be configured in the environment).
+    const expectedSecret = process.env.SUPERADMIN_SIGNUP_SECRET;
+    if (!expectedSecret) {
+      return res.status(500).json({
+        message:
+          "Super admin signup is not configured. Set SUPERADMIN_SIGNUP_SECRET on the server.",
+      });
+    }
+    if (!signupSecret || signupSecret !== expectedSecret) {
+      return res
+        .status(403)
+        .json({ message: "Invalid or missing signup secret." });
+    }
+
     const existing = await SuperAdmin.findOne({ email });
     if (existing)
       return res.status(400).json({ message: "Admin already exists." });
@@ -41,6 +79,32 @@ export const registerSuperAdmin = async (req, res) => {
       .json({ message: "Super Admin registered successfully." });
   } catch (err) {
     console.error("Signup error:", err);
+    return res.status(500).json({ message: "Server error." });
+  }
+};
+
+// POST /api/superadmin/admins
+// Create an ADDITIONAL super admin. Protected: only an authenticated super
+// admin (verifySuperAdmin middleware on the route) can reach this. This is the
+// supported way to add admins after the first one is bootstrapped.
+export const createSuperAdmin = async (req, res) => {
+  try {
+    const { fullName, email, password } = req.body;
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const existing = await SuperAdmin.findOne({ email });
+    if (existing)
+      return res.status(400).json({ message: "Admin already exists." });
+
+    const hashed = await bcrypt.hash(password, 10);
+    await SuperAdmin.create({ fullName, email, password: hashed });
+    return res
+      .status(201)
+      .json({ message: "Super Admin created successfully." });
+  } catch (err) {
+    console.error("Create admin error:", err);
     return res.status(500).json({ message: "Server error." });
   }
 };
@@ -142,17 +206,12 @@ export const forgotPassword = async (req, res) => {
 
     const resetUrl = `${FRONTEND_URL}/admin/reset-password?token=${token}`;
 
-    // Send via Resend if configured.
-    // IMPORTANT: the `from` address MUST use a domain verified in Resend.
-    // Your verified domain is talenthq.buzz — NOT talenthq.ng. Sending from an
-    // unverified domain causes Resend to reject the email ("Domain not
-    // verified") and it never delivers.
+    // Send via Resend if configured
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const EMAIL_FROM =
-      process.env.EMAIL_FROM || "TalentHQ <noreply@talenthq.buzz>";
+    const EMAIL_FROM = process.env.EMAIL_FROM || "noreply@talenthq.ng";
 
     if (RESEND_API_KEY) {
-      const resendRes = await fetch("https://api.resend.com/emails", {
+      await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -176,16 +235,9 @@ export const forgotPassword = async (req, res) => {
             </div>
           `,
         }),
-      });
-
-      // Surface Resend errors instead of swallowing them — a rejected send
-      // (e.g. unverified domain) returns a non-2xx with a JSON error body.
-      if (!resendRes.ok) {
-        const detail = await resendRes.text().catch(() => "");
-        console.error(
-          `⚠️ Resend rejected admin reset email (${resendRes.status}): ${detail}`,
-        );
-      }
+      }).catch((e) =>
+        console.error("⚠️ Resend email failed (non-fatal):", e.message),
+      );
     } else {
       // Log reset link to console in development when Resend not configured
       console.log(`🔑 Admin password reset link (DEV): ${resetUrl}`);
