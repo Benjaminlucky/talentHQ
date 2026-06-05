@@ -40,6 +40,12 @@ const resumeCloudStorage = new CloudinaryStorage({
       public_id: publicId,
       use_filename: false,
       unique_filename: false,
+      // Force public delivery so the file is reachable at its URL without a
+      // signature. (The Cloudinary account must ALSO have "PDF and ZIP files
+      // delivery" enabled under Settings → Security, or direct PDF URLs 401
+      // regardless of this flag.)
+      access_mode: "public",
+      type: "upload",
     };
   },
 });

@@ -493,7 +493,10 @@ export default function JobseekerProfilePage() {
               </div>
               <div>
                 <a
-                  href={profile.resume}
+                  href={resumeDownloadUrl(
+                    profile.resume,
+                    profile.fullName ? `${profile.fullName}_Resume` : "Resume",
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm font-semibold text-lime-700 hover:underline"
