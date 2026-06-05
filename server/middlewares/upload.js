@@ -17,15 +17,30 @@ import cloudinary from "./cloudinary.js";
 const IS_PROD = process.env.NODE_ENV === "production";
 
 // ── Cloudinary: resume / document storage ─────────────────────────────────────
+// resource_type "raw" is the correct type for documents (PDF/DOC/DOCX) and,
+// crucially, keeps the file EXTENSION in the delivery URL. With "auto",
+// Cloudinary dropped the extension, so downloads arrived as extension-less
+// files (no .pdf/.docx) that the OS couldn't open. We build the public_id from
+// the original filename so the stored asset and its URL end in ".pdf"/".docx".
 const resumeCloudStorage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "talenthq/resumes",
-    // "auto" lets Cloudinary store PDFs and Office docs reliably without
-    // mis-detecting the format. (raw also works but auto is more forgiving.)
-    resource_type: "auto",
-    use_filename: true,
-    unique_filename: true,
+  params: (req, file) => {
+    const original = file.originalname || "resume";
+    const dot = original.lastIndexOf(".");
+    const ext = dot !== -1 ? original.slice(dot + 1).toLowerCase() : "pdf";
+    const baseName =
+      (dot !== -1 ? original.slice(0, dot) : original)
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .slice(0, 60) || "resume";
+    // Include the extension in the public_id so the URL is "...<name>.pdf".
+    const publicId = `${baseName}_${Date.now()}.${ext}`;
+    return {
+      folder: "talenthq/resumes",
+      resource_type: "raw",
+      public_id: publicId,
+      use_filename: false,
+      unique_filename: false,
+    };
   },
 });
 

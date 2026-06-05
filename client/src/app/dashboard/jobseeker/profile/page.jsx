@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { resumeDownloadUrl } from "@/lib/utils";
 import {
   Edit2,
   Plus,
@@ -498,6 +499,15 @@ export default function JobseekerProfilePage() {
                   className="text-sm font-semibold text-lime-700 hover:underline"
                 >
                   View Resume
+                </a>
+                <a
+                  href={resumeDownloadUrl(
+                    profile.resume,
+                    profile.fullName ? `${profile.fullName}_Resume` : "Resume",
+                  )}
+                  className="ml-3 text-sm font-semibold text-gray-500 hover:text-gray-800 hover:underline"
+                >
+                  Download
                 </a>
                 <p className="text-xs text-gray-400">PDF / Document</p>
               </div>
