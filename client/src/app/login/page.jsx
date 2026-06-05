@@ -1,6 +1,6 @@
 "use client";
 // src/app/login/page.jsx
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
@@ -23,7 +23,7 @@ const INP =
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setUser } = useAuth();
+  const { user, setUser, loading: authLoading } = useAuth();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
@@ -32,6 +32,15 @@ function LoginForm() {
 
   // Show OAuth error messages from callback redirects
   const oauthError = searchParams.get("error");
+
+  // If the user is ALREADY logged in (e.g. they opened /login in a new tab),
+  // send them straight to their dashboard instead of showing the form.
+  useEffect(() => {
+    if (!authLoading && user) {
+      const returnUrl = searchParams.get("redirect");
+      router.replace(returnUrl || ROLE_DASH[user.role] || "/");
+    }
+  }, [authLoading, user, router, searchParams]);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 

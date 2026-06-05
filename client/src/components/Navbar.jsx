@@ -3,7 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, memo } from "react";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap, LayoutDashboard, LogOut, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -15,10 +16,80 @@ const navItems = [
   { href: "/reach-us", label: "Reach Us" },
 ];
 
+const ROLE_DASH = {
+  jobseeker: "/dashboard/jobseeker",
+  handyman: "/dashboard/handyman",
+  employer: "/dashboard/employer",
+};
+
 function NavbarComponent() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, loading, logout } = useAuth();
+
+  const dashHref = user ? ROLE_DASH[user.role] || "/" : "/login";
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    await logout();
+    router.push("/");
+  };
+
+  // Desktop auth area: Login/Sign Up when logged out, Dashboard/Logout when in.
+  const DesktopAuth = () => {
+    // While the initial /me check is in flight, render nothing to avoid a
+    // flash of the wrong buttons (Login flashing before Dashboard appears).
+    if (loading) {
+      return (
+        <div className="flex items-center px-4">
+          <Loader2 size={16} className="animate-spin text-gray-300" />
+        </div>
+      );
+    }
+    if (user) {
+      return (
+        <div className="flex space-x-3">
+          <Link
+            href={dashHref}
+            prefetch
+            onMouseEnter={() => router.prefetch(dashHref)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
+          >
+            <LayoutDashboard size={15} />
+            Dashboard
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 hover:text-gray-900 transition"
+          >
+            <LogOut size={15} />
+            Logout
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex space-x-3">
+        <Link
+          href="/login"
+          prefetch
+          onMouseEnter={() => router.prefetch("/login")}
+          className="px-4 py-2 border border-lime-500 text-primary-600 rounded-lg text-sm font-semibold hover:bg-lime-50 transition"
+        >
+          Login
+        </Link>
+        <Link
+          href="/signup"
+          prefetch
+          onMouseEnter={() => router.prefetch("/signup")}
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
+        >
+          Sign Up
+        </Link>
+      </div>
+    );
+  };
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -73,24 +144,7 @@ function NavbarComponent() {
           </ul>
 
           {/* Auth Buttons */}
-          <div className="flex space-x-3">
-            <Link
-              href="/login"
-              prefetch
-              onMouseEnter={() => router.prefetch("/login")}
-              className="px-4 py-2 border border-lime-500 text-primary-600 rounded-lg text-sm font-semibold hover:bg-lime-50 transition"
-            >
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              prefetch
-              onMouseEnter={() => router.prefetch("/signup")}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
-            >
-              Sign Up
-            </Link>
-          </div>
+          <DesktopAuth />
         </div>
 
         {/* Mobile Toggle */}
@@ -165,23 +219,45 @@ function NavbarComponent() {
           ))}
         </ul>
 
+        {/* Mobile auth area */}
         <div className="px-6 mt-4 flex flex-col space-y-3">
-          <Link
-            href="/login"
-            prefetch
-            onClick={() => setMenuOpen(false)}
-            className="text-center px-4 py-2.5 border border-lime-500 text-primary-600 rounded-lg text-sm font-semibold hover:bg-lime-50 transition"
-          >
-            Login
-          </Link>
-          <Link
-            href="/signup"
-            prefetch
-            onClick={() => setMenuOpen(false)}
-            className="text-center px-4 py-2.5 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
-          >
-            Sign Up
-          </Link>
+          {loading ? null : user ? (
+            <>
+              <Link
+                href={dashHref}
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
+              >
+                <LayoutDashboard size={16} /> Dashboard
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 transition"
+              >
+                <LogOut size={16} /> Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className="text-center px-4 py-2.5 border border-lime-500 text-primary-600 rounded-lg text-sm font-semibold hover:bg-lime-50 transition"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className="text-center px-4 py-2.5 bg-primary-500 text-white rounded-lg text-sm font-semibold hover:bg-primary-600 transition"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
