@@ -43,19 +43,34 @@ const NAV = [
     icon: Users,
     children: [
       {
+        label: "Employers",
+        href: "/dashboard-admin/candidates/employers",
+        icon: Building2,
+      },
+      {
         label: "Add Employer",
         href: "/dashboard-admin/candidates/add-employer",
-        icon: Building2,
+        icon: Plus,
+      },
+      {
+        label: "Handymen",
+        href: "/dashboard-admin/candidates/handymen",
+        icon: Wrench,
       },
       {
         label: "Add Handyman",
         href: "/dashboard-admin/candidates/add-handyman",
-        icon: Wrench,
+        icon: Plus,
+      },
+      {
+        label: "Jobseekers",
+        href: "/dashboard-admin/candidates/jobseekers",
+        icon: UserCheck,
       },
       {
         label: "Add Jobseeker",
         href: "/dashboard-admin/candidates/add-jobseeker",
-        icon: UserCheck,
+        icon: Plus,
       },
     ],
   },

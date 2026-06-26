@@ -82,29 +82,23 @@ export const getAllUsers = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, Number(limit)));
     const skip = (pageNum - 1) * limitNum;
 
-    const buildQuery = (searchStr) => {
+    const buildQuery = (searchStr, forRole) => {
       if (!searchStr.trim()) return {};
       const re = new RegExp(searchStr.trim(), "i");
-      return { $or: [{ fullName: re }, { email: re }] };
+      const or = [{ fullName: re }, { email: re }];
+      if (forRole === "employer") or.push({ companyName: re });
+      return { $or: or };
     };
-
-    const query = buildQuery(search);
 
     let users = [];
     let total = 0;
 
     if (!role || role === "all") {
-      // Fetch from all 3 collections and merge
+      const baseQ = buildQuery(search, "all");
       const [seekers, handymen, employers] = await Promise.all([
-        Jobnode.find(query)
-          .select("fullName email role createdAt banned")
-          .lean(),
-        Handyman.find(query)
-          .select("fullName email role createdAt banned")
-          .lean(),
-        Employer.find(query)
-          .select("fullName email companyName role createdAt banned")
-          .lean(),
+        Jobnode.find(baseQ).select("fullName email role emailVerified activePlan createdAt banned").lean(),
+        Handyman.find(baseQ).select("fullName email role emailVerified activePlan createdAt banned").lean(),
+        Employer.find(baseQ).select("fullName email companyName role emailVerified activePlan createdAt banned").lean(),
       ]);
       const all = [...seekers, ...handymen, ...employers].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
@@ -112,25 +106,28 @@ export const getAllUsers = async (req, res) => {
       total = all.length;
       users = all.slice(skip, skip + limitNum);
     } else if (role === "jobseeker") {
+      const query = buildQuery(search, "jobseeker");
       total = await Jobnode.countDocuments(query);
       users = await Jobnode.find(query)
-        .select("fullName email role createdAt banned")
+        .select("fullName email avatar headline location phone emailVerified onboardingComplete activePlan role createdAt banned")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
         .lean();
     } else if (role === "handyman") {
+      const query = buildQuery(search, "handyman");
       total = await Handyman.countDocuments(query);
       users = await Handyman.find(query)
-        .select("fullName email role createdAt banned")
+        .select("fullName email avatar trade location yearsExperience emailVerified onboardingComplete activePlan role createdAt banned")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
         .lean();
     } else if (role === "employer") {
+      const query = buildQuery(search, "employer");
       total = await Employer.countDocuments(query);
       users = await Employer.find(query)
-        .select("fullName email companyName role createdAt banned")
+        .select("fullName email companyName industry state logo emailVerified onboardingComplete activePlan role createdAt banned")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
@@ -205,6 +202,64 @@ export const deleteUser = async (req, res) => {
     if (!deleted) return res.status(404).json({ message: "User not found" });
     return res.json({ message: "User deleted successfully" });
   } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// GET /api/superadmin/users/:id?role=employer|handyman|jobseeker
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.query;
+    const MODELS = { jobseeker: Jobnode, handyman: Handyman, employer: Employer };
+
+    let user = null;
+    if (role && MODELS[role]) {
+      user = await MODELS[role].findById(id).select("-password -__v").lean();
+    } else {
+      for (const M of [Jobnode, Handyman, Employer]) {
+        user = await M.findById(id).select("-password -__v").lean();
+        if (user) break;
+      }
+    }
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ user });
+  } catch (err) {
+    console.error("❌ Get user by id error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// PATCH /api/superadmin/users/:id  { role, ...fields }
+export const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Strip fields that must not be overwritten
+    const { role, _id, __v, createdAt, updatedAt, oauthProvider, oauthId, password, ...updates } = req.body;
+
+    const MODELS = { jobseeker: Jobnode, handyman: Handyman, employer: Employer };
+    let updated = null;
+
+    if (role && MODELS[role]) {
+      updated = await MODELS[role]
+        .findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: false })
+        .select("-password -__v")
+        .lean();
+    } else {
+      for (const M of [Jobnode, Handyman, Employer]) {
+        updated = await M
+          .findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: false })
+          .select("-password -__v")
+          .lean();
+        if (updated) break;
+      }
+    }
+
+    if (!updated) return res.status(404).json({ message: "User not found" });
+    return res.json({ message: "User updated successfully", user: updated });
+  } catch (err) {
+    console.error("❌ Update user error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
