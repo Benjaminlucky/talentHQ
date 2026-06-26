@@ -7,7 +7,6 @@
 import {
   SITE_URL,
   SITE_NAME,
-  OG_DEFAULT,
   fetchJob,
   toMetaDescription,
   absoluteUrl,
@@ -40,8 +39,8 @@ export async function generateMetadata({ params }) {
       `${job.title}${typeLabel} role at ${company} in ${loc}. Apply now on TalentHQ.`,
   );
 
-  const ogImage = absoluteUrl(job.company?.logo || OG_DEFAULT);
   const canonical = `${SITE_URL}/findjob/${id}`;
+  const ogImage = `${SITE_URL}/api/og/job/${id}`;
 
   return {
     title,
@@ -66,7 +65,7 @@ export async function generateMetadata({ params }) {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: `${company} logo`,
+          alt: `${job.title} — ${company} on TalentHQ`,
         },
       ],
     },
