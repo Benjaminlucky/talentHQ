@@ -19,6 +19,9 @@ import {
   Zap,
   Shield,
   Calendar,
+  Link2,
+  ImageIcon,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ReviewSection from "@/components/ReviewSection";
@@ -141,7 +144,7 @@ export default function HandymanPublicProfilePage() {
   if (error || !data)
     return <ErrorState message={error || "This profile could not be found."} />;
 
-  const { handyman } = data;
+  const { handyman, portfolio = [] } = data;
   const initials = (handyman.fullName || "H")
     .split(" ")
     .map((n) => n[0])
@@ -340,6 +343,55 @@ export default function HandymanPublicProfilePage() {
                       className="text-lime-600 flex-shrink-0"
                     />
                     {c}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Portfolio */}
+          {portfolio.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Briefcase size={15} className="text-amber-500" /> Portfolio
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {portfolio.map((item) => (
+                  <div
+                    key={item._id}
+                    className="border border-gray-100 rounded-xl overflow-hidden hover:border-amber-200 hover:shadow-sm transition"
+                  >
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-40 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-amber-50 flex items-center justify-center">
+                        <ImageIcon size={32} className="text-amber-200" />
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <h4 className="font-bold text-gray-900 text-sm truncate">
+                        {item.title}
+                      </h4>
+                      {item.description && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                      {item.link && (
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-xs text-amber-600 hover:text-amber-700 font-semibold transition"
+                        >
+                          <Link2 size={11} /> View Project
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

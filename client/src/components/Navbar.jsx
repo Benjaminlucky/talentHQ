@@ -11,6 +11,7 @@ const navItems = [
   { href: "/postjob", label: "Post Job" },
   { href: "/findjob", label: "Find Job" },
   { href: "/find-candidates", label: "Find Candidate" },
+  { href: "/handymen", label: "Find Handymen" },
   { href: "/post-advert", label: "Post Advert" },
   { href: "/pricing", label: "Pricing", highlight: true },
   { href: "/reach-us", label: "Reach Us" },
