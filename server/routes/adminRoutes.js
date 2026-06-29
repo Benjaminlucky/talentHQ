@@ -7,6 +7,10 @@ import {
   banUser,
   deleteUser,
   verifySuperAdmin,
+  getAllJobs,
+  getJobByIdAdmin,
+  updateJobAdmin,
+  deleteJobAdmin,
 } from "../controllers/adminController.js";
 import {
   getContactMessages,
@@ -26,5 +30,10 @@ router.patch("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);
 router.get("/contact-messages", getContactMessages);
 router.patch("/contact-messages/:id", updateContactMessageStatus);
+
+router.get("/jobs", getAllJobs);
+router.get("/jobs/:id", getJobByIdAdmin);
+router.patch("/jobs/:id", updateJobAdmin);
+router.delete("/jobs/:id", deleteJobAdmin);
 
 export default router; // ← this was missing, caused the import crash

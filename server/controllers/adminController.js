@@ -231,6 +231,87 @@ export const getUserById = async (req, res) => {
   }
 };
 
+// ── Superadmin Job CRUD ───────────────────────────────────────────────────────
+
+// GET /api/superadmin/jobs?search=&status=&page=1&limit=20
+export const getAllJobs = async (req, res) => {
+  try {
+    const { search = "", status = "", page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const query = {};
+    if (search.trim()) {
+      query.$or = [
+        { title: { $regex: search.trim(), $options: "i" } },
+        { location: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+    if (status && status !== "all") query.status = status;
+
+    const [jobs, total] = await Promise.all([
+      JobModel.find(query)
+        .populate("company", "companyName logo industry location")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      JobModel.countDocuments(query),
+    ]);
+
+    return res.json({ jobs, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
+  } catch (err) {
+    console.error("❌ getAllJobs admin:", err);
+    return res.status(500).json({ message: "Failed to fetch jobs" });
+  }
+};
+
+// GET /api/superadmin/jobs/:id
+export const getJobByIdAdmin = async (req, res) => {
+  try {
+    const job = await JobModel.findById(req.params.id)
+      .populate("company", "companyName logo industry location")
+      .lean();
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    return res.json({ job });
+  } catch (err) {
+    console.error("❌ getJobByIdAdmin:", err);
+    return res.status(500).json({ message: "Failed to fetch job" });
+  }
+};
+
+// PATCH /api/superadmin/jobs/:id
+export const updateJobAdmin = async (req, res) => {
+  try {
+    const { _id, __v, createdAt, updatedAt, company, postedBy, ...updates } = req.body;
+    const job = await JobModel.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true, runValidators: false },
+    )
+      .populate("company", "companyName logo industry location")
+      .lean();
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    return res.json({ message: "Job updated successfully", job });
+  } catch (err) {
+    console.error("❌ updateJobAdmin:", err);
+    return res.status(500).json({ message: "Failed to update job" });
+  }
+};
+
+// DELETE /api/superadmin/jobs/:id
+export const deleteJobAdmin = async (req, res) => {
+  try {
+    const job = await JobModel.findByIdAndDelete(req.params.id);
+    if (!job) return res.status(404).json({ message: "Job not found" });
+    return res.json({ message: "Job deleted successfully" });
+  } catch (err) {
+    console.error("❌ deleteJobAdmin:", err);
+    return res.status(500).json({ message: "Failed to delete job" });
+  }
+};
+
 // PATCH /api/superadmin/users/:id  { role, ...fields }
 export const updateUser = async (req, res) => {
   try {

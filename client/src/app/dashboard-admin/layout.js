@@ -84,7 +84,7 @@ const NAV = [
         href: "/dashboard-admin/jobs/new-job",
         icon: Plus,
       },
-      { label: "All Jobs", href: "/admin/jobs/all", icon: List },
+      { label: "All Jobs", href: "/dashboard-admin/jobs/all", icon: List },
     ],
   },
   {
